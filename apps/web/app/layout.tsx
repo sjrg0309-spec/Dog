@@ -1,0 +1,133 @@
+import type { Metadata, Viewport } from 'next';
+import { Atkinson_Hyperlegible, Bricolage_Grotesque } from 'next/font/google';
+
+import '@doggymeet/tokens/tokens.css';
+import './globals.css';
+
+import { ThemeToggle } from '@/components/theme-toggle';
+
+/**
+ * Cuerpo: Atkinson Hyperlegible, diseñada para legibilidad en baja visión.
+ * No es una elección estética. Esta aplicación se lee de pie, en la calle, a
+ * contraluz y con una correa en la otra mano.
+ */
+const body = Atkinson_Hyperlegible({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-body',
+});
+
+/** Display: con carácter suficiente para no parecer una plantilla. */
+const display = Bricolage_Grotesque({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-display',
+});
+
+export const metadata: Metadata = {
+  title: {
+    default: 'DoggyMeet — paseos que sí ocurren',
+    template: '%s · DoggyMeet',
+  },
+  description:
+    'Encuentra perros compatibles con el tuyo, coincide con quien pasea a tu misma hora y organizad la salida. Funciona a las siete de la mañana y a las once de la noche.',
+  openGraph: {
+    type: 'website',
+    locale: 'es_ES',
+    siteName: 'DoggyMeet',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
+/**
+ * Fija el tema antes del primer pintado.
+ *
+ * Sin esto, quien tiene el tema oscuro elegido ve un destello claro en cada
+ * carga. Es un script mínimo y envuelto en try/catch porque el almacenamiento
+ * puede lanzar en ventanas privadas o con las cookies bloqueadas.
+ */
+const themeScript = `
+try {
+  var stored = localStorage.getItem('doggymeet-theme');
+  if (stored === 'light' || stored === 'dark') {
+    document.documentElement.setAttribute('data-theme', stored);
+  }
+} catch (e) {}
+`;
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="es" className={`${body.variable} ${display.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body>
+        <a className="skip-link" href="#contenido">
+          Saltar al contenido
+        </a>
+
+        <header className="site-header">
+          <div className="shell site-header__inner">
+            <a className="brand" href="/">
+              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="4"
+                  fill="none"
+                  stroke="var(--dm-primary)"
+                  strokeWidth="2.5"
+                />
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="9"
+                  fill="none"
+                  stroke="var(--dm-live-ring)"
+                  strokeWidth="1.5"
+                  opacity="0.6"
+                />
+              </svg>
+              <span className="brand__word">DoggyMeet</span>
+            </a>
+
+            <nav className="site-nav" aria-label="Principal">
+              <a className="site-nav__section" href="/#como-funciona">
+                Cómo funciona
+              </a>
+              <a href="/parques">Parques</a>
+              <a className="site-nav__section" href="/#quedadas">
+                Quedadas
+              </a>
+              <a className="site-nav__section" href="/#espacios">
+                Espacios
+              </a>
+              <ThemeToggle />
+            </nav>
+          </div>
+        </header>
+
+        <main id="contenido">{children}</main>
+
+        <footer className="site-footer">
+          <div className="shell stack">
+            <p>
+              DoggyMeet es un MVP en construcción. Los datos que se muestran son una semilla de
+              demostración, no usuarios reales.
+            </p>
+            <p>
+              El horario de paseo de una persona es su rutina diaria: aquí solo se publica la
+              coincidencia, nunca la agenda de nadie.
+            </p>
+          </div>
+        </footer>
+      </body>
+    </html>
+  );
+}

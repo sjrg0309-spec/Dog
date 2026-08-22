@@ -50,6 +50,20 @@ export const SEED_IDS = {
   },
 } as const;
 
+/**
+ * Ancla una hora concreta de un día futuro, en hora local de Madrid.
+ *
+ * Con desplazamientos relativos (`now() + interval '1 day'`) un "paseo de la
+ * mañana" acaba mostrándose a la una y once de la madrugada, según cuándo se
+ * ejecute la semilla. Los datos de demostración tienen que ser creíbles: si la
+ * quedada se llama "de la mañana", tiene que caer por la mañana.
+ */
+const atLocalTime = (daysAhead: number, hours: number, minutes = 0) =>
+  `((date_trunc('day', (now() at time zone 'Europe/Madrid'))
+      + interval '${daysAhead} days'
+      + interval '${hours} hours'
+      + interval '${minutes} minutes') at time zone 'Europe/Madrid')`;
+
 const P = SEED_IDS.profiles;
 const D = SEED_IDS.dogs;
 const L = SEED_IDS.places;
@@ -208,17 +222,17 @@ export async function seed(db: Db): Promise<void> {
         ($1,$4,$7,'scheduled','Paseo de la mañana en Parque Central',
           'Salimos a las siete, como cada día. Ritmo alto: los nuestros corren.',
           $10, public.make_point(40.4098,-3.6939),
-          now() + interval '1 day', now() + interval '1 day' + interval '45 minutes',
+          ${atLocalTime(1, 7)}, ${atLocalTime(1, 7, 45)},
           'public','{medium,large}','{explorer,sprinter}', false, 8,'paseo-manana-central'),
         ($2,$5,$8,'scheduled','Quedada de perros gigantes en el Retiro',
           'Solo perros grandes y gigantes. Paseo tranquilo y sombra.',
           $11, public.make_point(40.4153,-3.6844),
-          now() + interval '3 days', now() + interval '3 days' + interval '2 hours',
+          ${atLocalTime(3, 11)}, ${atLocalTime(3, 13)},
           'public','{large,giant}','{couch,explorer}', true, 12,'gigantes-retiro'),
         ($3,$6,$9,'scheduled','Caminata nocturna por Parque Berlín',
           'Para quienes paseamos cuando ya no hay nadie. Perros pequeños.',
           $12, public.make_point(40.4562,-3.6764),
-          now() + interval '2 days', now() + interval '2 days' + interval '90 minutes',
+          ${atLocalTime(2, 22, 30)}, ${atLocalTime(3, 0)},
           'public','{mini,small}','{couch,explorer}', false, 6,'nocturna-berlin')`,
       [
         E.manana, E.gigantes, E.nocturna,
@@ -240,7 +254,7 @@ export async function seed(db: Db): Promise<void> {
       `insert into public.spot_bookings
         (id, spot_id, organizer_id, starts_at, ends_at, total_price_cents,
          group_affinity_min, status)
-       values ($1,$2,$3, now() + interval '5 days', now() + interval '5 days' + interval '2 hours',
+       values ($1,$2,$3, ${atLocalTime(5, 17)}, ${atLocalTime(5, 19)},
          4000, 81, 'collecting')`,
       [bookingId, S.patio, P.marta],
     );

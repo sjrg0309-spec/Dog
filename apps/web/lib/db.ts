@@ -1,0 +1,191 @@
+import 'server-only';
+
+import pg from 'pg';
+
+/**
+ * Acceso a datos de la web pública.
+ *
+ * Cada consulta se ejecuta con el rol `anon`, el mismo que tendría un visitante
+ * sin cuenta. No es una formalidad: significa que las páginas de esta web están
+ * sujetas a las mismas políticas RLS que cualquier otro cliente, y que si una
+ * política es demasiado permisiva se nota aquí antes que en producción.
+ */
+
+const globalForPool = globalThis as unknown as { doggymeetPool?: pg.Pool };
+
+function pool(): pg.Pool {
+  globalForPool.doggymeetPool ??= new pg.Pool({
+    host: process.env.PGHOST ?? '127.0.0.1',
+    port: Number(process.env.PGPORT ?? 5432),
+    user: process.env.PGUSER ?? 'doggymeet',
+    password: process.env.PGPASSWORD ?? 'doggymeet',
+    database: process.env.PGDATABASE ?? 'doggymeet',
+    max: 5,
+  });
+  return globalForPool.doggymeetPool;
+}
+
+/** Ejecuta una consulta como visitante anónimo. */
+export async function queryAsAnon<T extends pg.QueryResultRow>(
+  text: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const client = await pool().connect();
+  try {
+    await client.query('begin');
+    await client.query('set local role anon');
+    const result = await client.query<T>(text, params);
+    await client.query('commit');
+    return result.rows;
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export type PlaydateRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  kind: string;
+  starts_at: Date;
+  ends_at: Date;
+  public_slug: string;
+  admits_sizes: string[];
+  admits_energy: string[];
+  leashed: boolean;
+  max_dogs: number | null;
+  place_name: string | null;
+  place_is_fenced: boolean | null;
+  place_has_water: boolean | null;
+  place_has_shade: boolean | null;
+  host_name: string | null;
+  attendee_count: number;
+};
+
+const PLAYDATE_SELECT = `
+  select
+    d.id, d.title, d.description, d.kind, d.starts_at, d.ends_at, d.public_slug,
+    d.admits_sizes::text[] as admits_sizes, d.admits_energy::text[] as admits_energy,
+    d.leashed, d.max_dogs,
+    pl.name as place_name, pl.is_fenced as place_is_fenced,
+    pl.has_water as place_has_water, pl.has_shade as place_has_shade,
+    pr.display_name as host_name,
+    (select count(*) from public.playdate_rsvps r
+      where r.playdate_id = d.id and r.status = 'going')::int as attendee_count
+  from public.playdates d
+  left join public.places pl on pl.id = d.place_id
+  left join public.public_profiles pr on pr.id = d.host_id
+`;
+
+export function upcomingPlaydates(limit = 6) {
+  return queryAsAnon<PlaydateRow>(
+    `${PLAYDATE_SELECT}
+     where d.status = 'active' and d.ends_at > now()
+     order by d.starts_at asc
+     limit $1`,
+    [limit],
+  );
+}
+
+export async function playdateBySlug(slug: string) {
+  const [row] = await queryAsAnon<PlaydateRow>(`${PLAYDATE_SELECT} where d.public_slug = $1`, [
+    slug,
+  ]);
+  return row ?? null;
+}
+
+export type AttendeeRow = {
+  id: string;
+  name: string;
+  size: string | null;
+  energy_level: string | null;
+  play_styles: string[];
+  breeds: string[];
+  age_months: number | null;
+  is_microchip_verified: boolean;
+  bio: string | null;
+};
+
+export function playdateAttendees(playdateId: string) {
+  // Se lee de `public_dogs`, que deja fuera el código del chip y la fecha de
+  // nacimiento exacta.
+  return queryAsAnon<AttendeeRow>(
+    `select
+       g.id, g.name, g.size::text as size, g.energy_level::text as energy_level,
+       g.play_styles::text[] as play_styles, g.breeds,
+       g.age_months, g.is_microchip_verified, g.bio
+     from public.playdate_rsvps r
+     join public.public_dogs g on g.id = r.dog_id
+     where r.playdate_id = $1 and r.status = 'going'
+     order by g.name`,
+    [playdateId],
+  );
+}
+
+export type SpotRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  public_slug: string;
+  max_dogs: number;
+  price_per_slot_cents: number;
+  slot_minutes: number;
+  is_fenced: boolean;
+  fence_height_cm: number | null;
+  has_water: boolean;
+  has_shade: boolean;
+  is_private_single_group: boolean;
+  size_m2: number | null;
+  rules: string | null;
+  cancellation_policy: string | null;
+  host_name: string | null;
+};
+
+const SPOT_SELECT = `
+  select
+    s.id, s.title, s.description, s.public_slug, s.max_dogs, s.price_per_slot_cents,
+    s.slot_minutes, s.is_fenced, s.fence_height_cm, s.has_water, s.has_shade,
+    s.is_private_single_group, s.size_m2, s.rules, s.cancellation_policy,
+    pr.display_name as host_name
+  from public.public_spots s
+  left join public.public_profiles pr on pr.id = s.host_id
+`;
+
+export function activeSpots(limit = 6) {
+  return queryAsAnon<SpotRow>(`${SPOT_SELECT} order by s.price_per_slot_cents asc limit $1`, [
+    limit,
+  ]);
+}
+
+export async function spotBySlug(slug: string) {
+  const [row] = await queryAsAnon<SpotRow>(`${SPOT_SELECT} where s.public_slug = $1`, [slug]);
+  return row ?? null;
+}
+
+export type PlaceRow = {
+  id: string;
+  name: string;
+  kind: string;
+  is_fenced: boolean | null;
+  has_double_gate: boolean | null;
+  has_water: boolean | null;
+  has_shade: boolean | null;
+  has_small_dog_area: boolean | null;
+  upcoming_playdates: number;
+};
+
+export function allPlaces() {
+  return queryAsAnon<PlaceRow>(
+    `select
+       p.id, p.name, p.kind, p.is_fenced, p.has_double_gate, p.has_water,
+       p.has_shade, p.has_small_dog_area,
+       (select count(*) from public.playdates d
+         where d.place_id = p.id and d.status = 'active' and d.ends_at > now())::int
+         as upcoming_playdates
+     from public.places p
+     order by p.name`,
+  );
+}
