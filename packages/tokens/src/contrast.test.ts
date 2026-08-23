@@ -28,6 +28,60 @@ const themes: Array<[string, SemanticTokens]> = [
   ['oscuro', dark],
 ];
 
+/**
+ * Los tres colores de nombre de un grupo de chat.
+ *
+ * En WhatsApp cada participante tiene su color, y no es decoración: es lo que
+ * hace legible un grupo de cuatro sin leer, porque el ojo separa a los
+ * interlocutores por color antes de procesar las letras. Aquí se toman tres
+ * tokens que ya existen —marca, aviso e informativo— en vez de inventar una
+ * paleta nueva, y por eso hay que comprobar dos cosas de las que el resto de la
+ * suite no dice nada: que los tres se lean **sobre la burbuja**, que es
+ * `surface` y no `background`, y que se distingan **entre sí**. Un par de
+ * nombres que se confunden convierte esta función en ruido de colores.
+ *
+ * El trío no salió a la primera: el terracota del estado en vivo era el
+ * candidato obvio y este test lo tiró con 3,79 sobre superficie clara. Es el
+ * mismo color, exactamente igual de bonito, y de texto no vale.
+ */
+const AUTHOR_TINTS = ['primary', 'warning', 'information'] as const;
+
+/**
+ * El estado en vivo es un color de **anillo**, no de texto.
+ *
+ * Pasa el listón de componente de interfaz —anillos, rellenos, iconos— y no el
+ * de cuerpo, y esa diferencia no es un detalle: pintar un número de quince
+ * píxeles en terracota sobre hueso da 3,55, que está por debajo de AA y nadie
+ * lo nota mirando, porque el color se ve perfectamente. Se ve; lo que no se
+ * hace es leerlo cómodo.
+ */
+describe.each(themes)('el estado en vivo en el tema %s', (_name, theme) => {
+  it('vale como anillo, relleno o icono', () => {
+    expect(contrastRatio(theme.liveRing, theme.background)).toBeGreaterThanOrEqual(AA_UI);
+    expect(contrastRatio(theme.liveRing, theme.surface)).toBeGreaterThanOrEqual(AA_UI);
+  });
+});
+
+describe.each(themes)('nombres de autor en el tema %s', (_name, theme) => {
+  it.each(AUTHOR_TINTS)('«%s» se lee sobre la burbuja', (token) => {
+    // Van a trece píxeles en negrita, así que se les pide el listón de cuerpo
+    // y no el de texto grande.
+    expect(contrastRatio(theme[token], theme.surface)).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  it('los tres se distinguen entre sí', () => {
+    // El ratio WCAG mide luminancia, así que daría por buenos dos matices
+    // opuestos con la misma claridad. Aquí lo que importa es justo el matiz.
+    for (let i = 0; i < AUTHOR_TINTS.length; i += 1) {
+      for (let j = i + 1; j < AUTHOR_TINTS.length; j += 1) {
+        const a = AUTHOR_TINTS[i]!;
+        const b = AUTHOR_TINTS[j]!;
+        expect(oklabDistance(theme[a], theme[b])).toBeGreaterThan(0.1);
+      }
+    }
+  });
+});
+
 describe.each(themes)('tema %s', (_name, theme) => {
   it('el texto de cuerpo sobre el fondo cumple AA', () => {
     expect(contrastRatio(theme.foreground, theme.background)).toBeGreaterThanOrEqual(AA_TEXT);

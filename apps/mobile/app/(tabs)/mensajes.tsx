@@ -1,37 +1,25 @@
-import { Link } from 'expo-router';
-import { useState } from 'react';
+import { Link, useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
+import { NavBar, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
-import { Body, Caption, Notice, Screen, Segmented } from '@/components/ui';
-import { useActivePet } from '@/lib/active-pet';
+import { FacePile } from '@/components/face-pile';
+import { Body, Caption, Notice, Screen } from '@/components/ui';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
-  ArrowLeft,
   CalendarDays,
   Check,
   CheckCheck,
-  ChevronRight,
   Clock,
-  Mic,
-  Paperclip,
-  Send,
+  Search,
   Siren,
+  SquarePen,
   Users,
   type LucideIcon,
 } from '@/lib/icons';
-import {
-  clockTime,
-  groupByDay,
-  markRead,
-  send,
-  useThread,
-  useThreads,
-  type Message,
-  type Thread,
-} from '@/lib/messages';
+import { clockTime, useThreads, type Thread } from '@/lib/messages';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -47,78 +35,192 @@ import { useTheme } from '@/lib/theme';
  * conversación nace de algo que ya ha pasado, y quien la abre puede ver de qué
  * se trata antes de contestar.
  *
+ * **Dónde va ese motivo, que es lo que ha cambiado.** Antes ocupaba una tercera
+ * línea gris en cada fila, y con tres líneas por fila la lista dejaba de
+ * parecer una lista de conversaciones: WhatsApp y los directos de Instagram
+ * tienen dos, y la segunda es siempre el último mensaje. Ahora el motivo va
+ * como una **etiqueta de una palabra** junto al nombre —Coincidís, Quedada,
+ * Alerta, Grupo— y entero en la cabecera de la conversación, donde de verdad
+ * hace falta: justo antes de escribir. La garantía no se ha tocado, solo el
+ * sitio donde se lee.
+ *
  * Los grupos son las comunidades del barrio, no una lista aparte con los mismos
  * nombres.
  */
-const KIND_META: Record<
-  Thread['kind'],
-  { icon: LucideIcon; label: string; tone: 'neutral' | 'accent' | 'live' | 'warning' }
-> = {
-  alert: { icon: Siren, label: 'Alerta', tone: 'warning' },
-  schedule_match: { icon: Clock, label: 'Coincidís', tone: 'accent' },
-  playdate: { icon: CalendarDays, label: 'Quedada', tone: 'live' },
-  group: { icon: Users, label: 'Grupo', tone: 'neutral' },
+const KIND_META: Record<Thread['kind'], { icon: LucideIcon; label: string }> = {
+  alert: { icon: Siren, label: 'Alerta' },
+  schedule_match: { icon: Clock, label: 'Coincidís' },
+  playdate: { icon: CalendarDays, label: 'Quedada' },
+  group: { icon: Users, label: 'Grupo' },
 };
 
-type Filter = 'all' | 'groups';
+const FILTERS = [
+  { id: 'all', label: 'Todo' },
+  { id: 'unread', label: 'No leídos' },
+  { id: 'groups', label: 'Grupos' },
+] as const;
+
+type Filter = (typeof FILTERS)[number]['id'];
 
 export default function MessagesScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { scrolled, onScroll } = useScrolled();
   const threads = useThreads();
-  const pet = useActivePet();
 
   const [filter, setFilter] = useState<Filter>('all');
-  const [openId, setOpenId] = useState<string | null>(null);
-  const open = useThread(openId);
+  const [query, setQuery] = useState('');
 
-  if (open) {
-    return <ThreadView thread={open} viewerName={pet.ownerName} onBack={() => setOpenId(null)} />;
-  }
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return threads.filter((thread) => {
+      if (filter === 'groups' && thread.memberCount <= 1) return false;
+      if (filter === 'unread' && thread.unread === 0) return false;
+      if (needle.length === 0) return true;
+      // Se busca también dentro de los mensajes, no solo en el título: quien
+      // busca «cristales» se acuerda de lo que le dijeron, no de quién.
+      return (
+        thread.title.toLowerCase().includes(needle) ||
+        thread.reason.toLowerCase().includes(needle) ||
+        thread.messages.some((message) => message.body.toLowerCase().includes(needle))
+      );
+    });
+  }, [threads, filter, query]);
 
-  const visible =
-    filter === 'groups' ? threads.filter((thread) => thread.memberCount > 1) : threads;
+  const open = (thread: Thread) => {
+    haptics.tap();
+    router.push(`/chat?id=${thread.id}`);
+  };
 
   return (
     <Screen>
-      <NavBar title="Mensajes" scrolled={scrolled} showTitle={scrolled} />
+      <NavBar
+        title="Mensajes"
+        scrolled={scrolled}
+        trailing={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Escribir a alguien con quien coincides"
+            onPress={() => {
+              haptics.tap();
+              router.push('/descubrir');
+            }}
+            style={({ pressed }) => ({
+              width: theme.touchTarget.min,
+              height: theme.touchTarget.min,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.5 : 1,
+            })}
+          >
+            <Icon icon={SquarePen} size="lg" decorative />
+          </Pressable>
+        }
+      />
 
       <ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingBottom: theme.space[10] }}
+        keyboardShouldPersistTaps="handled"
       >
-        <LargeTitle subtitle="Cada conversación dice de dónde sale. Aquí no se escribe a desconocidos por escribir.">
-          Mensajes
-        </LargeTitle>
-
-        <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
-          <Segmented
-            options={[
-              { id: 'all' as Filter, label: 'Todo', hint: 'Conversaciones y grupos' },
-              { id: 'groups' as Filter, label: 'Grupos', hint: 'Solo lo que es de más de uno' },
-            ]}
-            value={filter}
-            onChange={setFilter}
-          />
-        </View>
-
-        <Separator />
-        {visible.map((thread) => (
-          <View key={thread.id}>
-            <ThreadRow
-              thread={thread}
-              onPress={() => {
-                haptics.tap();
-                markRead(thread.id);
-                setOpenId(thread.id);
+        {/* Buscador y filtros: la cabecera de WhatsApp. Sustituyen al título
+            grande con su párrafo debajo y al segmentado de dos píldoras, que
+            entre los tres se comían cuatrocientos píxeles antes de la primera
+            conversación. Y el buscador **busca de verdad**, incluido dentro de
+            los mensajes: una lupa que no filtra nada es peor que no tenerla. */}
+        <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[2] }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.space[2],
+              height: 38,
+              paddingHorizontal: theme.space[3],
+              borderRadius: theme.radius.full,
+              backgroundColor: theme.colors.surfaceSunken,
+            }}
+          >
+            <Icon icon={Search} size="base" color={theme.colors.mutedForeground} decorative />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Buscar"
+              placeholderTextColor={theme.colors.inputPlaceholder}
+              accessibilityLabel="Buscar en los mensajes"
+              returnKeyType="search"
+              style={{
+                flex: 1,
+                color: theme.colors.inputForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.sm,
               }}
             />
-            <Separator inset={theme.space[4]} />
           </View>
-        ))}
+        </View>
 
-        <View style={{ padding: theme.space[4] }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: theme.space[4],
+            gap: theme.space[2],
+            paddingBottom: theme.space[3],
+          }}
+        >
+          {FILTERS.map((option) => {
+            const active = option.id === filter;
+            return (
+              <Pressable
+                key={option.id}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                onPress={() => {
+                  haptics.tap();
+                  setFilter(option.id);
+                }}
+                style={({ pressed }) => ({
+                  height: 30,
+                  justifyContent: 'center',
+                  paddingHorizontal: theme.space[3],
+                  borderRadius: theme.radius.full,
+                  backgroundColor: active ? theme.colors.accent : theme.colors.surfaceSunken,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Text
+                  style={{
+                    color: active ? theme.colors.accentForeground : theme.colors.mutedForeground,
+                    fontFamily: active ? fonts.bodyBold : fonts.body,
+                    fontSize: 13,
+                  }}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {visible.length === 0 ? (
+          <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[4] }}>
+            <Notice>
+              <Body>
+                {query.trim().length > 0
+                  ? `Nada que contenga «${query.trim()}».`
+                  : filter === 'unread'
+                    ? 'No tienes nada sin leer.'
+                    : 'Todavía no hay ningún grupo.'}
+              </Body>
+            </Notice>
+          </View>
+        ) : (
+          visible.map((thread) => (
+            <ThreadRow key={thread.id} thread={thread} onPress={() => open(thread)} />
+          ))
+        )}
+
+        <View style={{ padding: theme.space[4], paddingTop: theme.space[6] }}>
           <Notice>
             <Body>¿Falta alguien con quien te gustaría hablar?</Body>
             <Caption>
@@ -150,18 +252,28 @@ export default function MessagesScreen() {
   );
 }
 
+/**
+ * Una fila de la lista.
+ *
+ * Dos líneas, no tres: retrato, nombre y hora arriba; último mensaje y globo de
+ * no leídos abajo. Y el retrato es **la cara del animal del hilo**, no un icono
+ * de categoría dentro de un círculo gris — con iconos, cuatro conversaciones
+ * distintas se veían idénticas y la lista se leía como una bandeja de
+ * notificaciones del sistema.
+ */
 function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void }) {
   const theme = useTheme();
   const meta = KIND_META[thread.kind];
   const last = thread.messages[thread.messages.length - 1];
+  const unread = thread.unread > 0;
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={
-        thread.unread > 0
-          ? `${thread.title}. ${thread.unread} sin leer. ${thread.reason}`
-          : `${thread.title}. ${thread.reason}`
+        unread
+          ? `${thread.title}. ${meta.label}. ${thread.unread} sin leer. ${thread.reason}`
+          : `${thread.title}. ${meta.label}. ${thread.reason}`
       }
       onPress={onPress}
       style={({ pressed }) => ({
@@ -169,38 +281,24 @@ function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void })
         alignItems: 'center',
         gap: theme.space[3],
         paddingHorizontal: theme.space[4],
-        paddingVertical: theme.space[3],
-        minHeight: theme.touchTarget.comfortable + 24,
+        paddingVertical: theme.space[2],
+        minHeight: 68,
         backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
       })}
     >
-      {/* Avatar redondo y grande, como en WhatsApp. El cuadrado de antes hacía
-          que la lista pareciera un panel de administración. */}
+      <FacePile faces={thread.faces} size={50} alert={thread.kind === 'alert'} />
+
       <View
         style={{
-          width: 54,
-          height: 54,
-          borderRadius: 27,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor:
-            thread.kind === 'alert' ? theme.colors.destructive : theme.colors.surfaceSunken,
+          flex: 1,
+          gap: 2,
+          // El pelo separador arranca en el texto y no en el borde, para que la
+          // columna de retratos se lea como una columna.
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: theme.colors.border,
+          paddingBottom: theme.space[2],
         }}
       >
-        <Icon
-          icon={meta.icon}
-          size="xl"
-          color={
-            thread.kind === 'alert' ? theme.colors.destructiveForeground : theme.colors.foreground
-          }
-          decorative
-        />
-      </View>
-
-      <View style={{ flex: 1, gap: theme.space[0.5] }}>
-        {/* Nombre a la izquierda y hora arriba a la derecha, en la misma línea.
-            Es la fila de WhatsApp, y el sitio de la hora no es capricho: se lee
-            en diagonal para saber qué está vivo sin leer nada más. */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
           <Text
             numberOfLines={1}
@@ -208,7 +306,7 @@ function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void })
               flex: 1,
               color: theme.colors.foreground,
               fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize.base,
+              fontSize: theme.fontSize.sm,
             }}
           >
             {thread.title}
@@ -216,9 +314,9 @@ function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void })
           {last ? (
             <Text
               style={{
-                color: thread.unread > 0 ? theme.colors.primary : theme.colors.mutedForeground,
-                fontFamily: thread.unread > 0 ? fonts.bodyBold : fonts.body,
-                fontSize: theme.fontSize.xs,
+                color: unread ? theme.colors.primary : theme.colors.mutedForeground,
+                fontFamily: unread ? fonts.bodyBold : fonts.body,
+                fontSize: 11,
               }}
             >
               {clockTime(last.at)}
@@ -226,63 +324,65 @@ function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void })
           ) : null}
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
-          <View style={{ flex: 1, gap: theme.space[0.5] }}>
-            {last ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[1] }}>
-                {/* El doble check delante del propio mensaje, como en WhatsApp:
-                    dice si llegó sin tener que abrir el hilo. */}
-                {last.mine ? (
-                  <Icon
-                    icon={last.delivery === 'sent' ? Check : CheckCheck}
-                    size="sm"
-                    color={
-                      last.delivery === 'read'
-                        ? theme.colors.information
-                        : theme.colors.mutedForeground
-                    }
-                    decorative
-                  />
-                ) : null}
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    flex: 1,
-                    color:
-                      thread.unread > 0 ? theme.colors.foreground : theme.colors.mutedForeground,
-                    fontFamily: thread.unread > 0 ? fonts.bodyBold : fonts.body,
-                    fontSize: theme.fontSize.sm,
-                  }}
-                >
-                  {!last.mine && thread.memberCount > 1
-                    ? `${last.authorName.split(' ')[0]}: ${last.body}`
-                    : last.body}
-                </Text>
-              </View>
-            ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[1] }}>
+          {/* De dónde sale el hilo, en un icono y sin la palabra. Con la
+              palabra escrita —«Coincidís», «Quedada»— se comía setenta píxeles
+              de la línea y el último mensaje se cortaba a media frase, que es
+              justo lo que uno viene a leer. El icono cabe, y la palabra entera
+              sigue en la etiqueta accesible y en la cabecera del hilo. */}
+          <Icon icon={meta.icon} size="sm" color={theme.colors.mutedForeground} decorative />
 
-            {/* El motivo se queda, en pequeño y en tercera línea. Es lo que
-                separa esta lista de un chat cualquiera: dice de dónde sale la
-                conversación antes de que la abras. */}
+          {last ? (
+            <>
+              {/* El doble check delante del propio mensaje, como en WhatsApp:
+                  dice si llegó sin tener que abrir el hilo. */}
+              {last.mine ? (
+                <Icon
+                  icon={last.delivery === 'sent' ? Check : CheckCheck}
+                  size="sm"
+                  color={
+                    last.delivery === 'read'
+                      ? theme.colors.information
+                      : theme.colors.mutedForeground
+                  }
+                  decorative
+                />
+              ) : null}
+              <Text
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  color: unread ? theme.colors.foreground : theme.colors.mutedForeground,
+                  fontFamily: unread ? fonts.bodyBold : fonts.body,
+                  fontSize: theme.fontSize.sm,
+                }}
+              >
+                {!last.mine && thread.memberCount > 1
+                  ? `${last.authorName.split(' ')[0]}: ${last.body}`
+                  : last.body}
+              </Text>
+            </>
+          ) : (
             <Text
               numberOfLines={1}
               style={{
+                flex: 1,
                 color: theme.colors.mutedForeground,
                 fontFamily: fonts.body,
-                fontSize: theme.fontSize.xs,
+                fontSize: theme.fontSize.sm,
               }}
             >
               {thread.reason}
             </Text>
-          </View>
+          )}
 
-          {thread.unread > 0 ? (
+          {unread ? (
             <View
               style={{
-                minWidth: 22,
-                height: 22,
+                minWidth: 20,
+                height: 20,
                 paddingHorizontal: 6,
-                borderRadius: 11,
+                borderRadius: 10,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.colors.primary,
@@ -302,351 +402,5 @@ function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void })
         </View>
       </View>
     </Pressable>
-  );
-}
-
-function ThreadView({
-  thread,
-  viewerName,
-  onBack,
-}: {
-  thread: Thread;
-  viewerName: string;
-  onBack: () => void;
-}) {
-  const theme = useTheme();
-  const [draft, setDraft] = useState('');
-  const meta = KIND_META[thread.kind];
-  const days = groupByDay(thread.messages);
-  const empty = draft.trim().length === 0;
-
-  return (
-    <Screen>
-      {/* Cabecera de conversación de WhatsApp: volver, avatar, nombre y debajo
-          la línea de estado. Ahí WhatsApp pone «en línea»; aquí va el motivo
-          del hilo, que es lo que de verdad hace falta saber antes de escribir. */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.space[2],
-          paddingHorizontal: theme.space[2],
-          paddingVertical: theme.space[2],
-          backgroundColor:
-            thread.kind === 'alert' ? theme.colors.destructive : theme.colors.surface,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: theme.colors.border,
-        }}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Volver a la lista de mensajes"
-          onPress={onBack}
-          style={({ pressed }) => ({
-            width: theme.touchTarget.min,
-            height: theme.touchTarget.min,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.5 : 1,
-          })}
-        >
-          <Icon
-            icon={ArrowLeft}
-            size="lg"
-            color={
-              thread.kind === 'alert'
-                ? theme.colors.destructiveForeground
-                : theme.colors.foreground
-            }
-            decorative
-          />
-        </Pressable>
-
-        <View
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 19,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor:
-              thread.kind === 'alert'
-                ? theme.colors.destructiveForeground
-                : theme.colors.surfaceSunken,
-          }}
-        >
-          <Icon
-            icon={meta.icon}
-            size="base"
-            color={
-              thread.kind === 'alert' ? theme.colors.destructive : theme.colors.foreground
-            }
-            decorative
-          />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text
-            accessibilityRole="header"
-            numberOfLines={1}
-            style={{
-              color:
-                thread.kind === 'alert'
-                  ? theme.colors.destructiveForeground
-                  : theme.colors.foreground,
-              fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize.base,
-            }}
-          >
-            {thread.title}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={{
-              color:
-                thread.kind === 'alert'
-                  ? theme.colors.destructiveForeground
-                  : theme.colors.mutedForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize.xs,
-            }}
-          >
-            {thread.memberCount === 1 ? thread.reason : `${thread.memberCount} · ${thread.reason}`}
-          </Text>
-        </View>
-      </View>
-
-      {/* El fondo de la conversación. WhatsApp pone un papel pintado; aquí una
-          superficie hundida y lisa, que hace el mismo trabajo —separar el chat
-          del resto de la aplicación— sin meter una textura que compita con el
-          texto. */}
-      <ScrollView
-        style={{ backgroundColor: theme.colors.surfaceSunken }}
-        contentContainerStyle={{ padding: theme.space[3], gap: theme.space[1] }}
-      >
-        {days.map((group) => (
-          <View key={group.day} style={{ gap: theme.space[1] }}>
-            {/* La pastilla de fecha, centrada y flotando. Marca un corte en la
-                conversación, no una sección, y por eso no es una cabecera. */}
-            <View style={{ alignItems: 'center', paddingVertical: theme.space[2] }}>
-              <View
-                style={{
-                  paddingHorizontal: theme.space[3],
-                  paddingVertical: theme.space[1],
-                  borderRadius: theme.radius.full,
-                  backgroundColor: theme.colors.surface,
-                }}
-              >
-                <Text
-                  style={{
-                    color: theme.colors.mutedForeground,
-                    fontFamily: fonts.bodyBold,
-                    fontSize: theme.fontSize.xs,
-                  }}
-                >
-                  {group.day}
-                </Text>
-              </View>
-            </View>
-
-            {group.items.map((message, index) => (
-              <Bubble
-                key={message.id}
-                message={message}
-                showAuthor={
-                  !message.mine &&
-                  thread.memberCount > 1 &&
-                  group.items[index - 1]?.authorName !== message.authorName
-                }
-              />
-            ))}
-          </View>
-        ))}
-      </ScrollView>
-
-      {/* El compositor de WhatsApp: una píldora con el clip dentro, y a la
-          derecha un botón redondo que cambia de micrófono a avión según haya
-          texto. Ese cambio es lo que hace que no haya un botón de enviar
-          apagado ocupando sitio la mayor parte del tiempo. */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          gap: theme.space[2],
-          padding: theme.space[2],
-          backgroundColor: theme.colors.surfaceSunken,
-        }}
-      >
-        <View
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'flex-end',
-            gap: theme.space[1],
-            backgroundColor: theme.colors.input,
-            borderRadius: theme.radius.xl,
-            paddingLeft: theme.space[4],
-            paddingRight: theme.space[1],
-          }}
-        >
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            multiline
-            placeholder="Mensaje"
-            placeholderTextColor={theme.colors.inputPlaceholder}
-            accessibilityLabel={`Escribir en ${thread.title}`}
-            style={{
-              flex: 1,
-              minHeight: theme.touchTarget.min,
-              maxHeight: 120,
-              paddingVertical: theme.space[2],
-              color: theme.colors.inputForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize.base,
-            }}
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Adjuntar una foto"
-            onPress={() => haptics.tap()}
-            style={({ pressed }) => ({
-              width: theme.touchTarget.min,
-              height: theme.touchTarget.min,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.5 : 1,
-            })}
-          >
-            <Icon icon={Paperclip} size="base" color={theme.colors.mutedForeground} decorative />
-          </Pressable>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={empty ? 'Grabar una nota de voz' : 'Enviar'}
-          onPress={() => {
-            if (empty) {
-              haptics.tap();
-              return;
-            }
-            send(thread.id, draft, viewerName);
-            haptics.commit();
-            setDraft('');
-          }}
-          style={({ pressed }) => ({
-            width: theme.touchTarget.comfortable,
-            height: theme.touchTarget.comfortable,
-            borderRadius: theme.radius.full,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.colors.primary,
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <Icon
-            icon={empty ? Mic : Send}
-            size="base"
-            color={theme.colors.primaryForeground}
-            decorative
-          />
-        </Pressable>
-      </View>
-    </Screen>
-  );
-}
-
-/**
- * Una burbuja.
- *
- * Tres detalles de WhatsApp que parecen decorativos y no lo son:
- *
- *  1. **El pico.** Una esquina sin redondear del lado de quien habla. Es lo que
- *     permite saber de quién es un mensaje sin leer el nombre, y por eso solo
- *     lo lleva el primero de cada tanda.
- *  2. **La hora dentro de la burbuja**, abajo a la derecha y en pequeño. Fuera
- *     ocuparía una línea por mensaje y triplicaría el alto de la conversación.
- *  3. **El nombre solo en el primer mensaje seguido de cada persona**, y solo en
- *     grupo. Repetirlo en cada burbuja es ruido; quitarlo del todo hace
- *     ilegible un grupo de cuatro.
- */
-function Bubble({ message, showAuthor }: { message: Message; showAuthor: boolean }) {
-  const theme = useTheme();
-  const mine = message.mine;
-
-  return (
-    <View
-      style={{
-        alignSelf: mine ? 'flex-end' : 'flex-start',
-        maxWidth: '82%',
-        backgroundColor: mine ? theme.colors.accent : theme.colors.surface,
-        borderRadius: theme.radius.lg,
-        // El pico: la esquina de abajo del lado propio se queda casi recta.
-        borderBottomRightRadius: mine ? theme.radius.xs : theme.radius.lg,
-        borderBottomLeftRadius: mine ? theme.radius.lg : theme.radius.xs,
-        paddingHorizontal: theme.space[3],
-        paddingTop: theme.space[2],
-        paddingBottom: theme.space[1],
-        gap: 2,
-      }}
-    >
-      {showAuthor ? (
-        <Text
-          style={{
-            color: theme.colors.primary,
-            fontFamily: fonts.bodyBold,
-            fontSize: theme.fontSize.xs,
-          }}
-        >
-          {message.authorName}
-        </Text>
-      ) : null}
-
-      <Text
-        style={{
-          color: mine ? theme.colors.accentForeground : theme.colors.foreground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize.base,
-          lineHeight: theme.fontSize.base * 1.4,
-        }}
-      >
-        {message.body}
-      </Text>
-
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          alignSelf: 'flex-end',
-          gap: theme.space[1],
-        }}
-      >
-        <Text
-          style={{
-            color: mine ? theme.colors.accentForeground : theme.colors.mutedForeground,
-            fontFamily: fonts.body,
-            fontSize: 11,
-            opacity: mine ? 0.75 : 1,
-          }}
-        >
-          {clockTime(message.at)}
-        </Text>
-        {mine ? (
-          <Icon
-            icon={message.delivery === 'sent' ? Check : CheckCheck}
-            size="sm"
-            // Azul solo cuando está leído. Los dos checks grises significan
-            // «llegó»; el azul, «lo ha visto». Confundirlos vacía de sentido el
-            // único icono que la gente mira de verdad en un chat.
-            color={
-              message.delivery === 'read'
-                ? theme.colors.information
-                : theme.colors.accentForeground
-            }
-            decorative
-          />
-        ) : null}
-      </View>
-    </View>
   );
 }

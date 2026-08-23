@@ -12,15 +12,22 @@ import { useTheme } from '@/lib/theme';
 /**
  * La pila de la aplicación.
  *
- * Encima de las pestañas hay dos pantallas que **no llevan barra de pestañas**,
+ * Encima de las pestañas hay tres pantallas que **no llevan barra de pestañas**,
  * y no es una preferencia estética: el visor de estados y el reproductor de
  * reels ocupan la pantalla entera y se cierran con un gesto, como en cualquier
  * aplicación que los tenga. Una barra de cinco iconos debajo de un vídeo
  * vertical se come el pie del vídeo y ofrece salidas donde lo que hace falta es
  * una: cerrar.
  *
+ * La tercera es la **conversación**, y llega por el mismo razonamiento: ni
+ * WhatsApp ni los directos de Instagram dejan la barra puesta al abrir un chat.
+ * Un chat es una pantalla en la que se entra y de la que se sale, no un sitio en
+ * el que se está, y esos sesenta y cuatro píxeles debajo del compositor son del
+ * teclado. Se distingue de las otras dos en cómo entra: empuja desde la derecha
+ * y se vuelve con el gesto de siempre, en vez de aparecer por encima.
+ *
  * Por eso las pestañas viven en un grupo `(tabs)`: el grupo no aparece en la
- * ruta —`/perfil` sigue siendo `/perfil`— y deja sitio para que estas dos se
+ * ruta —`/perfil` sigue siendo `/perfil`— y deja sitio para que estas tres se
  * presenten por encima.
  */
 export default function RootLayout() {
@@ -67,6 +74,9 @@ function RootStack() {
             choca con el de mantener pulsado para pausar. */}
         <Stack.Screen name="estados" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="reels" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        {/* La conversación empuja desde la derecha, como una pantalla de detalle
+            cualquiera: el gesto de volver hacia atrás tiene que seguir ahí. */}
+        <Stack.Screen name="chat" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </>
   );

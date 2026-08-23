@@ -16,8 +16,25 @@ import { useSyncExternalStore } from 'react';
 
 export type ThreadKind = 'schedule_match' | 'playdate' | 'alert' | 'group';
 
+/**
+ * Quién sale en el retrato de un hilo.
+ *
+ * Una lista de mensajes sin caras se lee como una bandeja de notificaciones del
+ * sistema: iconos grises de categoría, todos iguales, ninguno de nadie. En
+ * WhatsApp y en los directos de Instagram lo primero de cada fila es **la cara
+ * de quien te escribe**, y es lo que hace que la lista se reconozca de un
+ * vistazo sin leer un nombre.
+ *
+ * Aquí la cara es la del **animal**, no la del tutor, porque es de quien se
+ * habla en todos los hilos y es lo que el generador de retratos sabe dibujar.
+ * En un grupo van dos, montadas.
+ */
+export type Face = { id: string; name: string };
+
 export type Message = {
   id: string;
+  /** Estable por persona: de aquí sale su color en un grupo. */
+  authorId: string;
   authorName: string;
   body: string;
   at: Date;
@@ -41,10 +58,51 @@ export type Thread = {
   /** Cuántos son. Uno significa cara a cara. */
   memberCount: number;
   unread: number;
+  /** Los retratos de la fila. Uno cara a cara, dos montadas en grupo. */
+  faces: Face[];
   messages: Message[];
 };
 
+/**
+ * El color del nombre de cada persona dentro de un grupo.
+ *
+ * Es el detalle de WhatsApp que hace legible un grupo de cuatro sin leer: el
+ * ojo separa a los interlocutores por color antes de procesar las letras. Sale
+ * del identificador y no del orden de llegada, así que a nadie le cambia el
+ * color cuando entra otro al grupo.
+ *
+ * Devuelve un índice y no un color: los colores viven en el tema, y esta capa
+ * no sabe —ni debe saber— si la aplicación está en claro o en oscuro.
+ */
+export function authorTint(authorId: string): 0 | 1 | 2 {
+  let hash = 0;
+  for (let index = 0; index < authorId.length; index += 1) {
+    hash = (hash * 31 + authorId.charCodeAt(index)) % 9973;
+  }
+  return (hash % 3) as 0 | 1 | 2;
+}
+
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
+
+/**
+ * Los animales de la semilla, por identificador.
+ *
+ * Se repiten aquí a propósito en vez de importar `demo-data`: los mensajes son
+ * datos de demostración de otra pantalla y no tienen por qué depender de la
+ * forma del catálogo de mascotas. Lo que sí importa es que el identificador
+ * **sea el mismo**, porque el retrato se dibuja a partir de él: si Toby saliera
+ * aquí con otro identificador, en el chat tendría otra cara que en el feed, y
+ * ese es justo el fallo que hace que una lista de conversaciones no sirva para
+ * reconocer a nadie.
+ */
+const PET = {
+  toby: { id: '20000000-0000-4000-8000-000000000002', name: 'Toby' },
+  rocky: { id: '20000000-0000-4000-8000-000000000003', name: 'Rocky' },
+  bruno: { id: '20000000-0000-4000-8000-000000000004', name: 'Bruno' },
+  /* Lúa es de la alerta y no está en el catálogo de la demostración: es el
+     animal de otra persona, que es justo el caso de un SOS. */
+  lua: { id: 'alert-lua', name: 'Lúa' },
+} as const;
 
 let threads: Thread[] = [
   {
@@ -54,9 +112,11 @@ let threads: Thread[] = [
     reason: 'Hay una alerta de perro perdido abierta a 900 m de ti.',
     memberCount: 14,
     unread: 3,
+    faces: [PET.lua],
     messages: [
       {
         id: 'm1',
+        authorId: 'elena',
         authorName: 'Elena V.',
         body: 'Se soltó en Doctor Esquerdo sobre las nueve. Es blanca con manchas canela y lleva arnés rojo.',
         at: minutesAgo(94),
@@ -64,6 +124,7 @@ let threads: Thread[] = [
       },
       {
         id: 'm2',
+        authorId: 'javier',
         authorName: 'Javier P.',
         body: 'La he visto cruzando hacia el Retiro hace media hora. No se dejó acercar.',
         at: minutesAgo(38),
@@ -71,6 +132,7 @@ let threads: Thread[] = [
       },
       {
         id: 'm3',
+        authorId: 'elena',
         authorName: 'Elena V.',
         body: 'Voy para allá. Si alguien la ve, que no corra detrás: se aleja más.',
         at: minutesAgo(35),
@@ -85,9 +147,11 @@ let threads: Thread[] = [
     reason: 'Coincidís 5 días a la semana, de 7:00 a 7:45, en el Parque Central.',
     memberCount: 1,
     unread: 1,
+    faces: [PET.toby],
     messages: [
       {
         id: 'm4',
+        authorId: 'carlos',
         authorName: 'Carlos M.',
         body: 'Mañana salimos a las siete como siempre. Si venís, Toby se pone contentísimo con Nina.',
         at: minutesAgo(180),
@@ -102,9 +166,11 @@ let threads: Thread[] = [
     reason: 'Estáis los cuatro apuntados. Afinidad del grupo: 81 %.',
     memberCount: 4,
     unread: 0,
+    faces: [PET.toby, PET.rocky],
     messages: [
       {
         id: 'm5',
+        authorId: 'carlos',
         authorName: 'Carlos M.',
         body: 'Confirmado el patio de 11 a 13. Salen 10 € por perro.',
         at: minutesAgo(600),
@@ -112,6 +178,7 @@ let threads: Thread[] = [
       },
       {
         id: 'm6',
+        authorId: 'marta',
         authorName: 'Marta R.',
         body: 'Nosotras vamos. Kira se queda en casa, con ese calor no le conviene.',
         at: minutesAgo(540),
@@ -127,9 +194,11 @@ let threads: Thread[] = [
     reason: 'Grupo del barrio · 2 miembros.',
     memberCount: 2,
     unread: 0,
+    faces: [PET.rocky, PET.bruno],
     messages: [
       {
         id: 'm7',
+        authorId: 'diego',
         authorName: 'Diego S.',
         body: 'Han cortado la entrada sur del parque por obras. Hay cristales, cuidado con las patas.',
         at: minutesAgo(1300),
@@ -178,6 +247,9 @@ export function send(threadId: string, body: string, authorName: string): void {
             ...thread.messages,
             {
               id: `m-${thread.messages.length}-${thread.id}`,
+              /* Todo lo propio comparte autor: en un grupo tus mensajes no
+                 llevan nombre de todas formas, así que el color no se usa. */
+              authorId: 'me',
               authorName,
               body: trimmed,
               at: new Date(),

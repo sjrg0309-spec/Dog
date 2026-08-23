@@ -338,9 +338,16 @@ export function PostCard({
                   decorative
                 />
               </Pop>
+              {/* El número **no** se pinta en terracota aunque el icono sí.
+                  El terracota del estado en vivo da 3,55 sobre el fondo claro:
+                  suficiente para un anillo o un icono, por debajo de AA para
+                  texto de quince píxeles. No se nota mirando —el color se ve
+                  perfectamente— y por eso llevaba aquí desde el principio; lo
+                  descubrió una aserción nueva de la paleta. Lo que dice que la
+                  reacción es tuya sigue siendo el icono: relleno y en color. */}
               <Text
                 style={{
-                  color: mine ? theme.colors.liveRing : theme.colors.foreground,
+                  color: theme.colors.foreground,
                   fontFamily: mine ? fonts.bodyBold : fonts.body,
                   fontSize: theme.fontSize.sm,
                   fontVariant: ['tabular-nums'],
