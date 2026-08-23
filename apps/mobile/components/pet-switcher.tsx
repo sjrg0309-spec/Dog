@@ -1,10 +1,12 @@
 /**
  * Selector de mascota.
  *
- * Aparece en todas las pantallas porque la respuesta a "qué te ofrece Coincide"
- * cambia por completo según cuál esté seleccionada: con una perra hay
- * descubrimiento, radar y quedadas; con una gata no hay ninguna de las tres, y
- * lo que hay es comunidad y veterinarios que sepan tratarla.
+ * Aparece en todas las pantallas porque la respuesta a «qué te ofrece Coincide
+ * hoy» cambia según cuál esté seleccionada, y no por la especie —hoy todas son
+ * perros— sino por el animal: a 26 grados Nina sale y Kira no.
+ *
+ * Debajo del nombre va la raza y no la especie. Con dos perros, poner «Perro» y
+ * «Perro» era repetir lo que no distingue y callar lo que sí.
  *
  * Se oculta solo si el tutor tiene una única mascota: un selector de un elemento
  * es ruido.
@@ -42,7 +44,9 @@ export function PetSwitcher() {
             key={pet.id}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            accessibilityHint={`Ver la aplicación para ${pet.name}, que es ${speciesName(pet.speciesId).toLowerCase()}`}
+            accessibilityHint={`Ver la aplicación para ${pet.name}${
+              pet.breeds.length > 0 ? `, ${pet.breeds[0]}` : ''
+            }`}
             onPress={() => setActivePetId(pet.id)}
             style={{
               flex: 1,
@@ -69,7 +73,7 @@ export function PetSwitcher() {
                 fontSize: theme.fontSize.xs,
               }}
             >
-              {speciesName(pet.speciesId)}
+              {pet.breeds[0] ?? speciesName(pet.speciesId)}
             </Text>
           </Pressable>
         );

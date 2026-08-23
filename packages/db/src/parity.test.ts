@@ -116,7 +116,21 @@ describe('reparto del coste', () => {
         );
         const bookingId = rows[0].id;
 
-        const petIds = Object.values(A).slice(0, people);
+        // Los participantes se crean aquí en lugar de tomarse de la semilla.
+        // Antes se hacía con `Object.values(A).slice(0, people)`, así que el
+        // caso de siete personas dependía de que la semilla tuviera al menos
+        // siete mascotas: al reducirla a cinco perros, el reparto que se
+        // comprobaba dejó de ser el que decía el nombre del caso. El número de
+        // participantes es del test, no de la semilla.
+        const petIds: string[] = [];
+        for (let index = 0; index < people; index += 1) {
+          const pet = await client.query(
+            `insert into public.pets (owner_id, species_id, name)
+             values ($1, 'dog', $2) returning id`,
+            [P.marta, `Reparto ${total}-${index}`],
+          );
+          petIds.push(pet.rows[0].id);
+        }
         for (const petId of petIds) {
           await client.query(
             `insert into public.booking_participants (booking_id, pet_id, profile_id)

@@ -101,19 +101,40 @@ describe('especies excluidas', () => {
     ).rejects.toThrow(/excluida/i);
   });
 
-  it('sí se puede registrar una especie pendiente del listado positivo', async () => {
-    // Prohibirlo sería decidir por el usuario sobre una norma todavía en
-    // desarrollo. Se registra y se muestra el aviso.
-    const inserted = await asUser(db, P.sara, async (client) =>
+  it('una especie legal pero todavía no abierta se rechaza con otro motivo', async () => {
+    // Son dos noes distintos y el tutor merece leer el que corresponde. Un
+    // dragón barbudo es legal; lo que pasa es que Coincide solo funciona con
+    // perros hoy. Decirle que su animal está prohibido sería falso.
+    await expect(
+      asUser(db, P.sara, async (client) =>
+        client.query(
+          `insert into public.pets (owner_id, species_id, name) values ($1, 'bearded_dragon', 'Pogo')`,
+          [P.sara],
+        ),
+      ),
+    ).rejects.toThrow(/todavía no está abierto/i);
+  });
+
+  it('el catálogo sigue sabiendo que esa especie es legal', async () => {
+    // La puerta de producto y el estado legal son cosas separadas: si se
+    // fundieran, reabrir la aplicación a otra especie obligaría a revisar la
+    // información jurídica otra vez.
+    const rows = await asUser(db, null, async (client) =>
       (
         await client.query(
-          `insert into public.pets (owner_id, species_id, name) values ($1, 'bearded_dragon', 'Pogo') returning id`,
-          [P.sara],
+          `select public.species_is_registrable('bearded_dragon') as legal,
+                  (select is_available from public.species where id = 'bearded_dragon') as abierta`,
         )
-      ).rowCount,
+      ).rows,
     );
+    expect(rows[0]).toMatchObject({ legal: true, abierta: false });
+  });
 
-    expect(inserted).toBe(1);
+  it('solo el perro está abierto hoy', async () => {
+    const rows = await asUser(db, null, async (client) =>
+      (await client.query('select id from public.available_species()')).rows,
+    );
+    expect(rows.map((row) => row.id)).toEqual(['dog']);
   });
 
   it('la función de registrabilidad distingue excluida de pendiente', async () => {
@@ -148,16 +169,25 @@ describe('encuentros: solo misma especie, y solo si socializa', () => {
   });
 
   it('no se puede apuntar un animal de otra especie a una quedada', async () => {
-    // La quedada de la mañana es de perros. Un hurón no entra, y esto se
-    // comprueba en la base porque es una regla de seguridad física.
+    // La regla sigue viva aunque hoy solo se registren perros: el día que se
+    // abra a otra especie, esto es lo que impide que un hurón acabe en una
+    // quedada de perros. Se comprueba creando la fila con el rol de servicio,
+    // que es el único camino que queda para tener un animal de otra especie.
     await expect(
-      asUser(db, P.ines, async (client) =>
-        client.query(
+      asService(db, async (client) => {
+        await client.query(`update public.species set is_available = true where id = 'ferret'`);
+        const inserted = await client.query(
+          `insert into public.pets (owner_id, species_id, name)
+           values ($1, 'ferret', 'Lola') returning id`,
+          [P.ines],
+        );
+        await client.query(`update public.species set is_available = false where id = 'ferret'`);
+        return client.query(
           `insert into public.playdate_rsvps (playdate_id, pet_id, profile_id)
            values ($1, $2, $3)`,
-          [E.manana, A.lola, P.ines],
-        ),
-      ),
+          [E.manana, inserted.rows[0].id, P.ines],
+        );
+      }),
     ).rejects.toThrow(/quedada es de/i);
   });
 
@@ -175,60 +205,65 @@ describe('encuentros: solo misma especie, y solo si socializa', () => {
     expect(inserted).toBe(1);
   });
 
-  it('las especies solitarias nunca entran al descubrimiento', async () => {
-    const rows = await asService(db, async (client) =>
-      (
+  it('las especies solitarias nunca entrarían al descubrimiento', async () => {
+    // Hoy no hay ninguna registrada, pero la regla se comprueba igual: se crea
+    // un gato con el rol de servicio y se mira qué contesta la función. Si esto
+    // dejara de funcionar, reabrir la aplicación a gatos les ofrecería quedadas.
+    const rows = await asService(db, async (client) => {
+      await client.query(`update public.species set is_available = true where id = 'cat'`);
+      const cat = await client.query(
+        `insert into public.pets
+           (owner_id, species_id, name, size, energy_level, play_styles, birth_date)
+         values ($1,'cat','Misi','medium','low','{chase,toys}','2019-06-30') returning id`,
+        [P.lucia],
+      );
+      await client.query(`update public.species set is_available = false where id = 'cat'`);
+      return (
         await client.query(
-          `select public.pet_is_matchable($1) as cat,
-                  public.pet_is_matchable($2) as dog,
-                  public.pet_is_matchable($3) as ferret`,
-          [A.misi, A.nina, A.lola],
+          `select public.pet_is_matchable($1) as cat, public.pet_is_matchable($2) as dog`,
+          [cat.rows[0].id, A.nina],
         )
-      ).rows,
-    );
+      ).rows;
+    });
 
-    // El gato tiene la ficha entera: no entra porque su especie no socializa,
+    // El gato tiene la ficha entera: no entraría porque su especie no socializa,
     // no porque le falten datos.
-    expect(rows[0]).toMatchObject({ cat: false, dog: true, ferret: true });
+    expect(rows[0]).toMatchObject({ cat: false, dog: true });
   });
 });
 
-describe('comunidad y servicios: lo que sí tienen las especies solitarias', () => {
-  it('un tutor de reptiles encuentra su comunidad sin cuenta', async () => {
+describe('comunidad y servicios: lo que hay además de las quedadas', () => {
+  it('un tutor de perro encuentra su comunidad sin cuenta', async () => {
     const rows = await asUser(db, null, async (client) =>
-      (
-        await client.query(
-          `select * from public.communities_nearby(40.4168, -3.7038, 'leopard_gecko', 40000)`,
-        )
-      ).rows,
+      (await client.query(`select * from public.communities_nearby(40.4168, -3.7038, 'dog', 40000)`))
+        .rows,
     );
 
-    expect(rows.map((row) => row.species_id)).toContain('leopard_gecko');
+    expect(rows.map((row) => row.species_id)).toContain('dog');
   });
 
   it('las comunidades generales del barrio salen para cualquier especie', async () => {
     const rows = await asUser(db, null, async (client) =>
-      (await client.query(`select * from public.communities_nearby(40.4168, -3.7038, 'cat', 40000)`))
+      (await client.query(`select * from public.communities_nearby(40.4168, -3.7038, 'dog', 40000)`))
         .rows,
     );
 
     expect(rows.length).toBeGreaterThan(0);
-    // No aparecen las de otras especies concretas.
-    expect(rows.every((row) => row.species_id === null || row.species_id === 'cat')).toBe(true);
+    expect(rows.some((row) => row.species_id === null)).toBe(true);
   });
 
   it('el directorio de servicios filtra por la especie que de verdad atienden', async () => {
-    const forGecko = await asUser(db, null, async (client) =>
+    // El filtro sigue vivo aunque hoy todo el directorio sea de perros: es lo
+    // que impedirá mandar un gecko a una peluquería canina el día que se abra.
+    const forCat = await asUser(db, null, async (client) =>
       (
         await client.query(
-          `select name from public.services_nearby(40.4168, -3.7038, 'leopard_gecko', null, 40000)`,
+          `select name from public.services_nearby(40.4168, -3.7038, 'cat', null, 40000)`,
         )
       ).rows.map((row) => row.name),
     );
 
-    // Mandar un gecko a una peluquería canina es peor que no tener directorio.
-    expect(forGecko.join(' ')).toContain('Exóticos');
-    expect(forGecko.join(' ')).not.toContain('Peluquería');
+    expect(forCat).toHaveLength(0);
   });
 
   it('las urgencias salen primero: es el orden que importa con prisa', async () => {
@@ -253,7 +288,7 @@ describe('comunidad y servicios: lo que sí tienen las especies solitarias', () 
     const rows = await asUser(db, P.marta, async (client) =>
       (
         await client.query('select profile_id from public.community_members where community_id = $1', [
-          SEED_IDS.communities.reptiles,
+          SEED_IDS.communities.chamberi,
         ])
       ).rows,
     );

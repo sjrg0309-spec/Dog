@@ -102,7 +102,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link className="site-nav__section" href="/#como-funciona">
                 Cómo funciona
               </Link>
-              <Link href="/especies">Especies</Link>
               <Link href="/parques">Parques</Link>
               <Link className="site-nav__section" href="/#quedadas">
                 Quedadas

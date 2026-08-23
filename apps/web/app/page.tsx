@@ -2,7 +2,7 @@ import { WELFARE_DISCLAIMER } from '@coincide/core';
 import { Notice } from '@/components/notice';
 
 import { RadarRing } from '@/components/radar-ring';
-import { activeSpots, allSpecies, communitiesNear, servicesNear, upcomingPlaydates } from '@/lib/db';
+import { activeSpots, communitiesNear, servicesNear, upcomingPlaydates } from '@/lib/db';
 import {
   ENERGY_LABEL,
   SIZE_LABEL,
@@ -28,9 +28,9 @@ const ENGINES = [
     body: 'Dices cuándo sales y con quién coincides aparece solo, sin que ninguno de los dos tenga que estar conectado. Es lo que hace que esto sirva a las once de la noche, que es cuando más solo se pasea.',
   },
   {
-    eyebrow: 'Para las que no quedan',
+    eyebrow: 'Lo que no es una quedada',
     title: 'Comunidad y servicios',
-    body: 'Un gato no debe conocer a otro gato, y un gecko tampoco. Pero sus tutores sí se buscan entre ellos, y necesitan saber qué veterinario de exóticos está de guardia el domingo.',
+    body: 'Quién cuida en agosto, qué parque está abierto, y qué veterinario coge el teléfono un domingo. Un tutor necesita esto tanto como un paseo, y no deja de necesitarlo los días que no sale.',
   },
   {
     eyebrow: 'Y por encima de los tres',
@@ -40,39 +40,35 @@ const ENGINES = [
 ];
 
 export default async function HomePage() {
-  const [playdates, spots, species, communities, services] = await Promise.all([
+  const [playdates, spots, communities, services] = await Promise.all([
     upcomingPlaydates(3),
     activeSpots(2),
-    allSpecies(),
     communitiesNear(),
     servicesNear(),
   ]);
 
-  const social = species.filter((entry) => entry.social_model !== 'solitary').length;
-  const solitary = species.filter((entry) => entry.social_model === 'solitary').length;
   const emergency = services.filter((entry) => entry.is_24h);
 
   return (
     <div className="shell">
       <section className="hero">
         <div>
-          <p className="eyebrow">Red social de mascotas</p>
+          <p className="eyebrow">Red social de paseos</p>
           <h1 className="hero__title">
-            Que tu mascota salga <em>con alguien</em>.
+            Que tu perro salga <em>con alguien</em>.
           </h1>
           <p className="lede">
-            Coincide empareja animales de la misma especie por carácter, tamaño y forma de jugar, y
-            cruza vuestros horarios de salida. Y cuando a tu animal no le conviene salir —porque
-            aprieta el calor, porque le falta pauta, porque su especie no queda con nadie—, lo dice
-            y deja de proponerlo.
+            Coincide empareja perros por carácter, tamaño y forma de jugar, y cruza vuestros
+            horarios de paseo. Y cuando al tuyo no le conviene salir —porque aprieta el calor,
+            porque le falta pauta, porque ya salió hace un rato—, lo dice y deja de proponerlo.
           </p>
 
           <div className="row" style={{ marginTop: 'var(--co-space-6)' }}>
             <a className="button button--primary" href="#quedadas">
               Ver quedadas cerca
             </a>
-            <a className="button button--outline" href="/especies">
-              Qué especies entran
+            <a className="button button--outline" href="#bienestar">
+              Cómo decide por tu perro
             </a>
           </div>
 
@@ -80,15 +76,13 @@ export default async function HomePage() {
             className="card__meta"
             style={{ marginTop: 'var(--co-space-5)', maxWidth: 'var(--co-measure-narrow)' }}
           >
-            {species.length} especies en el catálogo: {social} con encuentros y {solitary} sin
-            ellos.{' '}
             {playdates.length > 0
               ? `Próxima quedada ${formatRelative(new Date(playdates[0]!.starts_at))}.`
               : 'Aún no hay quedadas programadas.'}
           </p>
         </div>
 
-        <RadarRing label="Anillo de radar: mascotas compatibles cerca ahora mismo" />
+        <RadarRing label="Anillo de radar: perros compatibles cerca ahora mismo" />
       </section>
 
       {/* ------------------------------------------------------------------ */}
@@ -120,9 +114,9 @@ export default async function HomePage() {
           <p className="eyebrow">Próximas quedadas</p>
           <h2>Encuentros abiertos cerca de ti</h2>
           <p className="lede">
-            Cada quedada es de una sola especie. No es una restricción de la interfaz: un hurón fue
-            criado para cazar conejos, y ninguna puntuación de carácter debería poder ponerlos en el
-            mismo sitio.
+            Cada quedada dice a qué tallas y a qué nivel de actividad admite, y cuántos minutos de
+            contacto seguidos propone. Un cachorro de pastor alemán y un bulldog de nueve años no
+            hacen el mismo plan aunque los dos sean perros.
           </p>
         </div>
 
@@ -138,7 +132,6 @@ export default async function HomePage() {
             {playdates.map((playdate) => (
               <a className="card" key={playdate.id} href={`/quedada/${playdate.public_slug}`}>
                 <div className="row">
-                  <span className="badge badge--accent">{playdate.species_name}</span>
                   <span className="badge">{formatRelative(new Date(playdate.starts_at))}</span>
                   {playdate.leashed ? <span className="badge">Con correa</span> : null}
                 </div>
@@ -149,8 +142,8 @@ export default async function HomePage() {
                 <p className="card__meta">
                   {playdate.place_name ?? 'Punto acordado en el mapa'} ·{' '}
                   {playdate.attendee_count === 1
-                    ? '1 animal apuntado'
-                    : `${playdate.attendee_count} animales apuntados`}
+                    ? '1 perro apuntado'
+                    : `${playdate.attendee_count} perros apuntados`}
                 </p>
                 <div className="row">
                   {playdate.admits_sizes.map((size) => (
@@ -173,12 +166,12 @@ export default async function HomePage() {
       {/* ------------------------------------------------------------------ */}
       <section className="section" id="comunidad">
         <div className="section__head">
-          <p className="eyebrow">Para las especies que no quedan</p>
-          <h2>No todas las mascotas socializan; todos los tutores sí</h2>
+          <p className="eyebrow">Los días que no se sale</p>
+          <h2>Un tutor necesita más cosas que un paseo</h2>
           <p className="lede">
-            Un tutor de reptiles no necesita una quedada. Necesita saber qué veterinario de exóticos
-            está abierto un domingo y con quién hablar cuando su animal deja de comer. Eso es tan
-            producto como un paseo en el parque.
+            Quién cuida en agosto, qué veterinario está de guardia el domingo, con quién hablar
+            cuando el suyo se pone raro a las tres de la mañana. Eso es tan producto como una
+            quedada en el parque, y hace falta también los días de lluvia.
           </p>
         </div>
 
@@ -190,7 +183,7 @@ export default async function HomePage() {
                 {community.species_name ? (
                   <span className="badge badge--accent">{community.species_name}</span>
                 ) : (
-                  <span className="badge">Todas las especies</span>
+                  <span className="badge">Cualquier mascota</span>
                 )}
               </div>
               <p className="card__meta">
@@ -228,7 +221,7 @@ export default async function HomePage() {
                 <p className="card__meta">
                   {service.species_names.length > 0
                     ? `Atiende: ${service.species_names.join(', ')}`
-                    : 'No ha declarado a qué especies atiende'}
+                    : 'No ha declarado a qué atiende'}
                 </p>
               </article>
             ))}
@@ -241,7 +234,7 @@ export default async function HomePage() {
           <p className="eyebrow">De quién es esta aplicación</p>
           <h2>El plan es del tutor; el cuerpo que lo aguanta, no</h2>
           <p className="lede">
-            Casi todas las aplicaciones de mascotas resuelven el problema de la persona: con quién
+            Casi todas las aplicaciones de perros resuelven el problema de la persona: con quién
             queda, cómo llena la tarde, dónde encuentra sitio. Coincide hace eso, y además tiene una
             capa que puede contestar que no.
           </p>
@@ -252,10 +245,11 @@ export default async function HomePage() {
             <p className="eyebrow">Calor</p>
             <h3 className="card__title">El techo no es el mismo para todos</h3>
             <p className="card__meta">
-              Cada especie tiene su franja, y de ahí se descuenta lo que sepamos del animal: hocico
-              chato, sénior, sensible al calor. Los descuentos se acumulan, porque sumar es la forma
-              prudente de equivocarse. Y si el suelo es asfalto, el límite baja otra vez: el aire a
-              28 grados convive con un suelo bastante más caliente, y quien lo pisa descalzo es él.
+              El perro aguanta hasta cierta temperatura, y de ahí se descuenta lo que sepamos del
+              tuyo: hocico chato, sénior, sensible al calor. Los descuentos se acumulan, porque
+              sumar es la forma prudente de equivocarse. Y si el suelo es asfalto, el límite baja
+              otra vez: el aire a 28 grados convive con un suelo bastante más caliente, y quien lo
+              pisa descalzo es él.
             </p>
           </article>
 
@@ -263,10 +257,10 @@ export default async function HomePage() {
             <p className="eyebrow">Duración</p>
             <h3 className="card__title">Dos horas es un buen plan para ti</h3>
             <p className="card__meta">
-              Para un hurón son seis sesiones de veinte minutos con descanso entre medias, y son
-              cosas distintas. Una quedada declara los minutos de contacto seguidos, y ninguna puede
-              pasarse del máximo de su especie. Lo impide un disparador en Postgres, no una
-              comprobación del formulario.
+              Para un cachorro sin la pauta terminada, o para un galgo con las articulaciones
+              tocadas, no lo es. Una quedada declara los minutos de contacto seguidos y ninguna
+              puede pasarse del máximo de la especie; encima de eso, cada perro tiene el suyo. Lo
+              impide un disparador en Postgres, no una comprobación del formulario.
             </p>
           </article>
 
@@ -285,9 +279,9 @@ export default async function HomePage() {
         <Notice tone="warning">
           <p>
             <strong>Esto no es consejo veterinario.</strong> {WELFARE_DISCLAIMER} Los umbrales están
-            publicados en el <a href="/especies">catálogo de especies</a> para que se puedan
-            discutir, y tu animal puede tener el suyo más estricto. Más laxo, no: un campo que
-            pudiera subirlos sería una forma elegante de que la regla no existiera.
+            umbrales prudentes de la propia aplicación y tu perro puede tener el suyo más estricto.
+            Más laxo, no: un campo que pudiera subirlos sería una forma elegante de que la regla no
+            existiera.
           </p>
         </Notice>
       </section>
@@ -316,7 +310,7 @@ export default async function HomePage() {
               </div>
               <h3 className="card__title">{spot.title}</h3>
               <p className="card__meta">{spot.description}</p>
-              <p className="card__meta">Hasta {spot.max_pets} animales</p>
+              <p className="card__meta">Hasta {spot.max_pets} perros</p>
             </a>
           ))}
         </div>

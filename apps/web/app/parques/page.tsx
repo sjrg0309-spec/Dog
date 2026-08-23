@@ -42,9 +42,9 @@ export default async function PlacesPage() {
             </div>
 
             <p className="card__meta">
-              {place.admits_species_names.length > 0
-                ? `Admite: ${place.admits_species_names.join(', ')}`
-                : 'No ha declarado qué especies admite'}
+              {place.upcoming_playdates === 1
+                ? '1 quedada próxima aquí'
+                : `${place.upcoming_playdates} quedadas próximas aquí`}
             </p>
 
             <ul className="checklist">
@@ -61,7 +61,7 @@ export default async function PlacesPage() {
                 {triStateLabel(place.has_shade, 'Sombra')}
               </li>
               <li data-state={triState(place.has_small_pet_area)}>
-                {triStateLabel(place.has_small_pet_area, 'Zona para animales pequeños')}
+                {triStateLabel(place.has_small_pet_area, 'Zona para perros pequeños')}
               </li>
             </ul>
           </article>

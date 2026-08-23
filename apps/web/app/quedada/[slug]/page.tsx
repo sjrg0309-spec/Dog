@@ -61,7 +61,6 @@ export default async function PlaydatePage({ params }: Params) {
       <article className="stack" style={{ gap: 'var(--co-space-8)' }}>
         <header className="stack">
           <div className="row">
-            <span className="badge badge--accent">{playdate.species_name}</span>
             <span className="badge">{KIND_LABEL[playdate.kind] ?? playdate.kind}</span>
             {isOver ? (
               <span className="badge">Ya ha terminado</span>
@@ -95,7 +94,7 @@ export default async function PlaydatePage({ params }: Params) {
             <dt>Aforo</dt>
             <dd>
               {playdate.attendee_count}
-              {playdate.max_pets ? ` de ${playdate.max_pets}` : ''} animales
+              {playdate.max_pets ? ` de ${playdate.max_pets}` : ''} perros
             </dd>
           </div>
         </dl>
@@ -104,8 +103,7 @@ export default async function PlaydatePage({ params }: Params) {
         <section className="stack">
           <h2>Quién puede venir</h2>
           <p className="card__meta">
-            Esta quedada es solo de {playdate.species_name.toLowerCase()}. Los encuentros son
-            siempre entre animales de la misma especie, y los parámetros de admisión evitan además
+            Los parámetros de admisión evitan
             que uno de treinta kilos acabe jugando con un juvenil de cuatro.
           </p>
 
@@ -129,7 +127,7 @@ export default async function PlaydatePage({ params }: Params) {
 
           {playdate.leashed ? (
             <p className="card__meta">
-              Es un paseo con correa, así que también pueden venir animales reactivos con correa
+              Es un paseo con correa, así que también pueden venir perros reactivos con correa
               siempre que su tutor lo tenga en cuenta.
             </p>
           ) : null}
@@ -141,7 +139,7 @@ export default async function PlaydatePage({ params }: Params) {
           <p className="card__meta">
             El encuentro son <strong>{playdate.session_minutes} min de contacto seguidos</strong>, y
             luego descanso. No es la duración del evento: es lo que aguanta un{' '}
-            {playdate.species_name.toLowerCase()} de una vez, y el máximo para esta especie son{' '}
+            perro de una vez, y el máximo para la especie son{' '}
             {playdate.species_max_session_minutes} min.
           </p>
           <p className="card__meta">
@@ -156,8 +154,8 @@ export default async function PlaydatePage({ params }: Params) {
           <section className="stack">
             <h2>Antes de venir</h2>
             <p className="card__meta">
-              Un encuentro entre animales de casas distintas es también una vía de contagio. Lo que
-              conviene tener al día para esta especie:
+              Un encuentro entre perros de casas distintas es también una vía de contagio. Lo que
+              conviene tener al día:
             </p>
             <ul className="checklist">
               {playdate.health_for_meetups.map((requirement) => (
@@ -189,7 +187,7 @@ export default async function PlaydatePage({ params }: Params) {
 
         {/* ---------------------------------------------------------------- */}
         <section className="stack">
-          <h2>Animales apuntados</h2>
+          <h2>Perros apuntados</h2>
 
           {attendees.length === 0 ? (
             <Notice>

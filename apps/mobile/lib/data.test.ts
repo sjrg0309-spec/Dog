@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { findSpecies, type Conditions } from '@coincide/core';
+import { findSpecies } from '@coincide/core';
 
 import {
   allPlaydates,
@@ -33,18 +33,20 @@ import { MY_PETS, OTHER_PETS } from './demo-data';
 const MILD = { temperatureC: 18, surface: 'grass', durationMinutes: 45 } as const;
 
 const nina = MY_PETS[0]!;
-const misi = MY_PETS[1]!;
+const kira = MY_PETS[1]!;
 
-describe('la demo cubre los tres modelos sociales', () => {
-  it('tiene animales de manada, de grupo pequeño y solitarios', () => {
-    const models = new Set([...MY_PETS, ...OTHER_PETS].map((pet) => pet.speciesId));
-    expect(models).toContain('dog');
-    expect(models).toContain('ferret');
-    expect(models).toContain('rabbit');
-    // Si estas faltaran, sería facilísimo construir pantallas que solo
-    // funcionan para perros sin que nadie se diera cuenta.
-    expect(models).toContain('cat');
-    expect(models).toContain('leopard_gecko');
+describe('la demo enseña lo que la aplicación abre de verdad', () => {
+  it('solo hay perros, porque solo se pueden registrar perros', () => {
+    const species = new Set([...MY_PETS, ...OTHER_PETS].map((pet) => pet.speciesId));
+    expect([...species]).toEqual(['dog']);
+  });
+
+  it('el tutor tiene dos perros a los que hoy les conviene algo distinto', () => {
+    // Es el caso que hace visible la capa de bienestar, y es mucho más
+    // frecuente que el de dos especies distintas.
+    expect(MY_PETS).toHaveLength(2);
+    expect(kira.healthFlags).toContain('brachycephalic');
+    expect(nina.healthFlags ?? []).toHaveLength(0);
   });
 
   it('cada mascota de la demo existe en el catálogo de especies', () => {
@@ -64,14 +66,14 @@ describe('descubrimiento', () => {
     expect(entries.every((entry) => entry.pet.speciesId === 'dog')).toBe(true);
   });
 
-  it('una gata no descubre a nadie, y no por falta de datos', () => {
-    const { entries, otherSpeciesNearby } = discover(misi, MILD);
-    expect(entries).toHaveLength(0);
-    // La ficha de Misi está completa: tiene talla, energía, estilos y confianza.
-    expect(misi.size).toBeTruthy();
-    expect(petHasMeetups(misi)).toBe(false);
-    // Y hay animales cerca: el vacío es de su especie, no del barrio.
-    expect(otherSpeciesNearby).toBeGreaterThan(0);
+  it('el segundo perro del tutor también descubre, con su propia lista', () => {
+    // No es la misma que la de Nina: Kira es pequeña, tranquila y de otro
+    // carácter, así que el veto por diferencia de tamaño la deja con menos.
+    const paraNina = discover(nina, MILD).entries.map((entry) => entry.pet.name);
+    const paraKira = discover(kira, MILD).entries.map((entry) => entry.pet.name);
+
+    expect(paraNina.length).toBeGreaterThan(0);
+    expect(paraKira).not.toEqual(paraNina);
   });
 
   it('los de otra especie se cuentan aparte de los vetados por seguridad', () => {
@@ -118,45 +120,37 @@ describe('quedadas y espacios', () => {
   });
 
   it('un espacio declara a qué especies sirve', () => {
-    // Un patio pensado para perros no es sitio para presentar conejos.
-    expect(spotsFor('dog').map((spot) => spot.id)).not.toEqual(
-      spotsFor('rabbit').map((spot) => spot.id),
-    );
-    expect(spotsFor('rabbit').length).toBeGreaterThan(0);
+    // El filtro sigue vivo aunque hoy todos los espacios sean de perros: es lo
+    // que impedirá ofrecer un patio canino para presentar conejos el día que la
+    // aplicación se abra a otra especie.
+    expect(spotsFor('dog').length).toBeGreaterThan(0);
+    expect(spotsFor('rabbit')).toHaveLength(0);
   });
 });
 
-describe('comunidad y servicios: lo que sí tienen las especies solitarias', () => {
-  it('un tutor de gecko encuentra su comunidad y la general del barrio', () => {
-    const list = communitiesFor('leopard_gecko');
-    expect(list.some((community) => community.speciesId === 'leopard_gecko')).toBe(true);
+describe('comunidad y servicios: lo que hay además de las quedadas', () => {
+  it('un tutor de perro encuentra su comunidad y la general del barrio', () => {
+    const list = communitiesFor('dog');
+    expect(list.some((community) => community.speciesId === 'dog')).toBe(true);
     expect(list.some((community) => community.speciesId === null)).toBe(true);
-    // Y no ve las de otras especies concretas.
-    expect(
-      list.every(
-        (community) =>
-          community.speciesId === null || community.speciesId === 'leopard_gecko',
-      ),
-    ).toBe(true);
   });
 
   it('el directorio filtra por la especie que de verdad atienden', () => {
-    const forGecko = servicesFor('leopard_gecko').map((service) => service.name);
-    // Mandar un gecko a una peluquería canina es peor que no tener directorio.
-    expect(forGecko.join(' ')).toContain('Exóticos');
-    expect(forGecko.join(' ')).not.toContain('Peluquería');
+    // Sigue vivo aunque hoy todo el directorio sea canino: es lo que impedirá
+    // mandar un gecko a una peluquería de perros el día que se abra.
+    expect(servicesFor('dog').length).toBeGreaterThan(0);
+    expect(servicesFor('leopard_gecko')).toHaveLength(0);
   });
 
   it('las urgencias salen primero: es el orden que importa con prisa', () => {
     expect(servicesFor('dog')[0]?.is24h).toBe(true);
   });
 
-  it('toda especie solitaria tiene algo que ofrecer a su tutor', () => {
-    for (const pet of [...MY_PETS, ...OTHER_PETS].filter((entry) => !petHasMeetups(entry))) {
+  it('toda mascota de la demo tiene algo además del descubrimiento', () => {
+    for (const pet of [...MY_PETS, ...OTHER_PETS]) {
       const offer = communitiesFor(pet.speciesId).length + servicesFor(pet.speciesId).length;
-      // Si esto fallara, esa especie tendría una ficha bonita y ningún motivo
-      // para volver a abrir la aplicación.
-      expect(offer, `${pet.name} (${pet.speciesId}) se queda sin nada`).toBeGreaterThan(0);
+      expect(offer, `${pet.name} se queda sin nada`).toBeGreaterThan(0);
+      expect(petHasMeetups(pet)).toBe(true);
     }
   });
 });
@@ -180,24 +174,21 @@ describe('el interés del animal manda sobre el plan del tutor', () => {
     expect(discover(nina, MILD).entries.length).toBeGreaterThan(0);
   });
 
-  it('el bulldog deja de aparecer antes que los demás perros', () => {
-    // 25 grados es un día de verano corriente. Para Nina no cambia nada; para
-    // Kira, que es de hocico chato, es el punto en el que deja de convenirle.
-    const warm = { temperatureC: 25, surface: 'grass', durationMinutes: 45 } as const;
-    const names = (conditions: Conditions) =>
-      discover(nina, conditions).entries.map((entry) => entry.pet.name);
+  it('a 26 grados uno de los dos perros del tutor sale y el otro no', () => {
+    // Es el mismo día, el mismo barrio y la misma especie. Lo único que cambia
+    // es de qué animal hablamos, y eso basta para que la respuesta sea distinta.
+    const warm = { temperatureC: 26, surface: 'grass', durationMinutes: 45 } as const;
 
-    expect(names(MILD)).toContain('Kira');
-    expect(names(warm)).not.toContain('Kira');
-    // Y el resto sigue ahí: no se ha vaciado la lista, se ha quitado a quien no
-    // debía estar en ella.
-    expect(names(warm).length).toBeGreaterThan(0);
+    expect(discover(nina, warm).welfare.level).toBe('ok');
+    expect(discover(kira, warm).welfare.level).toBe('stop');
+    expect(discover(kira, warm).entries).toEqual([]);
+    // Y la lista de Nina sigue llena: no se ha vaciado la aplicación entera.
+    expect(discover(nina, warm).entries.length).toBeGreaterThan(0);
   });
 
-  it('quien descansa se cuenta aparte de quien no encaja', () => {
-    const warm = { temperatureC: 25, surface: 'grass', durationMinutes: 45 } as const;
-    const { restingNearby } = discover(nina, warm);
-    expect(restingNearby).toBeGreaterThan(0);
+  it('a 18 grados los dos salen', () => {
+    expect(discover(nina, MILD).welfare.level).toBe('ok');
+    expect(discover(kira, MILD).welfare.level).toBe('ok');
   });
 
   it('el veredicto se devuelve siempre, también cuando hay lista', () => {
@@ -207,14 +198,12 @@ describe('el interés del animal manda sobre el plan del tutor', () => {
     expect(discover(nina, hot).welfare.level).toBe('stop');
   });
 
-  it('una tarde de hurones se propone en sesiones, no de una vez', () => {
-    const tarde = playdatesFor('ferret')[0];
-    expect(tarde).toBeDefined();
-    // Dos horas de evento, veinte minutos de contacto.
-    expect(tarde!.sessionMinutes).toBeLessThanOrEqual(20);
-    expect(tarde!.endsAt.getTime() - tarde!.startsAt.getTime()).toBeGreaterThan(
-      tarde!.sessionMinutes * 60_000,
-    );
+  it('cada quedada declara sus minutos de contacto', () => {
+    const list = playdatesFor('dog');
+    expect(list.length).toBeGreaterThan(0);
+    for (const playdate of list) {
+      expect(playdate.sessionMinutes, playdate.title).toBeGreaterThan(0);
+    }
   });
 
   it('ninguna quedada propone más contacto del que aguanta su especie', () => {

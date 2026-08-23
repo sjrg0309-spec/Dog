@@ -11,7 +11,6 @@ import { expect, test, type Page } from '@playwright/test';
 
 const PAGES = [
   { path: '/', name: 'portada' },
-  { path: '/especies', name: 'especies' },
   { path: '/parques', name: 'parques' },
   { path: '/quedada/paseo-manana-central', name: 'quedada' },
   { path: '/spot/patio-chamberi', name: 'spot' },
@@ -196,7 +195,7 @@ test('la quedada pública se lee sin cuenta y muestra a los asistentes', async (
   await page.goto('/quedada/paseo-manana-central');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Paseo de la mañana');
-  await expect(page.getByRole('heading', { name: 'Animales apuntados' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Perros apuntados' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3, name: 'Nina' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3, name: 'Toby' })).toBeVisible();
 });
@@ -230,48 +229,26 @@ test('una quedada inexistente devuelve 404 y ofrece salida', async ({ page }) =>
  * no es una aplicación de perros con otras especies añadidas encima, y eso se ve
  * en cuanto se agrupa por modelo social.
  */
-test('el catálogo agrupa por modelo social e incluye especies que no socializan', async ({
-  page,
-}) => {
-  await page.goto('/especies');
 
-  await expect(page.getByRole('heading', { level: 2, name: /Socializa en grupo$/ })).toBeVisible();
-  await expect(
-    page.getByRole('heading', { level: 2, name: /No socializa con otros animales/ }),
-  ).toBeVisible();
 
-  // Si el gato desapareciera de aquí, la mitad del producto se habría perdido
-  // por el camino sin que ningún test se enterara.
-  await expect(page.getByRole('heading', { level: 3, name: 'Gato' })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 3, name: 'Perro' })).toBeVisible();
-});
-
-test('ningún estado legal se muestra sin su fuente ni su aviso', async ({ page }) => {
-  await page.goto('/especies');
-
-  const body = await page.locator('body').innerText();
-  expect(body).toContain('Fuente:');
-  expect(body).toContain('no da asesoramiento legal');
-});
-
-test('la portada ofrece comunidad y urgencias a quien no puede quedar', async ({ page }) => {
+test('la portada ofrece comunidad y urgencias además de las quedadas', async ({ page }) => {
   await page.goto('/');
 
   await expect(
-    page.getByRole('heading', { name: /No todas las mascotas socializan/ }),
+    page.getByRole('heading', { name: /Un tutor necesita más cosas que un paseo/ }),
   ).toBeVisible();
   // Buscar un veterinario de guardia es la necesidad que no distingue de
   // especie, y por eso se enseña sin cuenta.
   await expect(page.getByText(/Urgencias cerca/)).toBeVisible();
 });
 
-test('cada quedada declara de qué especie es', async ({ page }) => {
+test('cada quedada declara a quién admite', async ({ page }) => {
   await page.goto('/');
 
-  // La regla de "una quedada, una especie" tiene que ser legible en la tarjeta,
-  // no solo cierta en la base de datos.
+  // Talla y nivel de actividad tienen que ser legibles en la tarjeta: es lo que
+  // decide si merece la pena abrirla.
   const first = page.locator('#quedadas .card').first();
-  await expect(first.locator('.badge--accent')).not.toBeEmpty();
+  await expect(first.locator('.badge').first()).not.toBeEmpty();
 });
 
 /**
@@ -288,20 +265,21 @@ test('la portada explica que el interés del animal puede decir que no', async (
   await expect(page.getByText(/no da consejo veterinario/i)).toBeVisible();
 });
 
-test('el catálogo publica los límites de cuidado de cada especie', async ({ page }) => {
-  await page.goto('/especies');
-
-  const body = await page.locator('body').innerText();
-  // Están publicados para que se puedan discutir; si dejaran de verse, serían
-  // una decisión escondida en el código.
-  expect(body).toContain('min de contacto seguidos');
-  expect(body).toContain('°C a la intemperie');
-});
 
 test('una quedada dice cuánto dura el contacto, no solo el evento', async ({ page }) => {
-  await page.goto('/quedada/hurones-sala-neutral');
+  await page.goto('/quedada/vuelta-corta-sombra');
 
   await expect(page.getByRole('heading', { name: 'Cuánto dura de verdad' })).toBeVisible();
-  // La tarde dura dos horas; el contacto, veinte minutos.
-  await expect(page.getByText(/20 min de contacto seguidos/)).toBeVisible();
+  await expect(page.getByText(/30 min de contacto seguidos/)).toBeVisible();
+});
+
+/**
+ * El catálogo de especies se retiró al acotar la aplicación a perros. Este caso
+ * comprueba que se retiró de verdad y no quedó accesible por la URL: una página
+ * huérfana que sigue respondiendo es peor que una borrada, porque nadie la
+ * mantiene y alguien acaba encontrándola.
+ */
+test('el catálogo de especies ya no existe', async ({ page }) => {
+  const response = await page.goto('/especies');
+  expect(response?.status()).toBe(404);
 });

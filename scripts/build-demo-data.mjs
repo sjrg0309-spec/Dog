@@ -31,14 +31,8 @@ const TEMPERATURES = [5, 12, 18, 22, 26, 30, 34];
 const SURFACES = ['grass', 'asphalt', 'indoor'];
 const DURATION = 45;
 
-/**
- * Las mascotas entre las que puede cambiar quien abra el prototipo.
- *
- * En la aplicación real son las del tutor que ha iniciado sesión. Aquí se añade
- * a Kira, que en la demo es de otro tutor, porque es la que hace visible el
- * límite de calor: sin ella habría que creerse de palabra que existe.
- */
-const VIEWER_PETS = [...MY_PETS, OTHER_PETS.find((pet) => pet.name === 'Kira')];
+/** Las mascotas entre las que puede cambiar quien abra el prototipo. */
+const VIEWER_PETS = MY_PETS;
 
 const cases = {};
 

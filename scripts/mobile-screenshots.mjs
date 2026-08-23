@@ -18,22 +18,23 @@ const OUT = new URL('../artifacts/screenshots/', import.meta.url).pathname;
  * Las rutas, y con qué mascota se capturan.
  *
  * `pet` es el nombre del selector que hay que pulsar antes de la captura. Que
- * exista es la mitad del producto: con una perra la aplicación enseña
- * descubrimiento y quedadas, y con una gata enseña por qué no las enseña. Una
- * captura solo del primer caso escondería justo el cambio que hace que esto sea
- * una aplicación de mascotas y no de perros.
+ * exista es la mitad del producto: son dos perros del mismo tutor y a 26 grados
+ * la aplicación deja salir a uno y al otro no. Una captura solo del primer caso
+ * escondería justo eso.
  */
 const ROUTES = [
   { path: '/', name: 'app-descubrir' },
-  { path: '/', name: 'app-descubrir-gato', pet: 'Misi' },
+  { path: '/', name: 'app-descubrir-kira', pet: 'Kira' },
   // El caso que define de quién es la aplicación: a 34 grados no hay lista.
   { path: '/', name: 'app-descubrir-calor', temperature: '34°' },
   { path: '/radar', name: 'app-radar' },
   { path: '/quedadas', name: 'app-quedadas' },
-  { path: '/quedadas', name: 'app-quedadas-gato', pet: 'Misi' },
+  { path: '/quedadas', name: 'app-quedadas-kira', pet: 'Kira' },
   { path: '/espacios', name: 'app-espacios' },
   { path: '/comunidad', name: 'app-comunidad' },
-  { path: '/comunidad', name: 'app-comunidad-gato', pet: 'Misi' },
+  // Kira a 26 grados: el mismo día, la misma especie, y la aplicación contesta
+  // que no. Es lo que hace visible que decide por el animal.
+  { path: '/', name: 'app-descubrir-calor-kira', pet: 'Kira', temperature: '26°' },
 ];
 
 const THEMES = [

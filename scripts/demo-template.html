@@ -1,5 +1,5 @@
 <title>Coincide</title>
-<meta name="description" content="Prototipo navegable de Coincide: cambia la mascota y las condiciones y mira cómo el algoritmo real decide." />
+<meta name="description" content="Prototipo navegable de Coincide: cambia de perro y de condiciones y mira cómo el algoritmo real decide." />
 
 <style>
   /* {{FONTS}} */
@@ -526,8 +526,8 @@
 <main>
   <section class="shell hero">
     <div class="hero__claim">
-      <p class="eyebrow">Red social de mascotas</p>
-      <h1>La app decide por <em>el animal</em>, no por ti.</h1>
+      <p class="eyebrow">Red social de paseos</p>
+      <h1>La app decide por <em>el perro</em>, no por ti.</h1>
     </div>
     <p class="lede">
       Coincide empareja animales de la misma especie por carácter, tamaño y forma de jugar, y cruza
@@ -566,7 +566,7 @@
 
     <div class="panel">
       <div class="control">
-        <p class="eyebrow">Quién abre la aplicación</p>
+        <p class="eyebrow">Con cuál de sus dos perros</p>
         <div class="chips" id="pets" role="group" aria-label="Mascota"></div>
         <p class="meta" id="petNote"></p>
       </div>
@@ -591,7 +591,7 @@
   <section class="shell section">
     <div class="section__head">
       <p class="eyebrow">Lo que separa esto de una app de dueños</p>
-      <h2>Tres cosas que la aplicación mira por el animal</h2>
+      <h2>Tres cosas que la aplicación mira por el perro</h2>
       <p class="lede">
         Y cuando alguna dice que no, manda: la lista vuelve vacía y el botón de check-in no está. Un
         control en gris invita a buscar cómo activarlo; un aviso debajo de doce tarjetas de animales
@@ -604,19 +604,19 @@
         <p class="eyebrow">Calor</p>
         <h3>El techo no es el mismo para todos</h3>
         <p class="meta">
-          Cada especie tiene su franja y de ahí se descuenta lo que se sepa del animal: hocico chato
-          −4&nbsp;°C, sensible al calor −2, sénior −2, joven −1. Se acumulan, porque sumar es la
-          forma prudente de equivocarse. Para un animal que ya tenía el techo rebajado, el margen
-          antes de parar es cero: pasarse no es estar incómodo.
+          El perro aguanta hasta 26&nbsp;°C, y de ahí se descuenta lo que se sepa del tuyo: hocico
+          chato −4, sensible al calor −2, sénior −2, joven −1. Se acumulan, porque sumar es la forma
+          prudente de equivocarse. Para uno que ya tenía el techo rebajado, el margen antes de parar
+          es cero: pasarse no es estar incómodo.
         </p>
       </article>
       <article class="card">
         <p class="eyebrow">Duración</p>
         <h3>Dos horas es un buen plan para ti</h3>
         <p class="meta">
-          Para un hurón son seis sesiones de veinte minutos con descanso entre medias, y son cosas
-          distintas. Una quedada declara los minutos de contacto seguidos, y ninguna puede pasarse
-          del máximo de su especie: lo rechaza un disparador en Postgres, no el formulario.
+          Para un cachorro sin la pauta terminada, o para un galgo con las articulaciones tocadas,
+          no lo es. Una quedada declara los minutos de contacto seguidos y ninguna puede pasarse del
+          máximo: lo rechaza un disparador en Postgres, no el formulario.
         </p>
       </article>
       <article class="card">
@@ -643,11 +643,13 @@
 
   <section class="shell section">
     <div class="section__head">
-      <p class="eyebrow">Catálogo</p>
-      <h2>Cada especie trae sus propios límites</h2>
+      <p class="eyebrow">Debajo</p>
+      <h2>El catálogo sigue ahí, cerrado</h2>
       <p class="lede">
-        Coincide no es una aplicación de perros con otras especies añadidas encima. El modelo social
-        decide si hay encuentros siquiera, y los límites de cuidado deciden cómo son cuando los hay.
+        Coincide solo está abierto a perros: es la única especie del catálogo con modelo de manada,
+        que es el que sostiene el radar y las quedadas abiertas. Las demás siguen en la base con sus
+        límites y sus reglas —una quedada de gatos sigue siendo imposible—, pero un tutor no puede
+        registrarlas. Reabrir una es poner una columna a cierto, no rehacer el trabajo.
       </p>
     </div>
 
@@ -665,7 +667,10 @@
         <tbody></tbody>
       </table>
     </div>
-    <p class="meta">Siete de las quince especies del catálogo. Fuente: <code>packages/core/src/species.ts</code>.</p>
+    <p class="meta">
+      Siete de las quince especies del catálogo; solo la primera está abierta hoy. Fuente:
+      <code>packages/core/src/species.ts</code>.
+    </p>
   </section>
 
   <footer class="shell">
@@ -676,7 +681,7 @@
       tabla escrita a mano detrás.
     </p>
     <p class="meta">
-      Coincide es un MVP en construcción. Las mascotas son una semilla de demostración, no usuarios
+      Coincide es un MVP en construcción. Los perros son una semilla de demostración, no usuarios
       reales.
     </p>
   </footer>

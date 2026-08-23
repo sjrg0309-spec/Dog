@@ -39,16 +39,6 @@ export const SEED_IDS = {
     bruno: '20000000-0000-4000-8000-000000000004',
     /** Bulldog francés: el animal al que los límites de bienestar le afectan. */
     kira: '20000000-0000-4000-8000-00000000000c',
-    // Hurones
-    lola: '20000000-0000-4000-8000-000000000005',
-    pipo: '20000000-0000-4000-8000-000000000006',
-    // Conejos
-    trufa: '20000000-0000-4000-8000-000000000007',
-    canela: '20000000-0000-4000-8000-000000000008',
-    // Solitarias
-    misi: '20000000-0000-4000-8000-000000000009',
-    kiwi: '20000000-0000-4000-8000-00000000000a',
-    azul: '20000000-0000-4000-8000-00000000000b',
   },
   places: {
     central: '30000000-0000-4000-8000-000000000001',
@@ -62,14 +52,13 @@ export const SEED_IDS = {
   },
   playdates: {
     manana: '50000000-0000-4000-8000-000000000001',
-    hurones: '50000000-0000-4000-8000-000000000002',
-    conejos: '50000000-0000-4000-8000-000000000003',
     nocturna: '50000000-0000-4000-8000-000000000004',
+    sombra: '50000000-0000-4000-8000-000000000005',
   },
   communities: {
-    reptiles: '80000000-0000-4000-8000-000000000001',
-    gatos: '80000000-0000-4000-8000-000000000002',
-    conejos: '80000000-0000-4000-8000-000000000003',
+    chamberi: '80000000-0000-4000-8000-000000000001',
+    nocturnos: '80000000-0000-4000-8000-000000000002',
+    barrio: '80000000-0000-4000-8000-000000000003',
   },
 } as const;
 
@@ -153,56 +142,26 @@ export async function seed(db: Db): Promise<void> {
          is_neutered, energy_level, play_styles, trust_circle, is_leash_reactive,
          microchip_code, microchip_verified_at, bio, health_flags)
        values
-        ($1,$12,'dog','Nina','{"Border Collie"}','2021-04-12','medium',18.5,'female',true,
+        ($1,$6,'dog','Nina','{"Border Collie"}','2021-04-12','medium',18.5,'female',true,
           'high','{chase,toys}','{loves_everyone}',false,'941000012345678', now(),
           'Le obsesiona la pelota. No para.', '{}'),
-        ($2,$13,'dog','Toby','{"Mestizo"}','2020-09-30','medium',21.0,'male',true,
+        ($2,$7,'dog','Toby','{"Mestizo"}','2020-09-30','medium',21.0,'male',true,
           'high','{chase,wrestle}','{loves_everyone}',false,'941000023456789', now(),
           'Corre con quien haga falta.', '{}'),
-        ($3,$14,'dog','Rocky','{"Galgo español"}','2019-02-08','large',28.0,'male',true,
+        ($3,$8,'dog','Rocky','{"Galgo español"}','2019-02-08','large',28.0,'male',true,
           'medium','{chase,calm_walk}','{shy_at_first}',true,'941000034567890', null,
           'Tímido al principio, luego no hay quien lo pare.', '{joint_issues}'),
-        ($4,$15,'dog','Bruno','{"Pastor alemán"}','2025-12-05','large',24.0,'male',false,
+        ($4,$9,'dog','Bruno','{"Pastor alemán"}','2025-12-05','large',24.0,'male',false,
           'high','{wrestle,chase}','{loves_everyone}',false,'941000078901234', null,
           'Cachorro en plena socialización. Mucha energía.', '{vaccination_pending}'),
-
-        ($5,$16,'ferret','Lola','{"Hurón estándar"}','2023-05-14','small',0.9,'female',true,
-          'high','{chase,wrestle,forage}','{loves_everyone}',false,'941000045678901', now(),
-          'No hay tubo por el que no se meta.', '{}'),
-        ($6,$16,'ferret','Pipo','{"Hurón angora"}','2022-08-02','small',1.2,'male',true,
-          'medium','{chase,forage,toys}','{shy_at_first}',false,'941000056789012', now(),
-          'Duerme dieciocho horas y las seis restantes las aprovecha.', '{}'),
-
-        ($7,$17,'rabbit','Trufa','{"Belier"}','2023-03-19','medium',2.4,'female',true,
-          'medium','{grooming,side_by_side,forage}','{loves_everyone}',false,null, null,
-          'Se acicala con quien la deje. Muy sociable para ser conejo.', '{}'),
-        ($8,$17,'rabbit','Canela','{"Enano holandés"}','2024-01-25','small',1.3,'female',true,
-          'low','{side_by_side,forage}','{shy_at_first}',false,null, null,
-          'Necesita su tiempo. Las presentaciones con ella van despacio.', '{}'),
-
-        ($9,$18,'cat','Misi','{"Común europeo"}','2019-06-30','medium',4.2,'female',true,
-          'low','{chase,toys}','{shy_at_first}',false,'941000067890123', now(),
-          'Territorial y feliz de serlo. No quiere conocer a nadie.', '{}'),
-        ($10,$19,'leopard_gecko','Kiwi','{}','2022-11-11','mini',0.06,'male',false,
-          'low','{}','{}',false,null, null,
-          'Come grillos los martes y jueves. Nada más que contar, y está bien así.', '{}'),
-        ($11,$18,'betta','Azul','{}','2025-02-01','mini',0.005,'male',false,
-          'low','{}','{}',false,null, null,
-          'Vive solo por definición de su especie.', '{}'),
-
-        ($20,$13,'dog','Kira','{"Bulldog francés"}','2022-01-18','small',11.5,'female',true,
+        ($5,$7,'dog','Kira','{"Bulldog francés"}','2022-01-18','small',11.5,'female',true,
           'low','{toys,calm_walk}','{shy_at_first}',false,'941000089012345', now(),
           'Se cansa enseguida. Le va el paseo corto y la sombra.', '{brachycephalic,heat_sensitive}')`,
-      [
-        A.nina, A.toby, A.rocky, A.bruno, A.lola, A.pipo, A.trufa, A.canela,
-        A.misi, A.kiwi, A.azul,
-        P.marta, P.carlos, P.diego, P.pablo, P.ines, P.alvaro, P.lucia, P.sara,
-        A.kira,
-      ],
+      [A.nina, A.toby, A.rocky, A.bruno, A.kira, P.marta, P.carlos, P.diego, P.pablo],
     );
 
     // --- Horarios -----------------------------------------------------------
-    for (const petId of [A.nina, A.toby, A.rocky]) {
+    for (const petId of [A.nina, A.toby, A.rocky, A.kira]) {
       for (const weekday of [1, 2, 3, 4, 5]) {
         await db.query(
           `insert into public.pet_availability (pet_id, weekday, start_time, end_time, place_id)
@@ -227,18 +186,6 @@ export async function seed(db: Db): Promise<void> {
       }
     }
 
-    // Los hurones y los conejos también tienen horario: sus encuentros se
-    // organizan igual, en casa de alguien o en una sala, no en un parque.
-    for (const petId of [A.lola, A.pipo, A.trufa, A.canela]) {
-      for (const weekday of [0, 6]) {
-        await db.query(
-          `insert into public.pet_availability (pet_id, weekday, start_time, end_time, place_id)
-           values ($1,$2,'17:00','19:00',null)`,
-          [petId, weekday],
-        );
-      }
-    }
-
     await db.query(
       `insert into public.friendships (requester_id, addressee_id, status)
        values ($1,$2,'accepted'), ($1,$3,'accepted'), ($2,$4,'pending')`,
@@ -256,10 +203,10 @@ export async function seed(db: Db): Promise<void> {
           'Patio privado de 200 m² con valla de dos metros. Un grupo cada vez.',
           public.make_point(40.4370,-3.7038),'Calle de Ejemplo 12, Madrid',200,true,200,true,true,
           6, 4000, 120,'Traer bolsas. No dejar juguetes.','Gratis hasta 24 h antes.','patio-chamberi'),
-        ($2,$3,'Sala neutral para presentaciones',
-          'Sala interior de 20 m² sin olores previos, pensada para presentar conejos y hurones. Suelo lavable y separadores.',
-          public.make_point(40.4405,-3.7012),'Calle de Ejemplo 30, Madrid',20,true,120,true,false,
-          4, 1500, 60,'Traer transportín. Sesiones de 20 minutos con descanso.','Gratis hasta 12 h antes.','sala-presentaciones')`,
+        ($2,$3,'Jardín con sombra en Las Rozas',
+          'Media hectárea vallada con arbolado, pensada para perros que no pueden ir sueltos al parque. Sombra de verdad a mediodía.',
+          public.make_point(40.4920,-3.8730),'Calle de Ejemplo 30, Las Rozas',5000,true,180,true,true,
+          8, 6000, 90,'Traer bolsas. Un grupo cada vez.','Gratis hasta 24 h antes.','jardin-las-rozas')`,
       [S.patio, S.sala, P.ines],
     );
 
@@ -270,83 +217,74 @@ export async function seed(db: Db): Promise<void> {
          starts_at, ends_at, visibility, admits_sizes, admits_energy, leashed,
          max_pets, session_minutes, public_slug)
        values
-        ($1,$5,$9,'dog','scheduled','Paseo de la mañana en Parque Central',
+        ($1,$4,$7,'dog','scheduled','Paseo de la mañana en Parque Central',
           'Salimos a las siete, como cada día. Ritmo alto: los nuestros corren.',
-          $13, public.make_point(40.4098,-3.6939),
+          $10, public.make_point(40.4098,-3.6939),
           ${atLocalTime(1, 7)}, ${atLocalTime(1, 7, 45)},
           'public','{medium,large}','{medium,high}', false, 8, 45,'paseo-manana-central'),
 
-        ($2,$6,$10,'ferret','scheduled','Tarde de hurones en sala neutral',
-          'Cuatro como mucho, sesiones de veinte minutos con descanso. Traed transportín y el moquillo al día.',
-          null, public.make_point(40.4405,-3.7012),
-          ${atLocalTime(2, 17)}, ${atLocalTime(2, 19)},
-          -- Dos horas de tarde, veinte minutos de contacto. No es lo mismo, y el
-          -- esquema ya no deja confundirlo.
-          'public','{mini,small}','{medium,high}', false, 4, 20,'hurones-sala-neutral'),
-
-        ($3,$7,$11,'rabbit','scheduled','Presentación de conejos, terreno neutral',
-          'Espacio sin olores previos y supervisión constante. Si no se caen bien, se para y ya está: forzarlo acaba en peleas de verdad.',
-          null, public.make_point(40.4405,-3.7012),
-          ${atLocalTime(4, 18)}, ${atLocalTime(4, 19)},
-          'public','{small,medium}','{low,medium}', false, 3, 20,'presentacion-conejos'),
-
-        ($4,$8,$12,'dog','scheduled','Caminata nocturna por Parque Berlín',
+        ($2,$5,$8,'dog','scheduled','Caminata nocturna por Parque Berlín',
           'Para quienes paseamos cuando ya no hay nadie.',
-          $14, public.make_point(40.4562,-3.6764),
+          $11, public.make_point(40.4562,-3.6764),
           ${atLocalTime(2, 22, 30)}, ${atLocalTime(3, 0)},
-          'public','{medium,large}','{medium,high}', false, 6, 60,'nocturna-berlin')`,
+          'public','{medium,large}','{medium,high}', false, 6, 60,'nocturna-berlin'),
+
+        -- La corta y con sombra: existe para que el radar tenga algo que
+        -- ofrecer los días en que el bienestar recorta los ratos largos.
+        ($3,$6,$9,'dog','scheduled','Vuelta corta a la sombra',
+          'Media hora sin prisa por la zona arbolada. Para los que se cansan pronto o llevan mal el calor.',
+          $12, public.make_point(40.4153,-3.6844),
+          ${atLocalTime(1, 20)}, ${atLocalTime(1, 20, 30)},
+          'public','{mini,small,medium}','{low,medium}', true, 5, 30,'vuelta-corta-sombra')`,
       [
-        E.manana, E.hurones, E.conejos, E.nocturna,
-        P.marta, P.ines, P.alvaro, P.diego,
-        A.nina, A.lola, A.trufa, A.rocky,
-        L.central, L.berlin,
+        E.manana, E.nocturna, E.sombra,
+        P.marta, P.diego, P.carlos,
+        A.nina, A.rocky, A.kira,
+        L.central, L.berlin, L.retiro,
       ],
     );
 
     await db.query(
       `insert into public.playdate_rsvps (playdate_id, pet_id, profile_id, status, affinity_at_join)
        values ($1,$2,$3,'going',100), ($1,$4,$5,'going',92),
-              ($6,$7,$8,'going',88), ($9,$10,$11,'going',71)`,
-      [
-        E.manana, A.nina, P.marta, A.toby, P.carlos,
-        E.hurones, A.pipo, P.ines,
-        E.conejos, A.canela, P.alvaro,
-      ],
+              ($6,$7,$5,'going',64)`,
+      [E.manana, A.nina, P.marta, A.toby, P.carlos, E.sombra, A.kira],
     );
 
     // --- Comunidad y servicios ---------------------------------------------
-    // Es lo que hace que un tutor de gato o de gecko tenga motivo para volver a
-    // abrir la aplicación.
+    // Un tutor de perro también necesita esto, y no solo las quedadas: quién
+    // cuida en agosto, qué veterinario está de guardia el domingo, y con quién
+    // hablar cuando el suyo se pone raro a las tres de la mañana.
     await db.query(
       `insert into public.communities (id, species_id, name, description, center, radius_m, created_by, public_slug)
        values
-        ($1,'leopard_gecko','Reptiles de Madrid',
-          'Dudas de temperatura, muda, alimentación y qué veterinario está de guardia el domingo.',
-          public.make_point(40.4168,-3.7038), 30000, $4,'reptiles-madrid'),
-        ($2,'cat','Gatos de Chamberí',
-          'Vecinos con gato: veterinarios felinos, cuidadores para las vacaciones y colonias de la zona.',
-          public.make_point(40.4370,-3.7038), 8000, $5,'gatos-chamberi'),
-        ($3,'rabbit','Conejos en Madrid',
-          'Presentaciones, dietas y las dos vacunas que de verdad hacen falta.',
-          public.make_point(40.4168,-3.7038), 25000, $6,'conejos-madrid')`,
-      [C.reptiles, C.gatos, C.conejos, P.sara, P.lucia, P.alvaro],
+        ($1,'dog','Perros de Chamberí',
+          'Vecinos con perro: qué parque está abierto, quién cuida en agosto y qué veterinario coge el teléfono un domingo.',
+          public.make_point(40.4370,-3.7038), 8000, $4,'perros-chamberi'),
+        ($2,'dog','Paseos nocturnos Madrid',
+          'Para quienes salimos cuando ya no hay nadie. Rutas con luz, zonas que evitar y compañía a horas raras.',
+          public.make_point(40.4168,-3.7038), 25000, $5,'paseos-nocturnos-madrid'),
+        ($3,null,'Mascotas del barrio',
+          'Cualquier especie: dónde comprar, quién cuida en agosto y qué hacer con un animal perdido.',
+          public.make_point(40.4168,-3.7038), 12000, $6,'mascotas-del-barrio')`,
+      [C.chamberi, C.nocturnos, C.barrio, P.lucia, P.diego, P.sara],
     );
 
     await db.query(
       `insert into public.community_members (community_id, profile_id) values
         ($1,$4), ($2,$5), ($3,$6), ($1,$5)`,
-      [C.reptiles, C.gatos, C.conejos, P.sara, P.lucia, P.alvaro],
+      [C.chamberi, C.nocturnos, C.barrio, P.lucia, P.diego, P.sara],
     );
 
     await db.query(
       `insert into public.services (name, kind, point, address, phone, species_served, is_24h, verified_at, created_by)
        values
         ('Urgencias Veterinarias 24h Madrid','emergency_vet', public.make_point(40.4302,-3.6989),
-         'Calle de Ejemplo 4, Madrid','+34910000001','{dog,cat,ferret,rabbit}', true, now(), $1),
-        ('Clínica de Exóticos Vetlab','exotic_vet', public.make_point(40.4211,-3.7098),
-         'Calle de Ejemplo 18, Madrid','+34910000002','{ferret,rabbit,guinea_pig,leopard_gecko,bearded_dragon,budgerigar,greek_tortoise}', false, now(), $1),
-        ('Centro Felino Chamberí','vet', public.make_point(40.4368,-3.7042),
-         'Calle de Ejemplo 7, Madrid','+34910000003','{cat}', false, now(), $2),
+         'Calle de Ejemplo 4, Madrid','+34910000001','{dog}', true, now(), $1),
+        ('Clínica Veterinaria Arganzuela','vet', public.make_point(40.4211,-3.7098),
+         'Calle de Ejemplo 18, Madrid','+34910000002','{dog}', false, now(), $1),
+        ('Guardería Canina El Retiro','boarding', public.make_point(40.4368,-3.7042),
+         'Calle de Ejemplo 7, Madrid','+34910000003','{dog}', false, now(), $2),
         ('Peluquería Canina El Nudo','groomer', public.make_point(40.4099,-3.6951),
          'Calle de Ejemplo 21, Madrid','+34910000004','{dog}', false, null, $2)`,
       [P.sara, P.lucia],

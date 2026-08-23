@@ -12,10 +12,14 @@
  * que no existe, la capa de datos está detrás de una interfaz —ver `data.ts`—
  * con dos implementaciones: esta y la de Supabase, que es un solo módulo.
  *
- * El catálogo cubre los tres modelos sociales a propósito: perros que quedan en
- * grupo, hurones y conejos que se presentan de dos en dos, y un gato, un gecko y
- * un betta que no conocen a nadie. Si la demo solo tuviera perros, sería muy
- * fácil construir pantallas que solo funcionan para perros.
+ * Son todos perros, porque hoy la aplicación solo está abierta a perros. El
+ * catálogo de especies sigue en la base con sus reglas —una quedada de gatos
+ * sigue siendo imposible—, pero un tutor no puede registrar otra cosa, así que
+ * la demo enseña lo que se va a ver de verdad.
+ *
+ * Lo que sí cubre a propósito son **dos animales de la misma especie a los que
+ * hoy les conviene algo distinto**. Ese es el caso que hace visible la capa de
+ * bienestar, y es mucho más frecuente que el de dos especies distintas.
  */
 
 import type { Availability, MatchablePet } from '@coincide/core';
@@ -60,10 +64,11 @@ const weekendAfternoon = (): Availability[] =>
 /**
  * Las mascotas del tutor que usa la aplicación.
  *
- * Son dos y de modelos sociales opuestos a propósito: Marta tiene una perra que
- * queda en el parque y una gata que no va a conocer a nadie nunca. Es el caso
- * que obliga a que la aplicación tenga algo que ofrecer en los dos escenarios,
- * en vez de asumir que toda mascota sale a socializar.
+ * Son dos perros del mismo tutor, y no uno, porque el caso interesante ya no es
+ * «perro contra gato» sino **dos animales de la misma especie a los que hoy les
+ * conviene algo distinto**: Nina aguanta un paseo largo a 26 grados y Kira, que
+ * es de hocico chato, no debería salir. Eso es lo que hace visible que la
+ * aplicación decide por el animal y no por el plan de su tutor.
  */
 export const MY_PETS: DemoPet[] = [
   {
@@ -87,22 +92,24 @@ export const MY_PETS: DemoPet[] = [
     placeName: null,
   },
   {
-    id: '20000000-0000-4000-8000-000000000009',
-    name: 'Misi',
+    id: '20000000-0000-4000-8000-00000000000c',
+    name: 'Kira',
     ownerName: 'Marta R.',
     ownerId: '10000000-0000-4000-8000-000000000001',
-    speciesId: 'cat',
-    breeds: ['Común europeo'],
-    bio: 'Territorial y feliz de serlo. No quiere conocer a nadie.',
-    size: 'medium',
+    speciesId: 'dog',
+    breeds: ['Bulldog francés'],
+    bio: 'Se cansa enseguida. Le va el paseo corto y la sombra.',
+    // A 25 grados, un día corriente para Nina, a Kira no le conviene salir.
+    healthFlags: ['brachycephalic', 'heat_sensitive'],
+    size: 'small',
     energyLevel: 'low',
-    playStyles: ['chase', 'toys'],
+    playStyles: ['toys', 'calm_walk'],
     trustCircle: ['shy_at_first'],
     sex: 'female',
-    ageMonths: 86,
+    ageMonths: 55,
     isMicrochipVerified: true,
-    availability: [],
-    location: { lat: 40.4098, lng: -3.6939 },
+    availability: weekdayMorning(PLACES.central.id),
+    location: { lat: 40.4104, lng: -3.6944 },
     walkingUntilMinutes: null,
     placeName: null,
   },
@@ -193,155 +200,6 @@ export const OTHER_PETS: DemoPet[] = [
     placeName: null,
   },
 
-  {
-    id: '20000000-0000-4000-8000-00000000000c',
-    name: 'Kira',
-    ownerName: 'Carlos M.',
-    ownerId: '10000000-0000-4000-8000-000000000002',
-    speciesId: 'dog',
-    breeds: ['Bulldog francés'],
-    bio: 'Se cansa enseguida. Le va el paseo corto y la sombra.',
-    // Es la mascota que separa una aplicación para el tutor de una para el
-    // animal: a 25 grados, un día corriente para Nina, Kira no debería salir.
-    healthFlags: ['brachycephalic', 'heat_sensitive'],
-    size: 'small',
-    energyLevel: 'low',
-    playStyles: ['toys', 'calm_walk'],
-    trustCircle: ['shy_at_first'],
-    sex: 'female',
-    ageMonths: 55,
-    isMicrochipVerified: true,
-    availability: weekdayMorning(PLACES.central.id),
-    location: { lat: 40.4104, lng: -3.6944 },
-    walkingUntilMinutes: null,
-    placeName: null,
-  },
-
-  // --- Hurones y conejos: grupo pequeño, terreno neutral, supervisado ------
-  {
-    id: '20000000-0000-4000-8000-000000000005',
-    name: 'Lola',
-    ownerName: 'Inés L.',
-    ownerId: '10000000-0000-4000-8000-000000000005',
-    speciesId: 'ferret',
-    breeds: ['Hurón estándar'],
-    bio: 'No hay tubo por el que no se meta.',
-    size: 'small',
-    energyLevel: 'high',
-    playStyles: ['chase', 'wrestle', 'forage'],
-    trustCircle: ['loves_everyone'],
-    sex: 'female',
-    ageMonths: 39,
-    isMicrochipVerified: true,
-    availability: weekendAfternoon(),
-    location: { lat: 40.4405, lng: -3.7012 },
-    walkingUntilMinutes: null,
-    placeName: null,
-  },
-  {
-    id: '20000000-0000-4000-8000-000000000006',
-    name: 'Pipo',
-    ownerName: 'Inés L.',
-    ownerId: '10000000-0000-4000-8000-000000000005',
-    speciesId: 'ferret',
-    breeds: ['Hurón angora'],
-    bio: 'Duerme dieciocho horas y las seis restantes las aprovecha.',
-    size: 'small',
-    energyLevel: 'medium',
-    playStyles: ['chase', 'forage', 'toys'],
-    trustCircle: ['shy_at_first'],
-    sex: 'male',
-    ageMonths: 48,
-    isMicrochipVerified: true,
-    availability: weekendAfternoon(),
-    location: { lat: 40.4405, lng: -3.7012 },
-    walkingUntilMinutes: null,
-    placeName: null,
-  },
-  {
-    id: '20000000-0000-4000-8000-000000000007',
-    name: 'Trufa',
-    ownerName: 'Álvaro T.',
-    ownerId: '10000000-0000-4000-8000-000000000006',
-    speciesId: 'rabbit',
-    breeds: ['Belier'],
-    bio: 'Se acicala con quien la deje. Muy sociable para ser conejo.',
-    size: 'medium',
-    energyLevel: 'medium',
-    playStyles: ['grooming', 'side_by_side', 'forage'],
-    trustCircle: ['loves_everyone'],
-    sex: 'female',
-    ageMonths: 41,
-    isMicrochipVerified: false,
-    availability: weekendAfternoon(),
-    location: { lat: 40.4405, lng: -3.7012 },
-    walkingUntilMinutes: null,
-    placeName: null,
-  },
-  {
-    id: '20000000-0000-4000-8000-000000000008',
-    name: 'Canela',
-    ownerName: 'Álvaro T.',
-    ownerId: '10000000-0000-4000-8000-000000000006',
-    speciesId: 'rabbit',
-    breeds: ['Enano holandés'],
-    bio: 'Necesita su tiempo. Las presentaciones con ella van despacio.',
-    size: 'small',
-    energyLevel: 'low',
-    playStyles: ['side_by_side', 'forage'],
-    trustCircle: ['shy_at_first'],
-    sex: 'female',
-    ageMonths: 19,
-    isMicrochipVerified: false,
-    availability: weekendAfternoon(),
-    location: { lat: 40.4405, lng: -3.7012 },
-    walkingUntilMinutes: null,
-    placeName: null,
-  },
-
-  // --- Solitarias: existen en la aplicación, pero no en el descubrimiento ---
-  // Están aquí a propósito. El algoritmo las veta por especie, no por falta de
-  // datos, y eso es exactamente lo que la interfaz tiene que saber explicar.
-  {
-    id: '20000000-0000-4000-8000-000000000010',
-    name: 'Kiwi',
-    ownerName: 'Sara V.',
-    ownerId: '10000000-0000-4000-8000-000000000007',
-    speciesId: 'leopard_gecko',
-    breeds: [],
-    bio: 'Come grillos los martes y jueves. Nada más que contar, y está bien así.',
-    size: 'mini',
-    energyLevel: 'low',
-    playStyles: [],
-    trustCircle: [],
-    sex: 'male',
-    ageMonths: 45,
-    isMicrochipVerified: false,
-    availability: [],
-    location: { lat: 40.4211, lng: -3.7098 },
-    walkingUntilMinutes: null,
-    placeName: null,
-  },
-  {
-    id: '20000000-0000-4000-8000-000000000011',
-    name: 'Azul',
-    ownerName: 'Lucía P.',
-    ownerId: '10000000-0000-4000-8000-000000000008',
-    speciesId: 'betta',
-    breeds: [],
-    bio: 'Vive solo por definición de su especie.',
-    size: 'mini',
-    energyLevel: 'low',
-    playStyles: [],
-    trustCircle: [],
-    sex: 'male',
-    ageMonths: 18,
-    isMicrochipVerified: false,
-    availability: [],
-    location: { lat: 40.437, lng: -3.7038 },
-    walkingUntilMinutes: null,
-    placeName: null,
-  },
 ];
 
 export type DemoPlaydate = {
@@ -393,36 +251,20 @@ export const PLAYDATES: DemoPlaydate[] = [
     maxPets: 8,
   },
   {
-    id: '50000000-0000-4000-8000-000000000002',
-    title: 'Tarde de hurones en sala neutral',
+    id: '50000000-0000-4000-8000-000000000005',
+    title: 'Vuelta corta a la sombra',
     description:
-      'Cuatro como mucho, sesiones de veinte minutos con descanso. Traed transportín y el moquillo al día.',
-    speciesId: 'ferret',
-    sessionMinutes: 20,
-    placeName: 'Sala neutral para presentaciones',
-    startsAt: upcoming(2, 17),
-    endsAt: upcoming(2, 19),
-    admitsSizes: ['mini', 'small'],
-    admitsEnergy: ['medium', 'high'],
-    leashed: false,
-    attendeeIds: ['20000000-0000-4000-8000-000000000006'],
-    maxPets: 4,
-  },
-  {
-    id: '50000000-0000-4000-8000-000000000003',
-    title: 'Presentación de conejos, terreno neutral',
-    description:
-      'Espacio sin olores previos y supervisión constante. Si no se caen bien, se para y ya está: forzarlo acaba en peleas de verdad.',
-    speciesId: 'rabbit',
-    sessionMinutes: 20,
-    placeName: 'Sala neutral para presentaciones',
-    startsAt: upcoming(4, 18),
-    endsAt: upcoming(4, 19),
-    admitsSizes: ['small', 'medium'],
+      'Media hora sin prisa por la zona arbolada. Para los que se cansan pronto o llevan mal el calor.',
+    speciesId: 'dog',
+    sessionMinutes: 30,
+    placeName: PLACES.retiro.name,
+    startsAt: upcoming(1, 20),
+    endsAt: upcoming(1, 20, 30),
+    admitsSizes: ['mini', 'small', 'medium'],
     admitsEnergy: ['low', 'medium'],
-    leashed: false,
-    attendeeIds: ['20000000-0000-4000-8000-000000000008'],
-    maxPets: 3,
+    leashed: true,
+    attendeeIds: ['20000000-0000-4000-8000-00000000000c'],
+    maxPets: 5,
   },
   {
     id: '50000000-0000-4000-8000-000000000004',
@@ -468,15 +310,15 @@ export const SPOTS: DemoSpot[] = [
   },
   {
     id: '40000000-0000-4000-8000-000000000002',
-    title: 'Sala neutral para presentaciones',
+    title: 'Jardín con sombra en Las Rozas',
     description:
-      'Sala interior de 20 m² sin olores previos, pensada para presentar conejos y hurones. Suelo lavable y separadores.',
-    maxPets: 4,
-    pricePerSlotCents: 1500,
-    slotMinutes: 60,
+      'Media hectárea vallada con arbolado, para perros que no pueden ir sueltos al parque. Sombra de verdad a mediodía.',
+    maxPets: 8,
+    pricePerSlotCents: 6000,
+    slotMinutes: 90,
     isFenced: true,
-    zone: 'Chamberí',
-    speciesIds: ['ferret', 'rabbit', 'guinea_pig'],
+    zone: 'Las Rozas',
+    speciesIds: ['dog'],
   },
 ];
 
@@ -499,30 +341,23 @@ export type DemoCommunity = {
 
 export const COMMUNITIES: DemoCommunity[] = [
   {
-    id: '70000000-0000-4000-8000-000000000001',
-    name: 'Reptiles de Madrid',
+    id: '80000000-0000-4000-8000-000000000001',
+    name: 'Perros de Chamberí',
     description:
-      'Dudas de temperatura, muda, alimentación y qué veterinario está de guardia el domingo.',
-    speciesId: 'leopard_gecko',
+      'Vecinos con perro: qué parque está abierto, quién cuida en agosto y qué veterinario coge el teléfono un domingo.',
+    speciesId: 'dog',
     memberCount: 2,
   },
   {
-    id: '70000000-0000-4000-8000-000000000002',
-    name: 'Gatos de Chamberí',
+    id: '80000000-0000-4000-8000-000000000002',
+    name: 'Paseos nocturnos Madrid',
     description:
-      'Vecinos con gato: veterinarios felinos, cuidadores para las vacaciones y colonias de la zona.',
-    speciesId: 'cat',
+      'Para quienes salimos cuando ya no hay nadie. Rutas con luz, zonas que evitar y compañía a horas raras.',
+    speciesId: 'dog',
     memberCount: 1,
   },
   {
-    id: '70000000-0000-4000-8000-000000000003',
-    name: 'Conejos en Madrid',
-    description: 'Presentaciones, dietas y las dos vacunas que de verdad hacen falta.',
-    speciesId: 'rabbit',
-    memberCount: 1,
-  },
-  {
-    id: '70000000-0000-4000-8000-000000000004',
+    id: '80000000-0000-4000-8000-000000000003',
     name: 'Mascotas del barrio',
     description:
       'Cualquier especie: dónde comprar, quién cuida en agosto y qué hacer con un animal perdido.',
@@ -544,42 +379,34 @@ export type DemoService = {
 
 export const SERVICES: DemoService[] = [
   {
-    id: '80000000-0000-4000-8000-000000000001',
+    id: '90000000-0000-4000-8000-000000000001',
     name: 'Urgencias Veterinarias 24h Madrid',
     kind: 'emergency_vet',
     is24h: true,
     isVerified: true,
-    speciesServed: ['dog', 'cat', 'ferret', 'rabbit'],
+    speciesServed: ['dog'],
     distanceLabel: '1,8 km',
   },
   {
-    id: '80000000-0000-4000-8000-000000000002',
-    name: 'Clínica de Exóticos Vetlab',
-    kind: 'exotic_vet',
-    is24h: false,
-    isVerified: true,
-    speciesServed: [
-      'ferret',
-      'rabbit',
-      'guinea_pig',
-      'leopard_gecko',
-      'bearded_dragon',
-      'budgerigar',
-      'greek_tortoise',
-    ],
-    distanceLabel: '2,4 km',
-  },
-  {
-    id: '80000000-0000-4000-8000-000000000003',
-    name: 'Centro Felino Chamberí',
+    id: '90000000-0000-4000-8000-000000000002',
+    name: 'Clínica Veterinaria Arganzuela',
     kind: 'vet',
     is24h: false,
     isVerified: true,
-    speciesServed: ['cat'],
+    speciesServed: ['dog'],
+    distanceLabel: '2,4 km',
+  },
+  {
+    id: '90000000-0000-4000-8000-000000000003',
+    name: 'Guardería Canina El Retiro',
+    kind: 'boarding',
+    is24h: false,
+    isVerified: true,
+    speciesServed: ['dog'],
     distanceLabel: '3,1 km',
   },
   {
-    id: '80000000-0000-4000-8000-000000000004',
+    id: '90000000-0000-4000-8000-000000000004',
     name: 'Peluquería Canina El Nudo',
     kind: 'groomer',
     is24h: false,
@@ -588,3 +415,4 @@ export const SERVICES: DemoService[] = [
     distanceLabel: '900 m',
   },
 ];
+

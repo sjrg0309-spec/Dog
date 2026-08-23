@@ -1,9 +1,8 @@
 # Coincide
 
-Red social de mascotas. Empareja animales **de la misma especie** por temperamento, cruza los
-horarios de salida de sus tutores y facilita que el encuentro ocurra de verdad. Y cuando la especie
-no socializa —que son muchas— deja de fingir que sí y conecta a su tutor con quien sí puede
-ayudarle.
+Red social de paseos. Empareja perros por temperamento, cruza los horarios de salida de sus tutores
+y facilita que el paseo ocurra de verdad. Y cuando al perro no le conviene salir, lo dice y deja de
+proponerlo.
 
 ## Es una aplicación para el animal, no para su tutor
 
@@ -22,7 +21,7 @@ texto.
 | **Calor** | Cada especie tiene su franja, y de ahí se descuenta lo que se sepa del animal: hocico chato, sénior, sensible al calor. Los descuentos se acumulan. Sobre asfalto el límite baja otra vez |
 | **Duración** | Una quedada declara los minutos de **contacto seguidos**, que no son los del evento. Ninguna puede pasarse del máximo de su especie, y lo impide un disparador en Postgres |
 | **Estado** | En recuperación, con la pauta sin terminar o con un encuentro hace un rato: motivos para no aparecer hoy en la lista de nadie |
-| **El grupo** | El veredicto es el del animal que peor lo lleve, igual que la afinidad es la del peor par |
+| **El grupo** | El veredicto es el del perro que peor lo lleve, igual que la afinidad es la del peor par |
 
 Dos consecuencias que conviene leer juntas:
 
@@ -37,26 +36,30 @@ Dos consecuencias que conviene leer juntas:
 Esto **no es consejo veterinario**, y la aplicación lo repite donde hace falta: son umbrales
 prudentes propios, publicados en el catálogo de especies para que se puedan discutir.
 
-## El modelo social es el eje del producto
+## Solo perros, y el catálogo sigue debajo
 
-Coincide no es una aplicación de perros con otras especies añadidas encima. Cada especie tiene su
-propia forma de relacionarse, y eso decide qué se le ofrece al tutor:
+Coincide llegó a estar abierto a quince especies. Mirando los datos, solo cinco tenían encuentros y
+**una sola** —el perro— tiene modelo de manada, que es el que sostiene el radar, las quedadas
+abiertas y los espacios compartidos. Para las otras cuatro el producto era una presentación
+supervisada de veinte minutos, y para las diez restantes un directorio. Eran tres productos
+distintos dentro de la misma aplicación, y el que funciona es el del perro.
 
-| Modelo | Qué significa | Qué ofrece la aplicación |
-|---|---|---|
-| `pack` | Encuentros abiertos en grupo, con desconocidos | Radar, quedadas, espacios. Solo el perro |
-| `small_group` | Dos o tres, terreno neutral, supervisados y cortos | Presentaciones y salas neutrales. Hurones, conejos, cobayas, ratas |
-| `solitary` | **Sin encuentros**, y no por una limitación de la app | Comunidad de tutores, lugares y servicios. Gatos, hámsteres, aves, reptiles, peces |
+Lo que **no** se hizo al acotarlo: borrar el catálogo. Las especies, su estado legal, sus límites de
+cuidado y los disparadores que impiden mezclarlas siguen exactamente donde estaban, con sus tests.
+Lo que cambia es qué puede registrar un tutor, y eso vive en una columna:
 
-Meter a un gato territorial en una quedada para conocer a otro gato es estresarlo. La aplicación no
-lo ofrece, y lo dice en lugar de callarlo. Un hurón fue criado para cazar conejos: **los encuentros
-son siempre entre animales de la misma especie**, y eso lo impide un disparador en Postgres, no una
-condición en el cliente.
+```sql
+select id from public.available_species();  -- dog
+```
 
-El catálogo cubre 15 especies con su estado legal en España, su fuente y su aviso. Coincide no da
-asesoramiento legal: repite lo que dice una norma concreta y enlaza a ella. Las especies excluidas
-—la cotorra argentina, por ejemplo— aparecen para poder decir que no y por qué, y su registro se
-rechaza en la base de datos.
+La diferencia importa. Reabrir a hurones o conejos es poner `is_available` a cierto en una fila; si
+se hubieran borrado las tablas, sería rehacer el trabajo entero. Mientras tanto la base sigue
+impidiendo lo que siempre impidió: una quedada de gatos, un animal de otra especie apuntado a una de
+perros, una sesión más larga de lo que aguanta la especie.
+
+La puerta contesta dos noes distintos y con mensajes distintos, porque no son lo mismo: un dragón
+barbudo es legal y no está abierto; una cotorra argentina no es legal. Confundirlos haría creer a un
+tutor que tiene un animal prohibido.
 
 ## Tres motores de encuentro
 
@@ -76,12 +79,15 @@ coincidencia de horarios, en cambio, funciona desde el segundo usuario y **sin q
 estar conectado a la vez**. Es lo que hace que la aplicación sirva a las once de la noche, que es
 justo cuando más solo se pasea.
 
-## Y un cuarto para quien no queda
+## Y un cuarto para los días que no se sale
 
-Comunidad de tutores por especie y zona, y un directorio de servicios que declara **a qué especies
-atiende de verdad**. Un veterinario de perros y gatos no sabe tratar a un gecko, y mandarle uno es
-peor que no tener directorio. Las urgencias 24 h salen primero y se consultan sin cuenta: buscar un
-veterinario de guardia a las tres de la mañana no debería exigir registrarse.
+Comunidad de tutores por zona y un directorio de servicios. Quién cuida en agosto, qué veterinario
+está de guardia el domingo, con quién hablar cuando el tuyo se pone raro. Las urgencias 24 h salen
+primero y se consultan sin cuenta: buscar un veterinario de guardia a las tres de la mañana no
+debería exigir registrarse.
+
+El directorio declara **a qué especies atiende cada servicio** aunque hoy todas sean perros. Es lo
+que impedirá mandar un gecko a una peluquería canina el día que se abra a otra especie.
 
 ---
 
@@ -90,7 +96,7 @@ veterinario de guardia a las tres de la mañana no debería exigir registrarse.
 ```
 coincide/
 ├── apps/
-│   ├── web/          Next.js — páginas públicas: quedada, espacio, parques, especies
+│   ├── web/          Next.js — páginas públicas: quedada, espacio, parques
 │   └── mobile/       Expo — descubrir, radar, quedadas, espacios y comunidad
 ├── packages/
 │   ├── core/         Especies, bienestar, compatibilidad, horarios, grupos y geo. Puro
@@ -200,12 +206,12 @@ esquema y no en un documento:
 ## Verificación
 
 ```bash
-pnpm test          # 287 tests unitarios y de integración
+pnpm test          # 302 tests unitarios y de integración
 pnpm typecheck     # todos los paquetes y aplicaciones
 pnpm lint          # ESLint en la web, typecheck en el resto
-pnpm --filter @coincide/web e2e    # 62 casos en Chromium, dos viewports
+pnpm --filter @coincide/web e2e    # 56 casos en Chromium, dos viewports
 node scripts/screenshots.mjs        # capturas de la web en claro, oscuro y sistema
-node scripts/mobile-screenshots.mjs # capturas del móvil: con perro, con gato y a 34 °C
+node scripts/mobile-screenshots.mjs # capturas del móvil: los dos perros, y a 26 y 34 °C
 ```
 
 Los 22 tests de RLS están escritos como **intentos de acceso indebido**: leer las políticas y darlas
@@ -224,7 +230,7 @@ puede registrar una cotorra argentina, que sí se puede una especie pendiente de
 que no se puede crear una quedada de gatos y que un hurón no puede apuntarse a una de perros. Un
 cliente móvil se desensambla en cinco minutos; un disparador en Postgres, no.
 
-Los 62 casos de navegador incluyen auditoría de accesibilidad con axe en las cinco páginas,
+Los 56 casos de navegador incluyen auditoría de accesibilidad con axe en las cuatro páginas,
 recorrido de teclado, anillo de foco, conmutador de tema, movimiento reducido y ausencia de
 desbordamiento a 320 px.
 
@@ -246,3 +252,33 @@ desbordamiento a 320 px.
   (403, comprobado), así que conectarla queda pendiente de un entorno con salida a internet. Lo que
   cambia entonces es un módulo.
 - **Feed social, grupos, chat y verificación de identidad.** Fase 2.
+
+---
+
+## Interfaz
+
+**Iconos: Lucide**, y solo Lucide. Es la única librería con puerto oficial a React Native, así que
+web y móvil comparten trazo y rejilla en lugar de mezclar dos sistemas. Hay un único punto de
+entrada por aplicación —`apps/mobile/lib/icons.ts` y `lucide-react` en la web— para que sea difícil
+que se cuele un segundo.
+
+En el móvil, `<Icon>` obliga a decidir si un icono aporta significado —y lleva etiqueta— o es
+decorativo porque su palabra está al lado. El tipo no deja una tercera opción.
+
+**Componentes: Radix UI en la web.** Este proyecto no usa Tailwind, así que shadcn/ui no es
+instalable tal cual: shadcn *es* Radix más Tailwind. Se toma la mitad que hace el trabajo. En React
+Native no corre ninguna de las librerías habituales —todas son DOM—, así que allí hay una capa de
+primitivas propia sobre los mismos tokens, en lugar de meter NativeWind solo para poder citar una
+librería.
+
+La estructura del móvil es de feed: fila de presencia en vivo arriba, entradas a sangre debajo,
+barra de cinco pestañas. No por parecerse a nada, sino porque el radar ya era un círculo que indica
+presencia y caduca solo, y la gente sabe leer ese patrón sin que nadie se lo explique.
+
+Sobre la guía de interfaz de la plataforma: el cuerpo está a 17 pt, las áreas táctiles no bajan de
+44, la barra de navegación solo enseña su separación cuando hay contenido debajo, y ningún estado se
+comunica solo con color. Una revisión con esa guía encontró tres cosas que no se ven leyendo el
+código: el cuerpo estaba a 16, los chips de condiciones tenían 34 de alto, y `primary` marcaba a la
+vez lo interactivo y la banda «Buen match» —que en tema oscuro era además idéntica a `success`, así
+que dos bandas distintas se pintaban iguales. Hay dos aserciones en los tokens para que ninguna de
+las dos vuelva sin que falle el build.
