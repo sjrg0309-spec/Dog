@@ -1,0 +1,975 @@
+<title>Coincide</title>
+<meta name="description" content="Prototipo navegable de Coincide: cambia la mascota y las condiciones y mira cómo el algoritmo real decide." />
+
+<style>
+  /* {{FONTS}} */
+
+  /* Tokens de diseño de Coincide, emitidos por packages/tokens.
+     Se inlinean tal cual: el prototipo usa la paleta del producto, no una
+     parecida. Traen ya los tres estados de tema (claro, oscuro y sistema). */
+  /* {{TOKENS}} */
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    /* Fondo explícito: el visor pinta su propio suelo detrás de la página. */
+    background: var(--co-background);
+    color: var(--co-foreground);
+    font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+    font-size: var(--co-font-size-base);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: 'Bricolage Grotesque', 'Atkinson Hyperlegible', ui-sans-serif, sans-serif;
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  h1 {
+    font-size: clamp(2.1rem, 1.5rem + 3vw, 3.6rem);
+  }
+  h2 {
+    font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.1rem);
+  }
+  h3 {
+    font-size: var(--co-font-size-lg);
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    color: var(--co-primary);
+  }
+
+  .shell {
+    max-width: 1180px;
+    margin-inline: auto;
+    padding-inline: clamp(var(--co-space-5), 4vw, var(--co-space-12));
+  }
+
+  .eyebrow {
+    font-size: var(--co-font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--co-muted-foreground);
+  }
+
+  .lede {
+    font-size: var(--co-font-size-lg);
+    color: var(--co-muted-foreground);
+    max-width: 62ch;
+  }
+
+  .meta {
+    font-size: var(--co-font-size-sm);
+    color: var(--co-muted-foreground);
+  }
+
+  /* ---------------------------------------------------------------- cabecera */
+
+  header.top {
+    border-bottom: 1px solid var(--co-border);
+    padding-block: var(--co-space-4);
+    position: sticky;
+    top: 0;
+    background: color-mix(in oklab, var(--co-background) 88%, transparent);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+  }
+
+  .top__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--co-space-4);
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--co-space-2);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-size: var(--co-font-size-lg);
+  }
+
+  .hero {
+    padding-block: clamp(var(--co-space-12), 7vw, var(--co-space-24))
+      clamp(var(--co-space-8), 4vw, var(--co-space-12));
+    display: grid;
+    gap: var(--co-space-6);
+  }
+
+  .hero__claim {
+    display: grid;
+    gap: var(--co-space-4);
+    /* Lo justo para que «el animal» no se parta entre dos líneas: es la parte
+       que lleva el color y el peso de la frase, y cortarla la desactiva. */
+    max-width: 30ch;
+  }
+
+  .hero em {
+    font-style: normal;
+    color: var(--co-primary);
+  }
+
+  /* -------------------------------------------------------------- la consola */
+
+  .console {
+    display: grid;
+    gap: clamp(var(--co-space-6), 3vw, var(--co-space-12));
+    align-items: start;
+    padding-bottom: clamp(var(--co-space-12), 6vw, var(--co-space-20));
+  }
+
+  @media (min-width: 940px) {
+    .console {
+      grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    }
+    .console__phone {
+      position: sticky;
+      top: 92px;
+    }
+  }
+
+  /* El teléfono. No es decoración: es donde se ve el resultado, y por eso tiene
+     el tamaño real de una pantalla de 390 px en vez de un marco simbólico. */
+  .phone {
+    width: 100%;
+    max-width: 360px;
+    margin-inline: auto;
+    border: 10px solid var(--co-foreground);
+    border-radius: var(--co-radius-2xl);
+    background: var(--co-background);
+    overflow: hidden;
+    box-shadow: 0 24px 60px -30px color-mix(in oklab, var(--co-foreground) 60%, transparent);
+  }
+
+  .phone__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--co-space-3) var(--co-space-4);
+    border-bottom: 1px solid var(--co-border);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 600;
+    font-size: var(--co-font-size-sm);
+  }
+
+  .phone__screen {
+    padding: var(--co-space-4);
+    display: grid;
+    gap: var(--co-space-4);
+    min-height: 30rem;
+    max-height: 34rem;
+    overflow-y: auto;
+  }
+
+  .phone__tabs {
+    display: flex;
+    border-top: 1px solid var(--co-border);
+    background: var(--co-surface);
+  }
+
+  .phone__tabs span {
+    flex: 1;
+    text-align: center;
+    padding-block: var(--co-space-2);
+    font-size: 0.66rem;
+    color: var(--co-muted-foreground);
+  }
+
+  .phone__tabs span[data-current] {
+    color: var(--co-primary);
+    font-weight: 700;
+  }
+
+  /* ------------------------------------------------------------- controles */
+
+  .panel {
+    display: grid;
+    gap: var(--co-space-6);
+  }
+
+  .control {
+    display: grid;
+    gap: var(--co-space-3);
+    padding: var(--co-space-5);
+    border: 1px solid var(--co-border);
+    border-radius: var(--co-radius-lg);
+    background: var(--co-surface);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--co-space-2);
+  }
+
+  button.chip {
+    font: inherit;
+    font-size: var(--co-font-size-sm);
+    padding: var(--co-space-2) var(--co-space-4);
+    border-radius: var(--co-radius-full);
+    border: 1px solid var(--co-border);
+    background: transparent;
+    color: var(--co-muted-foreground);
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+
+  button.chip:hover {
+    border-color: var(--co-primary);
+    color: var(--co-foreground);
+  }
+
+  button.chip[aria-pressed='true'] {
+    background: var(--co-primary);
+    border-color: var(--co-primary);
+    color: var(--co-primary-foreground);
+    font-weight: 700;
+  }
+
+  button.chip strong {
+    display: block;
+    font-weight: 700;
+  }
+
+  button.chip small {
+    display: block;
+    font-size: 0.72rem;
+    opacity: 0.85;
+  }
+
+  :where(a, button):focus-visible {
+    outline: 3px solid var(--co-ring);
+    outline-offset: 2px;
+    border-radius: var(--co-radius-sm);
+  }
+
+  /* ------------------------------------------------------- traza de decisión */
+
+  /* La parte que de verdad explica el producto: qué se preguntó, en qué orden y
+     qué contestó. La numeración es real —el orden de evaluación importa, porque
+     la especie se comprueba antes que el carácter— y no un adorno. */
+  .trace {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--co-border);
+    border-radius: var(--co-radius-lg);
+    overflow: hidden;
+    background: var(--co-surface);
+  }
+
+  .trace__row {
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+    gap: var(--co-space-3);
+    align-items: baseline;
+    padding: var(--co-space-4) var(--co-space-5);
+    border-bottom: 1px solid var(--co-border);
+  }
+
+  .trace__row:last-child {
+    border-bottom: 0;
+  }
+
+  .trace__n {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--co-muted-foreground);
+    font-size: var(--co-font-size-sm);
+  }
+
+  .trace__q {
+    display: grid;
+    gap: var(--co-space-1);
+  }
+
+  .trace__q b {
+    font-weight: 700;
+  }
+
+  .trace__verdict {
+    font-size: var(--co-font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: var(--co-space-1) var(--co-space-3);
+    border-radius: var(--co-radius-full);
+    white-space: nowrap;
+  }
+
+  /* El estado nunca se comunica solo con color: lleva símbolo y palabra. */
+  .v-pass {
+    background: var(--co-success-surface);
+    color: var(--co-success);
+  }
+  .v-warn {
+    background: var(--co-warning-surface);
+    color: var(--co-warning);
+  }
+  .v-stop {
+    background: var(--co-live-surface);
+    color: var(--co-live-foreground);
+  }
+
+  /* ------------------------------------------------------------- tarjetas app */
+
+  .card {
+    border: 1px solid var(--co-border);
+    border-radius: var(--co-radius-lg);
+    background: var(--co-surface);
+    padding: var(--co-space-4);
+    display: grid;
+    gap: var(--co-space-2);
+  }
+
+  .card--stop {
+    border-left: 4px solid var(--co-warning);
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--co-space-2);
+    align-items: center;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px var(--co-space-2);
+    border-radius: var(--co-radius-full);
+    background: var(--co-muted);
+    color: var(--co-muted-foreground);
+  }
+
+  .badge--accent {
+    background: var(--co-accent);
+    color: var(--co-accent-foreground);
+  }
+  .badge--verified {
+    background: var(--co-success-surface);
+    color: var(--co-success);
+  }
+  .badge--live {
+    background: var(--co-live-surface);
+    color: var(--co-live-foreground);
+  }
+  .badge--warning {
+    background: var(--co-warning-surface);
+    color: var(--co-warning);
+  }
+
+  .score {
+    display: flex;
+    align-items: baseline;
+    gap: var(--co-space-2);
+  }
+
+  .score b {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bar {
+    height: 6px;
+    border-radius: var(--co-radius-full);
+    background: var(--co-muted);
+    overflow: hidden;
+  }
+
+  .bar > i {
+    display: block;
+    height: 100%;
+    background: var(--co-success);
+  }
+
+  .quote {
+    border-left: 3px solid var(--co-primary);
+    padding-left: var(--co-space-3);
+    font-size: var(--co-font-size-sm);
+    color: var(--co-muted-foreground);
+  }
+
+  /* ------------------------------------------------------------------ tablas */
+
+  .section {
+    padding-block: clamp(var(--co-space-12), 6vw, var(--co-space-20));
+    border-top: 1px solid var(--co-border);
+    display: grid;
+    gap: var(--co-space-8);
+  }
+
+  .section__head {
+    display: grid;
+    gap: var(--co-space-3);
+  }
+
+  .grid {
+    display: grid;
+    gap: var(--co-space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  }
+
+  .scroller {
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 40rem;
+    font-size: var(--co-font-size-sm);
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: var(--co-space-3) var(--co-space-4);
+    border-bottom: 1px solid var(--co-border);
+    vertical-align: top;
+  }
+
+  /* Solo las cabeceras de columna van en versalitas. Un `th` de fila es el
+     nombre de la especie, y en mayúsculas pequeñas se lee peor que el resto de
+     la tabla justo donde más importa. */
+  thead th {
+    font-size: var(--co-font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--co-muted-foreground);
+    font-weight: 700;
+  }
+
+  tbody th {
+    font-weight: 700;
+  }
+
+  td.num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  tr[data-solitary] td:first-child::after {
+    content: ' · no queda';
+    color: var(--co-muted-foreground);
+    font-weight: 400;
+  }
+
+  .notice {
+    display: flex;
+    gap: var(--co-space-3);
+    padding: var(--co-space-5);
+    border: 1px solid var(--co-border);
+    border-left: 4px solid var(--co-warning);
+    border-radius: var(--co-radius-lg);
+    background: var(--co-surface-sunken);
+    font-size: var(--co-font-size-sm);
+    color: var(--co-muted-foreground);
+  }
+
+  .notice b {
+    color: var(--co-foreground);
+  }
+
+  footer {
+    border-top: 1px solid var(--co-border);
+    padding-block: var(--co-space-12);
+    display: grid;
+    gap: var(--co-space-3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+</style>
+
+<header class="top">
+  <div class="shell top__inner">
+    <span class="brand">
+      <svg width="20" height="20" viewBox="0 0 22 22" aria-hidden="true">
+        <circle cx="11" cy="11" r="4" fill="none" stroke="var(--co-primary)" stroke-width="2.5" />
+        <circle cx="11" cy="11" r="9" fill="none" stroke="var(--co-live-ring)" stroke-width="1.5" opacity="0.6" />
+      </svg>
+      Coincide
+    </span>
+    <span class="meta">Prototipo navegable · datos y algoritmo reales</span>
+  </div>
+</header>
+
+<main>
+  <section class="shell hero">
+    <div class="hero__claim">
+      <p class="eyebrow">Red social de mascotas</p>
+      <h1>La app decide por <em>el animal</em>, no por ti.</h1>
+    </div>
+    <p class="lede">
+      Coincide empareja animales de la misma especie por carácter, tamaño y forma de jugar, y cruza
+      los horarios de salida. Encima de todo eso hay una capa que puede contestar que no: si el plan
+      no le conviene al animal, no se propone. Cambia la mascota y las condiciones aquí abajo y
+      míralo decidir.
+    </p>
+  </section>
+
+  <section class="shell console">
+    <div class="console__phone">
+      <div class="phone">
+        <div class="phone__bar">
+          <span>Descubrir</span>
+          <span aria-hidden="true">●</span>
+        </div>
+        <!-- La pantalla se desplaza, así que tiene que poder recorrerse con el
+             teclado: sin `tabindex`, quien no usa ratón no llega al contenido
+             de abajo. Lo mismo vale para la tabla ancha. -->
+        <div
+          class="phone__screen"
+          id="screen"
+          tabindex="0"
+          role="region"
+          aria-label="Pantalla de descubrimiento"
+        ></div>
+        <div class="phone__tabs" aria-hidden="true">
+          <span data-current>Descubrir</span><span>Radar</span><span>Quedadas</span
+          ><span>Espacios</span><span>Comunidad</span>
+        </div>
+      </div>
+      <p class="meta" style="text-align: center; margin-top: var(--co-space-3)">
+        Pantalla real de la aplicación Expo, a 390 px.
+      </p>
+    </div>
+
+    <div class="panel">
+      <div class="control">
+        <p class="eyebrow">Quién abre la aplicación</p>
+        <div class="chips" id="pets" role="group" aria-label="Mascota"></div>
+        <p class="meta" id="petNote"></p>
+      </div>
+
+      <div class="control">
+        <p class="eyebrow">Hoy, donde vais a estar</p>
+        <div class="chips" id="temps" role="group" aria-label="Temperatura"></div>
+        <div class="chips" id="surfaces" role="group" aria-label="Superficie"></div>
+        <p class="meta">
+          La temperatura la pones tú: todavía no hay ningún proveedor meteorológico conectado, y
+          preferimos decirlo a enseñar un número que nos hemos inventado.
+        </p>
+      </div>
+
+      <div>
+        <p class="eyebrow" style="margin-bottom: var(--co-space-3)">Qué se preguntó, y en qué orden</p>
+        <div class="trace" id="trace"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="shell section">
+    <div class="section__head">
+      <p class="eyebrow">Lo que separa esto de una app de dueños</p>
+      <h2>Tres cosas que la aplicación mira por el animal</h2>
+      <p class="lede">
+        Y cuando alguna dice que no, manda: la lista vuelve vacía y el botón de check-in no está. Un
+        control en gris invita a buscar cómo activarlo; un aviso debajo de doce tarjetas de animales
+        compatibles ya ha dicho lo contrario de lo que dice su texto.
+      </p>
+    </div>
+
+    <div class="grid">
+      <article class="card">
+        <p class="eyebrow">Calor</p>
+        <h3>El techo no es el mismo para todos</h3>
+        <p class="meta">
+          Cada especie tiene su franja y de ahí se descuenta lo que se sepa del animal: hocico chato
+          −4&nbsp;°C, sensible al calor −2, sénior −2, joven −1. Se acumulan, porque sumar es la
+          forma prudente de equivocarse. Para un animal que ya tenía el techo rebajado, el margen
+          antes de parar es cero: pasarse no es estar incómodo.
+        </p>
+      </article>
+      <article class="card">
+        <p class="eyebrow">Duración</p>
+        <h3>Dos horas es un buen plan para ti</h3>
+        <p class="meta">
+          Para un hurón son seis sesiones de veinte minutos con descanso entre medias, y son cosas
+          distintas. Una quedada declara los minutos de contacto seguidos, y ninguna puede pasarse
+          del máximo de su especie: lo rechaza un disparador en Postgres, no el formulario.
+        </p>
+      </article>
+      <article class="card">
+        <p class="eyebrow">Estado</p>
+        <h3>Quien está de baja, está de baja</h3>
+        <p class="meta">
+          En recuperación, con la pauta sin terminar, o con un encuentro hace un rato. El grupo ve el
+          resultado —«aguanta veinte minutos»— y no el motivo, que es un dato de salud y se queda en
+          su ficha.
+        </p>
+      </article>
+    </div>
+
+    <div class="notice">
+      <span aria-hidden="true">!</span>
+      <p>
+        <b>Esto no es consejo veterinario.</b> Son umbrales prudentes de la propia aplicación,
+        pensados para no proponer de más. Están publicados aquí abajo para que se puedan discutir, y
+        tu animal puede tener el suyo más estricto. Más laxo, no: un campo que pudiera subirlos sería
+        una forma elegante de que la regla no existiera.
+      </p>
+    </div>
+  </section>
+
+  <section class="shell section">
+    <div class="section__head">
+      <p class="eyebrow">Catálogo</p>
+      <h2>Cada especie trae sus propios límites</h2>
+      <p class="lede">
+        Coincide no es una aplicación de perros con otras especies añadidas encima. El modelo social
+        decide si hay encuentros siquiera, y los límites de cuidado deciden cómo son cuando los hay.
+      </p>
+    </div>
+
+    <div class="scroller" tabindex="0" role="region" aria-label="Límites de cuidado por especie">
+      <table id="catalog">
+        <thead>
+          <tr>
+            <th scope="col">Especie</th>
+            <th scope="col">Modelo social</th>
+            <th scope="col">Contacto seguido</th>
+            <th scope="col">A la intemperie</th>
+            <th scope="col">Descanso</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="meta">Siete de las quince especies del catálogo. Fuente: <code>packages/core/src/species.ts</code>.</p>
+  </section>
+
+  <footer class="shell">
+    <p class="meta">
+      Los porcentajes, los horarios y los veredictos de esta página los calcularon
+      <code>calculateAffinity</code>, <code>scheduleOverlap</code> y <code>assessWelfare</code> de
+      <code>packages/core</code> sobre las 63 combinaciones que puedes elegir arriba. No hay una
+      tabla escrita a mano detrás.
+    </p>
+    <p class="meta">
+      Coincide es un MVP en construcción. Las mascotas son una semilla de demostración, no usuarios
+      reales.
+    </p>
+  </footer>
+</main>
+
+<script>
+  const DATA = "{{DATA}}";
+
+  const SIZE = { mini: 'Mini', small: 'Pequeño', medium: 'Mediano', large: 'Grande', giant: 'Gigante' };
+  const ENERGY = {
+    dog: { low: 'De sofá', medium: 'Explorador', high: 'Velocista' },
+    cat: { low: 'Tranquilo', medium: 'Curioso', high: 'Incansable' },
+  };
+  const PLAY = {
+    chase: 'Persecución',
+    wrestle: 'Lucha',
+    toys: 'Juguetes',
+    calm_walk: 'Paseo tranquilo',
+    grooming: 'Acicalarse',
+    side_by_side: 'Estar juntos',
+    forage: 'Buscar comida',
+  };
+  const BAND = { great: 'Gran match', good: 'Buen match', supervised: 'Con supervisión' };
+  const MODEL = {
+    pack: 'Grupo abierto',
+    small_group: 'Grupo pequeño',
+    solitary: 'No socializa',
+  };
+  const SURFACE = { grass: 'Hierba', asphalt: 'Asfalto', indoor: 'Bajo techo' };
+  const FLAG = {
+    brachycephalic: 'hocico chato',
+    heat_sensitive: 'sensible al calor',
+    joint_issues: 'articulaciones',
+    vaccination_pending: 'pauta pendiente',
+    recovering: 'en recuperación',
+    in_heat: 'en celo',
+  };
+
+  let petId = DATA.pets[0].id;
+  let temperatureC = 18;
+  let surface = 'grass';
+
+  const el = (id) => document.getElementById(id);
+  const esc = (value) =>
+    String(value).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  function chip(label, pressed, onClick, sub) {
+    const button = document.createElement('button');
+    button.className = 'chip';
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(pressed));
+    button.innerHTML = sub ? `<strong>${esc(label)}</strong><small>${esc(sub)}</small>` : esc(label);
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  function currentPet() {
+    return DATA.pets.find((pet) => pet.id === petId);
+  }
+
+  function currentCase() {
+    return DATA.cases[`${petId}|${temperatureC}|${surface}`];
+  }
+
+  function years(months) {
+    if (months < 12) return `${months} meses`;
+    const value = Math.floor(months / 12);
+    return value === 1 ? '1 año' : `${value} años`;
+  }
+
+  function renderControls() {
+    const pets = el('pets');
+    pets.replaceChildren(
+      ...DATA.pets.map((pet) =>
+        chip(pet.name, pet.id === petId, () => {
+          petId = pet.id;
+          render();
+        }, pet.speciesName),
+      ),
+    );
+
+    el('temps').replaceChildren(
+      ...DATA.temperatures.map((value) =>
+        chip(`${value}°`, value === temperatureC, () => {
+          temperatureC = value;
+          render();
+        }),
+      ),
+    );
+
+    el('surfaces').replaceChildren(
+      ...DATA.surfaces.map((value) =>
+        chip(SURFACE[value], value === surface, () => {
+          surface = value;
+          render();
+        }),
+      ),
+    );
+
+    const pet = currentPet();
+    const flags = pet.healthFlags.map((flag) => FLAG[flag] || flag);
+    el('petNote').textContent = flags.length
+      ? `${pet.name} es ${pet.breeds.join(', ') || pet.speciesName.toLowerCase()} y consta como ${flags.join(' y ')}. Eso le baja los techos.`
+      : `${pet.name} es ${pet.breeds.join(', ') || pet.speciesName.toLowerCase()}, sin ninguna circunstancia declarada.`;
+  }
+
+  /**
+   * La traza de decisión.
+   *
+   * Es el orden real de evaluación del motor, y por eso está numerada: la
+   * especie se comprueba antes que el bienestar, y el bienestar antes que el
+   * carácter. Enseñarlo desordenado sería enseñar otro producto.
+   */
+  function renderTrace() {
+    const pet = currentPet();
+    const state = currentCase();
+    const rows = [];
+
+    const social = pet.socialModel !== 'solitary';
+    rows.push({
+      question: '¿Su especie tiene encuentros?',
+      detail: social
+        ? `${pet.speciesName}: ${MODEL[pet.socialModel].toLowerCase()}.`
+        : pet.socialNote,
+      verdict: social ? 'pass' : 'stop',
+      label: social ? 'Sí' : 'No, nunca',
+    });
+
+    if (social) {
+      const stopped = state.welfare.level === 'stop';
+      rows.push({
+        question: `¿Le conviene salir a ${pet.name} con estas condiciones?`,
+        detail: state.welfare.reasons.length
+          ? state.welfare.reasons.map((reason) => reason.message).join(' ')
+          : `${temperatureC} °C sobre ${SURFACE[surface].toLowerCase()} está dentro de lo que lleva bien.`,
+        verdict: stopped ? 'stop' : state.welfare.level === 'caution' ? 'warn' : 'pass',
+        label: stopped ? 'Hoy no' : state.welfare.level === 'caution' ? 'Con cuidado' : 'Sí',
+      });
+
+      if (!stopped) {
+        rows.push({
+          question: '¿A quién de su especie le conviene también?',
+          detail: state.resting
+            ? `${state.resting === 1 ? '1 compañero descansa' : `${state.resting} compañeros descansan`}: a ellos tampoco les convienen estas condiciones. Volverán cuando cambien, sin que nadie haga nada.`
+            : 'A todos los de su especie que hay cerca.',
+          verdict: state.resting ? 'warn' : 'pass',
+          label: state.resting ? `${state.resting} fuera` : 'Todos',
+        });
+
+        rows.push({
+          question: '¿Y con quién encaja de carácter?',
+          detail: state.matches.length
+            ? `${state.matches.length === 1 ? 'Queda 1 candidato' : `Quedan ${state.matches.length} candidatos`}, ordenados por temperamento, horario y cercanía. Los tres se muestran por separado.`
+            : 'Con nadie de los que quedaban: preferimos decirlo a rellenar la lista con malos emparejamientos.',
+          verdict: state.matches.length ? 'pass' : 'warn',
+          label: `${state.matches.length}`,
+        });
+      }
+    } else {
+      rows.push({
+        question: '¿Entonces qué se le ofrece?',
+        detail:
+          'Comunidad de tutores de su especie, lugares que la admiten y veterinarios que de verdad saben tratarla. No todas las mascotas socializan; todos los tutores sí.',
+        verdict: 'pass',
+        label: 'Otra cosa',
+      });
+    }
+
+    el('trace').innerHTML = rows
+      .map(
+        (row, index) => `
+        <div class="trace__row">
+          <span class="trace__n">${index + 1}</span>
+          <span class="trace__q"><b>${esc(row.question)}</b><span class="meta">${esc(row.detail)}</span></span>
+          <span class="trace__verdict v-${row.verdict}">${row.verdict === 'stop' ? '× ' : row.verdict === 'warn' ? '! ' : '✓ '}${esc(row.label)}</span>
+        </div>`,
+      )
+      .join('');
+  }
+
+  function renderScreen() {
+    const pet = currentPet();
+    const state = currentCase();
+    const social = pet.socialModel !== 'solitary';
+    const stopped = social && state.welfare.level === 'stop';
+
+    const title = !social
+      ? 'Su especie no queda con nadie'
+      : stopped
+        ? 'Hoy no toca salir'
+        : 'Con quién puede salir';
+
+    const lede = !social
+      ? pet.socialNote
+      : stopped
+        ? `Con estas condiciones no le conviene a ${pet.name}, así que no proponemos a nadie. Cuando cambien, la lista vuelve sola.`
+        : 'Ordenado por temperamento, coincidencia de horarios y cercanía. Los tres se muestran por separado.';
+
+    const parts = [
+      `<div>
+        <p class="eyebrow">Para ${esc(pet.name)}</p>
+        <h3 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:1.5rem;margin-top:var(--co-space-1)">${esc(title)}</h3>
+        <p class="meta" style="margin-top:var(--co-space-2)">${esc(lede)}</p>
+      </div>`,
+    ];
+
+    if (social && state.welfare.level !== 'ok') {
+      parts.push(`
+        <div class="card card--stop">
+          <div class="row">
+            <b>${stopped ? `Hoy no, por ${esc(pet.name)}` : 'Se puede, con cuidado'}</b>
+            <span class="badge badge--warning">${stopped ? '× No lo proponemos' : '! Con condiciones'}</span>
+          </div>
+          ${state.welfare.reasons.map((reason) => `<p class="meta">${esc(reason.message)}</p>`).join('')}
+        </div>`);
+    }
+
+    if (!social) {
+      parts.push(`
+        <div class="card">
+          <b>No todas las mascotas socializan; todos los tutores sí.</b>
+          <p class="meta">Meter a ${esc(pet.name)} en un encuentro para conocer a otro animal de su especie sería estresarla. La aplicación no lo ofrece, y lo dice en lugar de callarlo.</p>
+        </div>
+        <div class="card">
+          <b>Urgencias cerca: Urgencias Veterinarias 24h Madrid.</b>
+          <p class="meta">Buscar un veterinario de guardia a las tres de la mañana no debería exigir registrarse.</p>
+        </div>`);
+    }
+
+    for (const match of state.matches) {
+      const energy = (ENERGY[pet.speciesId] || {})[match.energyLevel] || match.energyLevel;
+      parts.push(`
+        <div class="card">
+          <div class="row">
+            <b style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.15rem">${esc(match.name)}</b>
+            ${match.isMicrochipVerified ? '<span class="badge badge--verified">✓ Chip verificado</span>' : ''}
+            ${match.walkingUntilMinutes ? '<span class="badge badge--live">Fuera ahora</span>' : ''}
+          </div>
+          <p class="meta">${esc(match.breeds.join(', ') || pet.speciesName)} · ${esc(years(match.ageMonths))} · ${esc(SIZE[match.size] || match.size)}${match.distance ? ` · a ${esc(match.distance)}` : ''}</p>
+          <div class="score"><b>${match.score} %</b><span class="meta" style="font-weight:700">${esc(BAND[match.band] || match.band)}</span></div>
+          <div class="bar"><i style="width:${match.score}%"></i></div>
+          ${match.reasons.length ? `<p class="meta">${esc(match.reasons.join(' · '))}</p>` : ''}
+          <p class="quote">${esc(match.schedule || 'Vuestros horarios de salida no coinciden')}</p>
+          <div class="row">
+            <span class="badge">${esc(energy)}</span>
+            ${match.playStyles.map((style) => `<span class="badge">${esc(PLAY[style] || style)}</span>`).join('')}
+          </div>
+          ${
+            match.welfare && match.welfare.level === 'caution'
+              ? `<p class="meta">Se propone ${match.welfare.recommendedMinutes} min y luego descanso.</p>`
+              : ''
+          }
+        </div>`);
+    }
+
+    if (social && !stopped && state.matches.length === 0) {
+      parts.push(`
+        <div class="card card--stop">
+          <b>Hay más cerca, pero hoy no encaja ninguno.</b>
+          <p class="meta">Preferimos decirlo a rellenar la lista con malos emparejamientos: un encuentro que va mal cuesta más que una pantalla vacía.</p>
+        </div>`);
+    }
+
+    if (social && state.resting > 0) {
+      parts.push(
+        `<p class="meta">${state.resting === 1 ? 'Hay 1 compañero que hoy descansa' : `Hay ${state.resting} compañeros que hoy descansan`}: a ellos tampoco les convienen estas condiciones.</p>`,
+      );
+    }
+
+    el('screen').innerHTML = parts.join('');
+  }
+
+  function renderCatalog() {
+    document.querySelector('#catalog tbody').innerHTML = DATA.speciesCatalog
+      .map(
+        (species) => `
+        <tr${species.socialModel === 'solitary' ? ' data-solitary' : ''}>
+          <th scope="row">${esc(species.commonName)}</th>
+          <td>${esc(MODEL[species.socialModel])}</td>
+          <td class="num">${species.care.maxSessionMinutes > 0 ? `${species.care.maxSessionMinutes} min` : '—'}</td>
+          <td class="num">${species.care.comfortTempC.min} a ${species.care.comfortTempC.max} °C</td>
+          <td class="num">${species.care.maxSessionMinutes > 0 ? `${species.care.restBetweenSessionsHours} h` : '—'}</td>
+        </tr>`,
+      )
+      .join('');
+  }
+
+  function render() {
+    renderControls();
+    renderTrace();
+    renderScreen();
+  }
+
+  render();
+  renderCatalog();
+</script>
