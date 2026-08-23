@@ -11,10 +11,11 @@ import {
   Megaphone,
   MessageCircleMore,
   PawPrint,
-  UserRound,
   type LucideIcon,
 } from '@/lib/icons';
 import { useCriticalCount } from '@/lib/safety';
+import { Avatar } from '@/components/avatar';
+import { useActivePet } from '@/lib/active-pet';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -54,10 +55,13 @@ export default function TabsLayout() {
           backgroundColor: theme.colors.background,
           borderTopColor: theme.colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          // 64 y no 58: con el icono activo a 23 y el rótulo a 11, la altura
-          // anterior recortaba la última línea de texto. Se vio en la captura,
-          // no en el tipado.
-          height: 64 + insets.bottom,
+          /* 72 y no 64. Antes fue 64 y no 58, por lo mismo: la barra reserva
+             un alto fijo para el icono, así que cada píxel que el retrato del
+             centro sobresale sale del sitio del rótulo. Encogerlo hasta que
+             cupiera fue el primer intento y el círculo dejaba de destacar,
+             que era justo lo que se pedía; darle sitio a la barra deja las dos
+             cosas. Tres pasadas de captura para llegar aquí. */
+          height: 72 + insets.bottom,
           paddingTop: theme.space[1],
           paddingBottom: insets.bottom > 0 ? insets.bottom : theme.space[2],
         },
@@ -84,6 +88,37 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/*
+       * El perfil, en el centro y destacado.
+       *
+       * Es la posición que mejor alcanza el pulgar de las cinco, y aquí lleva
+       * **la cara del animal** en vez de la silueta genérica de una persona:
+       * esta aplicación va de un perro concreto, y el conmutador de mascota
+       * vive dentro. Un icono de usuario decía «ajustes de cuenta»; el retrato
+       * dice de quién es la pantalla, y encima cambia al cambiar de mascota.
+       *
+       * **Lo que esto cuesta, dicho una vez:** SOS deja el centro y se va al
+       * extremo. Sigue con su rojo y su contador —y sigue habiendo un botón de
+       * peligro en el mapa y la franja de alerta en el feed—, pero la posición
+       * más fácil de acertar andando ya no es la de la emergencia.
+       */}
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ focused }) => <ProfileTab focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="mensajes"
+        options={{
+          title: 'Mensajes',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon icon={MessageCircleMore} color={color} focused={focused} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="sos"
         options={{
@@ -122,24 +157,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="mensajes"
-        options={{
-          title: 'Mensajes',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon icon={MessageCircleMore} color={color} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="perfil"
-        options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon icon={UserRound} color={color} focused={focused} />
-          ),
-        }}
-      />
 
       {/* Pantallas enteras a las que se entra desde donde tienen sentido, no
             desde una barra con nueve pestañas. */}
@@ -162,6 +179,67 @@ export default function TabsLayout() {
  * Van marcados como decorativos porque la etiqueta de texto de la pestaña ya
  * aporta el nombre: anunciarlos duplicaría la lectura del lector de pantalla.
  */
+/**
+ * La pestaña del centro: el retrato, levantado sobre la barra.
+ *
+ * Sobresale del cromo a propósito —es lo que lo convierte en el ancla de la
+ * barra y no en una quinta pestaña más—, y lleva el anillo del acento del
+ * animal activo, así que la pieza más visible de la aplicación es también la
+ * que dice de quién va.
+ *
+ * El desplazamiento hacia arriba se hace con `marginTop` negativo y no con
+ * `transform`: la barra recorta lo que se sale por arriba en Android, y con la
+ * transformación el círculo aparecía cortado por la mitad en un teléfono y
+ * entero en el otro.
+ */
+function ProfileTab({ focused }: { focused: boolean }) {
+  const theme = useTheme();
+  const pet = useActivePet();
+  const size = 48;
+
+  /*
+   * El círculo **sobresale sin ocupar sitio**, y llegar aquí costó tres
+   * pasadas de captura.
+   *
+   * Los dos intentos anteriores movían el propio icono —un contenedor grande,
+   * o un margen negativo— y los dos rompían lo mismo: la barra reparte una
+   * altura fija entre icono y rótulo, así que cada píxel que el retrato crecía
+   * se lo quitaba a la palabra «Perfil», que acababa cortada por su propio
+   * botón. Subir el alto de la barra tampoco valía: el hueco del icono crece
+   * con ella y el círculo baja otra vez.
+   *
+   * Lo que funciona es dejar el hueco **del tamaño de un icono normal** y
+   * colocar el círculo encima en posición absoluta. El texto se coloca donde
+   * se coloca en las otras cuatro pestañas, y el retrato flota por encima de
+   * la barra, que es exactamente lo que se pedía.
+   */
+  return (
+    <View style={{ width: size, height: 26, alignItems: 'center' }}>
+      <View
+        style={{
+          position: 'absolute',
+          /* −22 y no un número a ojo: el hueco mide 26 y el círculo 48, así que
+             para que su borde de abajo caiga exactamente en el borde del hueco
+             el desplazamiento es 26 − 48. Con −16 sobraban seis píxeles que
+             caían encima de la primera línea del rótulo, y ese es el aspecto
+             que tiene un botón tapando su propio nombre. */
+          top: -22,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.background,
+          borderWidth: focused ? 2.5 : 1,
+          borderColor: focused ? theme.colors.primary : theme.colors.border,
+        }}
+      >
+        <Avatar id={pet.id} name={pet.name} size={size - 10} />
+      </View>
+    </View>
+  );
+}
+
 function TabIcon({
   icon,
   color,

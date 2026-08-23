@@ -37,8 +37,31 @@ export const SEARCH_CATEGORIES: ReadonlyArray<{ id: string; label: string; icon:
   { id: 'veterinario', label: 'Veterinarios', icon: Stethoscope },
 ];
 
-/** La barra flotante, cerrada. Es lo único que se ve hasta que se toca. */
-export function SearchBar({ onOpen, topInset }: { onOpen: () => void; topInset: number }) {
+/**
+ * La barra flotante, cerrada. Es lo único que se ve hasta que se toca.
+ *
+ * Es una **píldora**, no un rectángulo, y va en la fila de arriba entre el
+ * retrato de la mascota y los botones redondos. Es la anatomía del mapa de
+ * Snapchat y no es estilo: en un mapa a sangre, un rectángulo con esquinas
+ * suaves se lee como una capa pegada encima, y una píldora se lee como un
+ * control que flota. La diferencia se nota sobre todo cuando debajo hay calles,
+ * que es cuando el cromo tiene que dejar claro que no es parte del terreno.
+ *
+ * Se le pasan los huecos de los extremos en vez de calcularlos aquí: quien
+ * sabe cuánto ocupa el retrato y cuántos botones hay a la derecha es la
+ * pantalla, no la barra.
+ */
+export function SearchBar({
+  onOpen,
+  topInset,
+  left,
+  right,
+}: {
+  onOpen: () => void;
+  topInset: number;
+  left: number;
+  right: number;
+}) {
   const theme = useTheme();
 
   return (
@@ -53,15 +76,15 @@ export function SearchBar({ onOpen, topInset }: { onOpen: () => void; topInset: 
       style={({ pressed }) => ({
         position: 'absolute',
         top: topInset + theme.space[3],
-        left: theme.space[3],
-        // Hasta donde empieza la columna de botones del mapa.
-        right: 60,
+        left,
+        right,
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.space[2],
         height: 44,
-        paddingHorizontal: theme.space[3],
-        borderRadius: theme.radius.md,
+        paddingHorizontal: theme.space[4],
+        // Redondeada del todo: es lo que la separa del terreno.
+        borderRadius: 22,
         backgroundColor: theme.colors.background,
         borderWidth: 1,
         borderColor: theme.colors.border,
@@ -70,6 +93,7 @@ export function SearchBar({ onOpen, topInset }: { onOpen: () => void; topInset: 
     >
       <Icon icon={Search} size="base" color={theme.colors.mutedForeground} decorative />
       <Text
+        numberOfLines={1}
         style={{
           flex: 1,
           color: theme.colors.mutedForeground,
@@ -77,7 +101,7 @@ export function SearchBar({ onOpen, topInset }: { onOpen: () => void; topInset: 
           fontSize: theme.fontSize.sm,
         }}
       >
-        Buscar parques, agua, veterinarios
+        Buscar sitios y avisos
       </Text>
     </Pressable>
   );

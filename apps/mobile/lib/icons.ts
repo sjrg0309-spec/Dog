@@ -105,6 +105,8 @@ export {
   CalendarPlus,
   Bookmark,
   Plus,
+  /** La papelera con bolsas que se puede aportar al mapa. */
+  Trash2,
   /** El «−» del control de alejar del mapa. Va en pareja con `Plus`. */
   Minus,
   /** El cuadrado con el «+» de la cabecera del feed: publicar. */

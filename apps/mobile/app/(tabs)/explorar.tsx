@@ -9,11 +9,21 @@ import { Separator } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { MiniMap, radiusOverflows, type MapMarker } from '@/components/mini-map';
 import { SearchBar, SearchPanel } from '@/components/map-search';
+import { AddToMapSheet, CONTRIBUTABLE_PLACES } from '@/components/add-to-map';
+import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { ReportSheet } from '@/components/report-sheet';
 import { Sheet, type SheetPosition } from '@/components/sheet';
-import { Body, Caption, Screen } from '@/components/ui';
+import { Body, Caption, Row, Screen } from '@/components/ui';
 import { useBackDismiss } from '@/lib/back';
 import { useWeatherState } from '@/lib/conditions';
+import {
+  SUGGESTION_MIN_CONFIRMATIONS,
+  addPlaceSuggestion,
+  isConfirmed,
+  usePlaceSuggestions,
+} from '@/lib/contributions';
+import { placeAt } from '@/lib/geofence';
+import { reportRescue } from '@/lib/rescue';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { spanMeters } from '@/lib/tiles';
 import { walkingNow } from '@/lib/data';
@@ -26,6 +36,8 @@ import {
   Droplets,
   Fence,
   Footprints,
+  Check,
+  Clock,
   Layers,
   Locate,
   Minus,
@@ -141,6 +153,7 @@ export default function ExploreScreen() {
   const [showLayers, setShowLayers] = useState(false);
   const [searching, setSearching] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [adding, setAdding] = useState(false);
   /* Los últimos sitios buscados. En memoria y en el dispositivo: una lista de
      sitios buscados es una lista de dónde ha estado alguien y por qué. */
   const [recents, setRecents] = useState<string[]>([]);
@@ -152,6 +165,11 @@ export default function ExploreScreen() {
      costarte la función—. Lo que se apaga es tu presencia, y eso lo decide el
      radar, no esta pantalla. */
   const outNow = useMemo(() => walkingNow(pet.speciesId), [pet.speciesId]);
+  /* El sitio en el que se está, si es uno del catálogo. Es a lo que se pega un
+     aporte: «una fuente en el Parque Central» y no «una fuente en 40.4098,
+     −3.6939», que además publicaría una coordenada. */
+  const nearestPlace = placeAt(location);
+  const suggestions = usePlaceSuggestions();
   const ghost = useGhostMode();
 
   /* El botón atrás de Android cierra lo que esté abierto encima del mapa, y no
@@ -383,18 +401,87 @@ export default function ExploreScreen() {
               width={canvas.width}
               height={canvas.height}
               bottomInset={PEEK_HEIGHT}
-              topInset={insets.top}
+              /* La muesca **y la fila de controles**, no solo la muesca. Con
+                 el cromo repartido en una sola fila de arriba, el aviso de «sin
+                 calles» se metía justo debajo de la píldora de búsqueda y salía
+                 cortado por ella. Es de los fallos que el tipado no ve y que
+                 solo aparecen mirando: la vista se dibujaba entera, encima de
+                 otra. */
+              topInset={insets.top + theme.space[3] + 44}
             />
           ) : null}
 
           {/* Buscar, flotando encima del mapa. Faltaba entera: el mapa enseñaba
               lo que hubiera dentro del cuadro y no había forma de preguntar por
               algo. */}
-          {!showLayers ? <SearchBar onOpen={() => setSearching(true)} topInset={insets.top} /> : null}
+          {/* La fila de arriba, con la anatomía del mapa de Snapchat: el
+              retrato a la izquierda, la píldora de búsqueda en medio y los
+              controles redondos a la derecha. Antes la búsqueda ocupaba casi
+              todo el ancho y los botones se apilaban en una columna que bajaba
+              media pantalla; así la fila dice de un vistazo quién eres, qué
+              puedes preguntar y qué puedes tocar. */}
+          {!showLayers ? (
+            <>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: insets.top + theme.space[3],
+                  left: theme.space[3],
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.colors.background,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                }}
+              >
+                <PetSwitcherCompact />
+              </View>
+              <SearchBar
+                onOpen={() => setSearching(true)}
+                topInset={insets.top}
+                left={theme.space[3] + 44 + 6}
+                right={theme.space[3] + 44 + 6}
+              />
+            </>
+          ) : null}
 
           {/* Avisar de algo, en rojo y abajo a la derecha: la mano ya está ahí,
               y el momento de usarlo es andando. El catálogo de peligros existía
               desde el principio en el núcleo y no tenía puerta desde el mapa. */}
+          {/* Dos botones y no uno, y el de peligro **se queda directo**.
+              La tentación era meterlo todo detrás del «+», como hace Snapchat,
+              y eso le añade un toque a la única acción de esta pantalla que es
+              urgente: avisar de unos cristales o de un cebo se hace andando y
+              con una mano. Lo que va detrás del «+» es lo que no corre —una
+              fuente, una zona de sombra— y lo que necesita elegir entre varias
+              cosas. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Añadir algo al mapa"
+            accessibilityHint="Un sitio que falta, un animal que necesita ayuda, o salir ahora"
+            onPress={() => {
+              haptics.tap();
+              setAdding(true);
+            }}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              right: theme.space[3],
+              bottom: PEEK_HEIGHT + theme.space[3] + 52 + 8,
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.colors.primary,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Icon icon={Plus} size="lg" color={theme.colors.primaryForeground} decorative />
+          </Pressable>
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Avisar de un peligro aquí"
@@ -466,7 +553,10 @@ export default function ExploreScreen() {
                 setShowLayers((value) => !value);
               }}
             />
-            <View style={{ borderRadius: theme.radius.md, overflow: 'hidden' }}>
+            {/* El más y el menos siguen siendo una pieza, pero con las
+                esquinas del grupo redondeadas como el resto: un bloque cuadrado
+                entre botones circulares se lee como algo de otra aplicación. */}
+            <View style={{ borderRadius: 22, overflow: 'hidden' }}>
               <MapButton
                 icon={Plus}
                 label="Acercar"
@@ -590,6 +680,48 @@ export default function ExploreScreen() {
                 contentContainerStyle={{ paddingBottom: theme.space[8] }}
                 showsVerticalScrollIndicator={false}
               >
+                {/* Lo que has aportado, y en qué estado está. Sin esto, tocar
+                    «una fuente» no enseñaba nada y se leía como un botón roto
+                    — el mismo fallo que ya costó un arreglo con el buscador. Y
+                    además dice la regla: un sitio no entra porque lo diga una
+                    persona. */}
+                {suggestions.length > 0 ? (
+                  <View
+                    style={{
+                      paddingHorizontal: theme.space[5],
+                      paddingBottom: theme.space[4],
+                      gap: theme.space[2],
+                    }}
+                  >
+                    {suggestions.map((suggestion) => {
+                      const kind = CONTRIBUTABLE_PLACES.find(
+                        (candidate) => candidate.id === suggestion.kind,
+                      );
+                      const done = isConfirmed(suggestion);
+                      const missing = SUGGESTION_MIN_CONFIRMATIONS - suggestion.confirmedBy.length;
+                      return (
+                        <Row key={suggestion.id} gap={2}>
+                          <Icon
+                            icon={done ? Check : Clock}
+                            size="sm"
+                            color={done ? theme.colors.primary : theme.colors.mutedForeground}
+                            decorative
+                          />
+                          <Caption>
+                            {kind?.label ?? 'Un sitio'}
+                            {suggestion.placeId
+                              ? ` en ${placeNameById(suggestion.placeId)}`
+                              : ' por la calle'}
+                            {done
+                              ? ' · ya está en el mapa'
+                              : ` · falta ${missing === 1 ? 'que lo confirme alguien más' : `${missing} confirmaciones`}`}
+                          </Caption>
+                        </Row>
+                      );
+                    })}
+                  </View>
+                ) : null}
+
                 {selected ? (
                   <SelectedCard
                     marker={selected}
@@ -722,6 +854,32 @@ export default function ExploreScreen() {
             </Sheet>
         ) : null}
 
+        {/* Añadir al mapa: el «+» de Snap Map, con lo que aquí se puede aportar. */}
+        {adding ? (
+          <AddToMapSheet
+            areaName={selected?.label ?? nearestPlace?.name ?? 'donde estás ahora'}
+            onClose={() => setAdding(false)}
+            onReportHazard={() => setReporting(true)}
+            onCheckIn={() => router.push('/radar')}
+            onAddPlace={(kind) => {
+              /* Se apunta y se dice qué falta para que salga de verdad. Un
+                 sitio aportado por una persona todavía no es un sitio: entra
+                 cuando lo confirma alguien más, por lo mismo que una zona
+                 marcada necesita tres personas distintas. */
+              addPlaceSuggestion({ kind, placeId: nearestPlace?.id ?? null });
+              setActive((current) => new Set(current).add('places'));
+            }}
+            onReportRescue={(scenario) => {
+              reportRescue({
+                scenarioId: scenario.id,
+                placeId: nearestPlace?.id ?? PLACES.central.id,
+                reporterId: pet.ownerId,
+                reportedAt: new Date().toISOString(),
+              });
+            }}
+          />
+        ) : null}
+
         {/* Avisar de algo: hoja al fondo, sobre el mapa y sobre la lista. */}
         {reporting ? (
           <ReportSheet
@@ -775,6 +933,10 @@ export default function ExploreScreen() {
 }
 
 /** Un botón flotando sobre el mapa: fondo sólido, porque debajo hay dibujo. */
+function placeNameById(placeId: string): string {
+  return Object.values(PLACES).find((place) => place.id === placeId)?.name ?? 'tu zona';
+}
+
 function MapButton({
   icon,
   label,
@@ -805,7 +967,12 @@ function MapButton({
         height: 44,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: square ? 0 : theme.radius.md,
+        /* Círculos, no cuadrados con esquinas suaves. Sobre un mapa a sangre
+           un rectángulo se lee como una capa pegada encima y un círculo se lee
+           como un control que flota — es la diferencia que hace que el cromo
+           de Snapchat no compita con el terreno. Los del grupo pegado (más y
+           menos) siguen siendo rectos: son una pieza, no dos. */
+        borderRadius: square ? 0 : 22,
         backgroundColor: active ? theme.colors.primary : theme.colors.background,
         borderWidth: square ? 0 : 1,
         borderColor: theme.colors.border,
