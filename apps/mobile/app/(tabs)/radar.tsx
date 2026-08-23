@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -18,18 +19,19 @@ import {
   Screen,
   Title,
 } from '@/components/ui';
-import { assessWelfare } from '@coincide/core';
+import { assessWelfare, type Conditions, type WelfareVerdict } from '@coincide/core';
 
 import { useActivePet } from '@/lib/active-pet';
 import { setLocation, useConditionsBuilder, useWeatherState } from '@/lib/conditions';
 import { RADAR_AREA_NOTE, petFriendlyPlaces, placeAt } from '@/lib/geofence';
 import { Icon } from '@/components/icon';
-import { MapPin } from '@/lib/icons';
+import { ChevronRight, Footprints, MapPin } from '@/lib/icons';
 import { fonts } from '@/lib/fonts';
 import { petHasMeetups, speciesOf, walkingNow } from '@/lib/data';
 import { PLACES } from '@/lib/demo-data';
 import { speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
+import { recordWalk, useWalks } from '@/lib/walks';
 
 /** Opciones de duración del check-in. El máximo es cuatro horas, por diseño. */
 const DURATIONS = [
@@ -66,12 +68,72 @@ export default function RadarScreen() {
   // aquí, la temperatura da igual.
   const here = placeAt(declared.location);
 
-  const [activeUntil, setActiveUntil] = useState<Date | null>(null);
+  const router = useRouter();
+  const walks = useWalks(pet.id);
+
+  /* Hace falta guardar **cuándo empezó**, no solo hasta cuándo dura: sin eso,
+     al cerrar el check-in no hay forma de saber cuánto se estuvo fuera, que es
+     el dato del que vive el resumen entero. */
+  const [session, setSession] = useState<{
+    startedAt: Date;
+    until: Date;
+    /* Lo que se propuso **al salir**, congelado aquí. Recalcularlo al cerrar
+       lo mediría con la temperatura de dentro de dos horas, así que el resumen
+       compararía lo que se hizo contra un consejo que nunca se dio. */
+    recommendedMinutes: number;
+    temperatureC: number | null;
+    surface: Conditions['surface'];
+    welfareLevel: WelfareVerdict['level'];
+  } | null>(null);
+  const activeUntil = session?.until ?? null;
 
   const checkIn = (minutes: number) => {
     const until = new Date();
     until.setMinutes(until.getMinutes() + minutes);
-    setActiveUntil(until);
+    const conditions = build ? build(minutes) : null;
+    const verdict = conditions ? assessWelfare(pet, conditions) : null;
+    setSession({
+      startedAt: new Date(),
+      until,
+      recommendedMinutes: verdict?.recommendedMinutes ?? minutes,
+      temperatureC: conditions?.temperatureC ?? null,
+      surface: conditions?.surface ?? 'unknown',
+      welfareLevel: verdict?.level ?? 'ok',
+    });
+  };
+
+  /**
+   * Cerrar el paseo: se guarda y se abre su resumen.
+   *
+   * Hasta ahora esto solo apagaba un booleano. El check-in terminaba, la gente
+   * volvía a casa y la aplicación no se enteraba de nada: ni cuánto se estuvo
+   * fuera, ni con quién, ni si fue bien. Todo el bucle —«coincidís los martes,
+   * ¿lo hacéis fijo?», el 👎 que baja la afinidad— dependía de un dato que no
+   * se llegaba a escribir.
+   */
+  const checkOut = () => {
+    if (!session) return;
+
+    /* Con quién se coincidió: los que están fuera **en el mismo sitio**. En
+       una aplicación de verdad esto sale del solapamiento de presencias del
+       radar; aquí sale de la misma lista que dibuja la pantalla, que es la que
+       el usuario tiene delante. */
+    const together = others.filter((other) => other.placeName === (here?.name ?? null));
+
+    const id = recordWalk({
+      petId: pet.id,
+      placeId: here?.id ?? null,
+      startedAt: session.startedAt.toISOString(),
+      endedAt: new Date().toISOString(),
+      recommendedMinutes: session.recommendedMinutes,
+      welfareLevel: session.welfareLevel,
+      temperatureC: session.temperatureC,
+      surface: session.surface,
+      companions: together.map((other) => ({ petId: other.id, outcome: null })),
+    });
+
+    setSession(null);
+    router.push(`/paseo?id=${id}`);
   };
 
   const formatTime = (date: Date) =>
@@ -145,11 +207,7 @@ export default function RadarScreen() {
               Se apaga solo a esa hora. Los tutores con un animal compatible de la misma especie a
               dos kilómetros han recibido un aviso.
             </Caption>
-            <Button
-              label="Dejar de estar visible"
-              variant="outline"
-              onPress={() => setActiveUntil(null)}
-            />
+            <Button label="Hemos terminado" variant="outline" onPress={checkOut} />
           </Card>
         ) : here === null ? (
           <OutsideArea />
@@ -215,6 +273,38 @@ export default function RadarScreen() {
             ))
           )}
         </View>
+
+        {/* La puerta al historial va aquí y no en el perfil: es la pantalla
+            desde la que se sale, así que es donde se piensa en los paseos. Y
+            el perfil es lo que más se enseña a otros, que es exactamente donde
+            no debe estar la rutina de nadie. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Ver vuestros paseos, ${walks.length} guardados`}
+          onPress={() => router.push('/historial')}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.space[3],
+            minHeight: theme.touchTarget.comfortable,
+            paddingHorizontal: theme.space[4],
+            borderRadius: theme.radius.md,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
+          })}
+        >
+          <Icon icon={Footprints} size="base" color={theme.colors.mutedForeground} decorative />
+          <View style={{ flex: 1 }}>
+            <Body>Vuestros paseos</Body>
+            <Caption>
+              {walks.length === 0
+                ? 'Se llena solo al cerrar cada check-in'
+                : `${walks.length} guardados · solo los ves tú`}
+            </Caption>
+          </View>
+          <Icon icon={ChevronRight} size="base" color={theme.colors.mutedForeground} decorative />
+        </Pressable>
 
         <Notice>
           <Body>Lo que se comparte es el lugar, no tú.</Body>

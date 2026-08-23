@@ -336,6 +336,39 @@ describe('significados que no pueden confundirse', () => {
 });
 
 /**
+ * La banda de referencia de los gráficos.
+ *
+ * Dos exigencias que se tiran la una de la otra, y por eso se miden las dos:
+ *
+ *  1. **Que se vea.** Una banda por debajo de 3:1 contra su superficie
+ *     desaparece, y con ella el dato que más importa del ritmo semanal: el día
+ *     que estaba declarado y en el que no se salió. Un hueco en blanco se lee
+ *     como «aquí no hay nada que contar», que es lo contrario de lo que pasa.
+ *  2. **Que no se confunda con la barra.** Es la que hace falta subir cuando
+ *     se cumple la primera a lo bruto: al oscurecer la banda hasta que se ve
+ *     bien, se acerca en claridad al verde del primario y las dos dejan de
+ *     distinguirse. El primer intento se quedó en ΔE 10,8 —por debajo del
+ *     suelo incluso con visión cromática normal— y hubo que subir la banda un
+ *     paso de la rampa en vez de oscurecerla más.
+ *
+ * No es una segunda serie y no tiene que parecerlo: lo declarado es contra qué
+ * se compara lo que pasó, así que va en neutro y con relleno distinto —hueca
+ * frente a maciza—, que es la forma de no dejar la identidad en manos del
+ * color.
+ */
+describe('la banda de referencia de los gráficos', () => {
+  for (const [name, theme] of themes) {
+    it(`se ve sobre su superficie en tema ${name}`, () => {
+      expect(contrastRatio(theme.chartTrack, theme.surface)).toBeGreaterThanOrEqual(3);
+    });
+
+    it(`no se confunde con la barra en tema ${name}`, () => {
+      expect(oklabDistance(theme.chartTrack, theme.primary)).toBeGreaterThanOrEqual(0.15);
+    });
+  }
+});
+
+/**
  * Hueso arriba y carbón abajo: la pareja de superficie y texto de PAWNET.
  *
  * Es lo único de la especificación que se toma tal cual y sin ajustar, porque

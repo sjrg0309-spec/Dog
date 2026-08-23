@@ -14,10 +14,14 @@
  *     ya recogido, que es el mismo estado final sin el trayecto.
  */
 
+import { useRouter } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from './icon';
 import { fonts } from '@/lib/fonts';
+import { haptics } from '@/lib/haptics';
+import { ArrowLeft } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
 /** Alto de la barra, sin contar el área segura. 44 es el suelo táctil. */
@@ -65,6 +69,93 @@ export function NavBar({
         {title}
       </Text>
       {trailing ? <View style={{ flexDirection: 'row', gap: theme.space[3] }}>{trailing}</View> : null}
+    </View>
+  );
+}
+
+/**
+ * La barra de una pantalla que vive fuera de las pestañas.
+ *
+ * Su único trabajo es ofrecer **una salida y solo una**. Es el mismo
+ * razonamiento que sacó de las pestañas al chat, al visor de estados y al
+ * reproductor de reels: en una pantalla en la que se entra y de la que se
+ * sale, cinco iconos abajo son cinco formas de perder lo que se estaba
+ * mirando, y ninguna de ellas es «volver».
+ *
+ * El botón mide el suelo táctil entero aunque la flecha sea pequeña, y lleva
+ * su etiqueta: una flecha sola es un icono sin nombre para un lector de
+ * pantalla.
+ */
+export function BackBar({
+  title,
+  subtitle,
+  trailing,
+}: {
+  title: string;
+  subtitle?: string;
+  trailing?: ReactNode;
+}) {
+  const theme = useTheme();
+  const router = useRouter();
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[2],
+        minHeight: NAV_BAR_HEIGHT + 8,
+        paddingRight: theme.space[4],
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.colors.border,
+        backgroundColor: theme.colors.background,
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Volver"
+        onPress={() => {
+          haptics.tap();
+          router.back();
+        }}
+        style={({ pressed }) => ({
+          width: theme.touchTarget.min,
+          height: theme.touchTarget.min,
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Icon icon={ArrowLeft} size="lg" decorative />
+      </Pressable>
+
+      <View style={{ flex: 1 }}>
+        <Text
+          accessibilityRole="header"
+          numberOfLines={1}
+          style={{
+            color: theme.colors.foreground,
+            fontFamily: fonts.displayBold,
+            fontSize: theme.fontSize.base,
+          }}
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text
+            numberOfLines={1}
+            style={{
+              color: theme.colors.mutedForeground,
+              fontFamily: fonts.body,
+              fontSize: theme.fontSize['2xs'],
+            }}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+
+      {trailing}
     </View>
   );
 }

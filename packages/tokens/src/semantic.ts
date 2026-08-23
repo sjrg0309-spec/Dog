@@ -55,6 +55,23 @@ export type SemanticTokens = {
   informationForeground: string;
   informationSurface: string;
 
+  /**
+   * La banda de referencia de un gráfico: lo declarado, lo previsto, el techo.
+   *
+   * Es un neutro y **tiene que leerse como neutro**, porque no es una segunda
+   * serie: es contra qué se compara la que sí lo es. Vive aquí y no como un
+   * hexadecimal dentro de una pantalla por lo mismo que la escala tipográfica
+   * vive en un solo sitio — un color de gráfico escrito a mano en un
+   * componente es el primero de cinco que no casan.
+   *
+   * Sus dos pasos están elegidos midiendo, no a ojo: llegan a 3:1 contra su
+   * superficie —una banda que no se ve convierte un día sin salir en un hueco
+   * en blanco, que es justo el dato que había que enseñar— y se separan del
+   * primario lo suficiente para distinguirse con y sin visión cromática
+   * normal. Un test lo comprueba en los dos temas.
+   */
+  chartTrack: string;
+
   // Bordes y controles
   border: string;
   borderStrong: string;
@@ -119,6 +136,8 @@ export const light: SemanticTokens = {
   information: blue[600],
   informationForeground: bone[0],
   informationSurface: blue[100],
+
+  chartTrack: ink[400],
 
   border: bone[200],
   borderStrong: ink[500],
@@ -191,6 +210,8 @@ export const dark: SemanticTokens = {
   information: blue[300],
   informationForeground: blue[900],
   informationSurface: blue[900],
+
+  chartTrack: ink[500],
 
   border: ink[800],
   borderStrong: ink[500],

@@ -77,6 +77,12 @@ function RootStack() {
         {/* La conversación empuja desde la derecha, como una pantalla de detalle
             cualquiera: el gesto de volver hacia atrás tiene que seguir ahí. */}
         <Stack.Screen name="chat" options={{ animation: 'slide_from_right' }} />
+        {/* El resumen de un paseo y el historial. Empujan desde la derecha por
+            lo mismo que el chat: son pantallas de detalle en las que se entra y
+            de las que se sale, y la barra de cinco pestañas debajo ofrecería
+            cuatro salidas donde solo hace falta una. */}
+        <Stack.Screen name="paseo" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="historial" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </>
   );

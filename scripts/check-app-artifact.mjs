@@ -212,8 +212,15 @@ for (const tab of TABS) {
  * cerrar no rompe la pantalla. Lo otro necesita un teléfono.
  */
 {
+  /* El punto de partida se exige en vez de darse por hecho. Una comprobación
+     que no encuentra su pestaña y sigue callando reporta «sin problemas» sin
+     haber mirado nada, y eso ya pasó aquí: al añadir el recorrido del
+     historial —que deja la aplicación fuera de las pestañas— esta prueba dejó
+     de ejecutarse y nadie se enteró. */
   const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
-  if (await mapTab.count()) {
+  if (!(await mapTab.count())) {
+    problems.push('no se encontró la pestaña del mapa al probar Escape');
+  } else {
     await mapTab.click();
     await page.waitForTimeout(600);
 
@@ -234,6 +241,72 @@ for (const tab of TABS) {
         const after = (await page.locator('#root').innerText()).trim();
         if (after.length < 80) problems.push('cerrar el buscador dejó la pantalla vacía');
         console.log(`Escape cierra el buscador del mapa: ${stillOpen ? 'NO' : 'sí'}`);
+      }
+    }
+  }
+}
+
+/*
+ * El resumen de paseo y el historial, que viven fuera de las pestañas.
+ *
+ * Se comprueban navegando, no por URL: el artefacto reescribe la ruta al
+ * arrancar para abrir siempre en el feed, así que entrar por `/historial`
+ * devuelve al feed y el test pasaría mirando la pantalla equivocada — que es
+ * exactamente lo que pasó al escribir esta comprobación.
+ *
+ * Lo que se verifica es la cadena entera, que es donde se rompen estas cosas:
+ * que el historial tiene contenido, que la lista de paseos existe de verdad y
+ * no es un estado vacío con buena letra, y que una fila abre su resumen con el
+ * titular del tiempo puesto.
+ */
+{
+  const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
+  if (!(await mapTab.count())) {
+    problems.push('no se encontró la pestaña del mapa al buscar el historial');
+  } else {
+    await mapTab.click();
+    await page.waitForTimeout(900);
+
+    const toRadar = page
+      .getByRole('link', { name: /Radar/i })
+      .or(page.getByRole('button', { name: /^Radar/i }))
+      .first();
+
+    if (!(await toRadar.count())) {
+      problems.push('no se encontró el acceso al radar desde el mapa');
+    } else {
+      await toRadar.click();
+      await page.waitForTimeout(1200);
+
+      const toHistory = page.getByRole('button', { name: /Ver vuestros paseos/i }).first();
+      if (!(await toHistory.count())) {
+        problems.push('no se encontró el acceso al historial desde el radar');
+      } else {
+        await toHistory.scrollIntoViewIfNeeded().catch(() => {});
+        await toHistory.click();
+        await page.waitForTimeout(1400);
+
+        const history = (await page.locator('#root').innerText()).trim();
+        if (!/Vuestros paseos/i.test(history)) {
+          problems.push('el historial no llegó a abrirse');
+        }
+
+        const rows = page.getByRole('button', { name: /^Paseo del/ });
+        const count = await rows.count();
+        console.log(`historial: ${count} paseos listados`);
+        if (count === 0) {
+          problems.push('el historial abrió vacío: no hay ningún paseo en la lista');
+        } else {
+          await rows.first().click();
+          await page.waitForTimeout(1200);
+          const summary = (await page.locator('#root').innerText()).trim();
+          if (!/Estuvisteis fuera/i.test(summary)) {
+            problems.push('la fila del historial no abrió el resumen del paseo');
+          }
+          if (!/min|h /.test(summary)) {
+            problems.push('el resumen no enseña cuánto duró el paseo');
+          }
+        }
       }
     }
   }

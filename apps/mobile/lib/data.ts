@@ -46,6 +46,8 @@ import {
   type DemoPet,
 } from './demo-data';
 
+import { walkPairHistory } from './walks';
+
 export type {
   DemoCommunity,
   DemoPet,
@@ -167,10 +169,18 @@ export function discover(
     location: viewerPet.location,
   };
 
+  /* El historial entra aquí, y es lo que hace que el 👎 del resumen de paseo
+     no sea un adorno: `calculateAffinity` descuenta quince puntos con
+     `hadNegativeFeedback`, suficiente para sacar a un perro de la banda en la
+     que se propone. Sin esta línea la valoración se guardaría, se dibujaría y
+     no cambiaría nada de lo que la aplicación propone mañana. */
+  const history = walkPairHistory(viewerPet.id);
+
   const candidates: DiscoveryCandidate[] = sameSpecies.map((pet) => ({
     pet,
     availability: pet.availability,
     location: pet.location,
+    history: history.get(pet.id),
   }));
 
   const matches = rankCandidates(viewer, candidates, { radiusMeters: 5000, conditions });

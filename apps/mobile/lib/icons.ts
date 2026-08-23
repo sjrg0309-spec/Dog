@@ -111,6 +111,13 @@ export {
   Search,
   Zap,
   Footprints,
+  /** El 👍/👎 del resumen de paseo. Van en pareja y nunca solos: la selección
+      se marca además con borde y con la etiqueta accesible, porque verde y
+      rojo es justo el par que no distingue una de cada doce personas. */
+  ThumbsUp,
+  ThumbsDown,
+  /** El paseo fijo que se propone desde el historial. */
+  Repeat,
   // Mensajería
   CheckCheck,
   Paperclip,
