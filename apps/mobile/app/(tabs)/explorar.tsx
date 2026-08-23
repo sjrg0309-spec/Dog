@@ -26,7 +26,7 @@ import { placeAt } from '@/lib/geofence';
 import { reportRescue } from '@/lib/rescue';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { spanMeters } from '@/lib/tiles';
-import { useCan } from '@/lib/account';
+import { useCan, useHandlerNeed } from '@/lib/account';
 import { walkingNow } from '@/lib/data';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
@@ -349,18 +349,44 @@ export default function ExploreScreen() {
   /* Ordenados por lo lejos que están, que es el único orden que sirve andando.
      Y con la distancia calculada aquí y no dentro del mapa: el mapa dibuja, la
      lista mide. */
+  /*
+   * «Prefiero sitios tranquilos», que es un acomodo de la persona y no un
+   * filtro más.
+   *
+   * Cambia el **orden** y no la lista: esconder sitios porque ahora hay gente
+   * sería quitarle a alguien el parque de siempre por una tarde concurrida. Y
+   * cuenta cabezas, no caras: cuánta gente hay en un sitio es un número, y un
+   * número no dice quién. Por eso esto sigue funcionando con la cuenta recién
+   * hecha, cuando el mapa de gente está cerrado.
+   */
+  const quietFirst = useHandlerNeed('quiet_places');
+  const crowdAt = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const other of walkingNow(pet.speciesId)) {
+      if (!other.placeName) continue;
+      counts.set(other.placeName, (counts.get(other.placeName) ?? 0) + 1);
+    }
+    return counts;
+  }, [pet.speciesId]);
+
   const nearby = useMemo(
     () =>
       markers
-        .map((marker) => ({ marker, distance: distanceMeters(location, marker) }))
+        .map((marker) => ({
+          marker,
+          distance: distanceMeters(location, marker),
+          crowd: crowdAt.get(marker.label) ?? 0,
+        }))
         .sort((a, b) => {
           // Las alertas primero pase lo que pase: si hay una abierta cerca es lo
           // primero que hay que leer, esté a cien metros o a dos kilómetros.
           const alertDelta =
             Number(b.marker.tone === 'alert') - Number(a.marker.tone === 'alert');
-          return alertDelta !== 0 ? alertDelta : a.distance - b.distance;
+          if (alertDelta !== 0) return alertDelta;
+          if (quietFirst && a.crowd !== b.crowd) return a.crowd - b.crowd;
+          return a.distance - b.distance;
         }),
-    [markers, location],
+    [markers, location, quietFirst, crowdAt],
   );
 
   const selected = markers.find((marker) => marker.id === selectedId) ?? null;
@@ -756,17 +782,20 @@ export default function ExploreScreen() {
                         fontSize: theme.fontSize.sm,
                       }}
                     >
-                      Ordenados por lo que hay que andar
+                      {quietFirst
+                        ? 'Los más tranquilos ahora, primero'
+                        : 'Ordenados por lo que hay que andar'}
                     </Text>
                   </View>
                 )}
 
                 {!selected
-                  ? nearby.map(({ marker, distance }) => (
+                  ? nearby.map(({ marker, distance, crowd }) => (
                       <NearbyRow
                         key={marker.id}
                         marker={marker}
                         distance={distance}
+                        crowd={quietFirst && marker.tone === 'place' ? crowd : null}
                         onPress={() => {
                           haptics.tap();
                           setSelectedId(marker.id);
@@ -1001,10 +1030,20 @@ function MapButton({
 function NearbyRow({
   marker,
   distance,
+  crowd,
   onPress,
 }: {
   marker: MapMarker;
   distance: number;
+  /**
+   * Cuánta gente hay ahí ahora, cuando se ha pedido lo tranquilo primero.
+   *
+   * Es la mitad que faltaba del acomodo: ordenar por eso y no decirlo obliga a
+   * fiarse de un orden que no se ve. Y es una cuenta, no una lista de caras: un
+   * número no dice quién, así que esto sigue estando aunque el mapa de gente
+   * esté cerrado por no tener el chip verificado.
+   */
+  crowd: number | null;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -1020,7 +1059,9 @@ function NearbyRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${marker.label}, a ${formatDistance(distance)}`}
+      accessibilityLabel={`${marker.label}, a ${formatDistance(distance)}${
+        crowd === null ? '' : crowd === 0 ? ', tranquilo ahora' : `, ${crowd} ahora`
+      }`}
       accessibilityHint={marker.detail}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -1065,6 +1106,11 @@ function NearbyRow({
           }}
         >
           {marker.kind}
+          {crowd === null
+            ? ''
+            : crowd === 0
+              ? ' · tranquilo ahora'
+              : ` · ${crowd} ${crowd === 1 ? 'perro' : 'perros'} ahora`}
         </Text>
       </View>
 

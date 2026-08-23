@@ -90,6 +90,51 @@ describe('calor', () => {
   });
 });
 
+describe('sin pelo', () => {
+  /*
+   * La primera señal del catálogo que toca el frío en vez del calor, y entra
+   * con las razas americanas: xoloitzcuintle, peruano sin pelo, pila argentino.
+   * Un perro sin pelo aguanta bien el calor —de ahí viene— y **se enfría y se
+   * quema** antes que cualquier otro, así que tratarlo como a los demás falla
+   * justo al revés de lo que uno esperaría.
+   */
+  it('el suelo de temperatura es otro: diez grados', () => {
+    /* El de la especie está puesto para un perro con pelaje —menos cinco grados
+       es un día de invierno para un husky— y a esa temperatura un
+       xoloitzcuintle sin abrigo lleva un rato tiritando. */
+    const chilly: Conditions = { temperatureC: 6, surface: 'grass', durationMinutes: 30 };
+    expect(assessWelfare(makePet(), chilly).reasons.map((reason) => reason.code)).not.toContain(
+      'too_cold',
+    );
+    expect(
+      assessWelfare(makePet({ healthFlags: ['hairless'] }), chilly).reasons.map(
+        (reason) => reason.code,
+      ),
+    ).toContain('too_cold');
+  });
+
+  it('el sol le quema aunque no haga calor', () => {
+    /* Veinte grados con sol de mediodía no dispara ningún techo, y le quema la
+       piel igual. Por eso va aparte del calor y no colgando de él. */
+    const sunny: Conditions = { temperatureC: 20, surface: 'grass', durationMinutes: 30 };
+    const codes = assessWelfare(makePet({ healthFlags: ['hairless'] }), sunny).reasons.map(
+      (reason) => reason.code,
+    );
+    expect(codes).toContain('hairless_sun');
+    expect(assessWelfare(makePet(), sunny).reasons.map((reason) => reason.code)).not.toContain(
+      'hairless_sun',
+    );
+  });
+
+  it('no le baja el techo de calor: no es un perro frágil al calor', () => {
+    /* Confundir «sin pelo» con «sensible al calor» le quitaría los paseos de
+       verano a un perro que los lleva mejor que el resto. */
+    expect(heatCeilingC(makePet({ healthFlags: ['hairless'] }), dog)).toBe(
+      heatCeilingC(makePet(), dog),
+    );
+  });
+});
+
 describe('duración', () => {
   it('el techo de un hurón es mucho más corto que el de un perro', () => {
     expect(ferret.care.maxSessionMinutes).toBeLessThan(dog.care.maxSessionMinutes);

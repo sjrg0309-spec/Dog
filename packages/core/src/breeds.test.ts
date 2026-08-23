@@ -57,6 +57,33 @@ describe('el catálogo', () => {
   });
 });
 
+describe('América Latina', () => {
+  it('las razas americanas están', () => {
+    /* El xoloitzcuintle y el peruano sin pelo estaban en América antes que los
+       españoles. Que falten en una aplicación pensada para la región no es una
+       laguna del catálogo: es decirle a media región que su perro no cabe. */
+    for (const id of ['xoloitzcuintle', 'peruano_sin_pelo', 'dogo_argentino', 'cimarron', 'fila', 'terrier_chileno']) {
+      expect(findBreed(id), id).not.toBeNull();
+    }
+  });
+
+  it('el mestizo se encuentra con la palabra de cada país', () => {
+    /* Quien escribe «zaguate» no busca una raza rara: escribe la palabra que usa
+       su familia, y quedarse sin resultados le dice que su perro no cabe aquí. */
+    for (const word of ['zaguate', 'aguacatero', 'gozque', 'chandoso', 'pichicho', 'cusco', 'sato']) {
+      expect(searchBreeds(word).map((breed) => breed.id), word).toContain(MIXED_BREED_ID);
+    }
+  });
+
+  it('los perros sin pelo llevan su señal', () => {
+    /* No es estética: un perro sin pelo se quema al sol y pasa frío antes que
+       cualquier otro, y esa señal sube cinco grados el suelo de temperatura. */
+    for (const id of ['xoloitzcuintle', 'peruano_sin_pelo', 'pila_argentino']) {
+      expect(findBreed(id)?.flags, id).toContain('hairless');
+    }
+  });
+});
+
 describe('buscar', () => {
   it('sin escribir nada, la lista entera y el mestizo arriba', () => {
     expect(searchBreeds('')).toHaveLength(BREEDS.length);

@@ -1,0 +1,204 @@
+/**
+ * Los acomodos: lo que necesita la persona para que esto le sirva.
+ *
+ * Pantalla propia y no una sección de configuración por dos motivos. El
+ * primero es que cada interruptor necesita su explicación entera —qué cambia,
+ * no cómo se llama— y en una lista de ajustes eso no cabe. El segundo importa
+ * más: aquí se puede decir, arriba y una sola vez, **lo que la gente necesita
+ * saber antes de contestar**, que es que nada de esto se publica.
+ *
+ * ## Por qué el diagnóstico no es el mecanismo
+ *
+ * Se puede decir «soy autista», y no pone ninguna insignia: marca unos
+ * acomodos, que son lo que la aplicación hace distinto. Los acomodos existen
+ * por su cuenta y los enciende quien quiera sin decir por qué —hay gente con
+ * ansiedad, con TDAH, con hipersensibilidad al ruido, o que simplemente odia
+ * los planes improvisados—.
+ *
+ * Y tiene una consecuencia práctica que no es menor: **el diagnóstico no hace
+ * falta guardarlo para que la aplicación funcione distinto**, y lo que no hace
+ * falta guardar no se puede filtrar.
+ *
+ * ## Ninguno es decorativo
+ *
+ * Cada uno dice debajo qué cambia, y lo que dice es verdad: «sitios tranquilos»
+ * reordena la lista del mapa por cuánta gente hay ahora, y «menos movimiento»
+ * enciende el ajuste que apaga el pulso del radar. Los que todavía no cambian
+ * nada no están en la lista.
+ */
+
+import { ScrollView, Text, View } from 'react-native';
+
+import { AUTISTIC_DEFAULT_NEEDS, HANDLER_NEEDS, type HandlerNeed } from '@coincide/core';
+
+import { BackBar } from '@/components/chrome';
+import { Icon } from '@/components/icon';
+import { Caption, Notice, Screen } from '@/components/ui';
+import { setHandler, useAccount } from '@/lib/account';
+import { fonts } from '@/lib/fonts';
+import { haptics } from '@/lib/haptics';
+import { Check, Lock, X } from '@/lib/icons';
+import { useTheme } from '@/lib/theme';
+import { Pressable } from 'react-native';
+
+export default function AcomodosScreen() {
+  const theme = useTheme();
+  const { handler } = useAccount();
+
+  const toggleNeed = (need: HandlerNeed) => {
+    haptics.tap();
+    const has = handler.needs.includes(need);
+    setHandler({
+      ...handler,
+      needs: has ? handler.needs.filter((value) => value !== need) : [...handler.needs, need],
+    });
+  };
+
+  const toggleAutistic = () => {
+    haptics.tap();
+    const next = !handler.autistic;
+    setHandler({
+      autistic: next || undefined,
+      /* Preselecciona, no impone: no hay dos personas autistas iguales, y dar
+         por hecho lo contrario es la mitad del problema. Al apagarlo no se
+         quitan los acomodos, porque a lo mejor los quiere igual. */
+      needs: next
+        ? [...handler.needs, ...AUTISTIC_DEFAULT_NEEDS.filter((need) => !handler.needs.includes(need))]
+        : handler.needs,
+    });
+  };
+
+  return (
+    <Screen>
+      <BackBar title="Lo que necesitas tú" subtitle="Privado" />
+
+      <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+        <Notice>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+            <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayBold,
+                fontSize: theme.fontSize.base,
+              }}
+            >
+              Nada de esto se publica
+            </Text>
+          </View>
+          <Caption>
+            No hay insignia, no sale en tu perfil y no se lo enseñamos a nadie con quien quedes. Lo
+            que esa persona ve es que le propones quedar el martes a las siete en un sitio concreto.
+          </Caption>
+        </Notice>
+
+        <Row
+          label="Soy autista"
+          hint="Marca los acomodos de abajo. Puedes cambiarlos uno a uno, y también encenderlos sin decir esto."
+          on={handler.autistic === true}
+          onToggle={toggleAutistic}
+        />
+
+        <View style={{ gap: theme.space[3] }}>
+          {HANDLER_NEEDS.map((need) => (
+            <Row
+              key={need.id}
+              label={need.label}
+              hint={need.effect}
+              on={handler.needs.includes(need.id)}
+              onToggle={() => toggleNeed(need.id)}
+            />
+          ))}
+        </View>
+
+        <Caption>
+          Cada uno cambia algo de verdad; si no cambiara nada no estaría en la lista. «Sitios
+          tranquilos» reordena el mapa por cuánta gente hay ahora —cuenta cabezas, no caras, así que
+          funciona aunque el mapa de gente esté cerrado— y «menos movimiento» enciende el ajuste que
+          apaga el pulso del radar.
+        </Caption>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+function Row({
+  label,
+  hint,
+  on,
+  onToggle,
+}: {
+  label: string;
+  hint: string;
+  on: boolean;
+  onToggle: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on }}
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      onPress={onToggle}
+      /* `accessibilityState` no llega a la web: react-native-web no lo traduce a
+         `aria-checked` en un `Pressable` con papel de interruptor, así que un
+         lector de pantalla anunciaba «interruptor» sin decir si estaba puesto.
+         Se vio en la auditoría del empaquetado, que buscaba ese atributo para
+         comprobar otra cosa y lo encontró vacío. En nativo manda el de arriba;
+         en web, este. */
+      aria-checked={on}
+
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: theme.space[3],
+        minHeight: theme.touchTarget.comfortable,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontFamily: on ? fonts.bodyBold : fonts.body,
+            fontSize: theme.fontSize.base,
+          }}
+        >
+          {label}
+        </Text>
+        <Caption>{hint}</Caption>
+      </View>
+      <View
+        style={{
+          width: 52,
+          height: 32,
+          borderRadius: theme.radius.full,
+          padding: 3,
+          justifyContent: 'center',
+          alignItems: on ? 'flex-end' : 'flex-start',
+          backgroundColor: on ? theme.colors.primary : theme.colors.muted,
+        }}
+      >
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.colors.background,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon
+            icon={on ? Check : X}
+            size="sm"
+            color={on ? theme.colors.primary : theme.colors.mutedForeground}
+            decorative
+          />
+        </View>
+      </View>
+    </Pressable>
+  );
+}

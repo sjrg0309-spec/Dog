@@ -13,3 +13,4 @@ export * from './rescue.js';
 export * from './walks.js';
 export * from './access.js';
 export * from './breeds.js';
+export * from './roles.js';

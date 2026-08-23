@@ -346,6 +346,14 @@ function SwitchRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
       accessibilityLabel={row.label}
       accessibilityHint={row.hint}
       onPress={toggle}
+      /* `accessibilityState` no llega a la web: react-native-web no lo traduce a
+         `aria-checked` en un `Pressable` con papel de interruptor, así que un
+         lector de pantalla anunciaba «interruptor» sin decir si estaba puesto.
+         Se vio en la auditoría del empaquetado, que buscaba ese atributo para
+         comprobar otra cosa y lo encontró vacío. En nativo manda el de arriba;
+         en web, este. */
+      aria-checked={on}
+
       style={({ pressed }) => ({
         minHeight: theme.touchTarget.comfortable,
         opacity: pressed ? 0.7 : 1,

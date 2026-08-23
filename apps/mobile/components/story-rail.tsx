@@ -16,12 +16,14 @@
  * demás sigue siendo el lugar, nunca la persona.
  */
 
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';
 import { Pulse } from './motion';
 import { StoryRing } from './story-ring';
+import { useHandlerNeed } from '@/lib/account';
 import type { DemoPet } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -55,6 +57,10 @@ export function StoryRail({
   disabledReason?: string;
 }) {
   const theme = useTheme();
+  const router = useRouter();
+  /* «Prefiero quedar con antelación»: el acomodo que cambia qué se ofrece
+     primero, no qué se puede hacer. */
+  const planAhead = useHandlerNeed('plan_ahead');
   const others = groups.filter((group) => group.petId !== me.id);
 
   return (
@@ -94,8 +100,27 @@ export function StoryRail({
         />
 
         {/* El atajo de salir, cuando el bienestar lo permite. Va aparte del
-            estado porque no es contenido: es presencia, y caduca sola. */}
-        {disabled ? null : (
+            estado porque no es contenido: es presencia, y caduca sola.
+
+            Y con «prefiero quedar con antelación» puesto, este sitio lo ocupa
+            proponer una quedada. No es que el check-in desaparezca —sigue en el
+            radar, a un toque— sino que deja de ser lo primero que se ve, que es
+            justo lo que pidió quien encendió ese acomodo: un plan con hora y
+            sitio antes que un «estoy fuera, vente ahora». */}
+        {disabled ? null : planAhead ? (
+          <Bubble
+            id={`${me.id}-plan`}
+            name={me.name}
+            label="Quedar"
+            hint="Proponer una quedada con hora y sitio"
+            ring="none"
+            live={false}
+            onPress={() => {
+              haptics.tap();
+              router.push('/quedadas');
+            }}
+          />
+        ) : (
           <Bubble
             id={`${me.id}-radar`}
             name={me.name}

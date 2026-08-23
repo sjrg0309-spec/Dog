@@ -189,6 +189,53 @@ await next();
 
 await chip('Persecución');
 await next();
+
+/*
+ * La clase del perro, y la promesa que va con ella.
+ *
+ * Al marcar «Perro de asistencia» aparece la pregunta de para qué asiste, y con
+ * ella la única frase que hace que se pueda contestar: que eso no se publica.
+ * Es justo el texto que se cae de una pantalla en el primer rediseño, así que
+ * se comprueba aquí y no en un test de interfaz.
+ */
+await chip('Perro de asistencia');
+await page.waitForTimeout(400);
+const roleStep = (await page.locator('#root').innerText()).trim();
+if (!/no se publica nunca/i.test(roleStep)) {
+  problems.push('el alta pregunta para qué asiste sin decir que no se publica');
+}
+if (!/Alerta médica/i.test(roleStep)) {
+  problems.push('no salieron los tipos de asistencia al marcar perro de asistencia');
+}
+/* Se vuelve a compañía: lo que sigue comprueba el camino normal. */
+await chip('Compañía');
+await page.waitForTimeout(300);
+await next();
+
+/*
+ * Los acomodos de la persona.
+ *
+ * Se enciende «soy autista» y se comprueba que **marca acomodos** en vez de
+ * poner una insignia: es la diferencia entre una etiqueta y algo que cambia
+ * cómo se comporta la aplicación. Después se sigue con ellos puestos, así que
+ * el resto de la auditoría recorre la aplicación con el orden por sitios
+ * tranquilos encendido.
+ */
+const autistic = page.getByRole('switch', { name: /Soy autista/i }).first();
+if (!(await autistic.count())) {
+  problems.push('el alta no ofrece decir «soy autista»');
+} else {
+  await autistic.click();
+  await page.waitForTimeout(400);
+}
+const quiet = page.getByRole('switch', { name: /Prefiero sitios tranquilos/i }).first();
+if (!(await quiet.count())) {
+  problems.push('el alta no ofrece los acomodos de la persona');
+} else if ((await quiet.getAttribute('aria-checked')) !== 'true') {
+  problems.push('decir «soy autista» no marcó ningún acomodo: es una etiqueta y no un acomodo');
+}
+await next();
+
 /* «Con quién se lleva» es opcional y se omite, que es el camino más corto. */
 await next('Omitir');
 
@@ -264,6 +311,61 @@ for (const tab of TABS) {
   );
   for (const label of collapsed) {
     problems.push(`${tab}: la fila «${label}» se ha desmontado en columna`);
+  }
+}
+
+/*
+ * El acomodo, comprobado donde cambia algo.
+ *
+ * El alta se hizo con «soy autista» encendido, que marca «prefiero sitios
+ * tranquilos». Ese acomodo promete una cosa concreta —que la lista del mapa se
+ * ordene por cuánta gente hay ahora en vez de por distancia— y esto lo mira. Sin
+ * esta comprobación, el interruptor sería exactamente lo que la pantalla promete
+ * que no es: una etiqueta.
+ */
+{
+  const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
+  if (await mapTab.count()) {
+    await mapTab.click();
+    await page.waitForTimeout(1200);
+    const sheetText = (await page.locator('#root').innerText()).trim();
+    if (!/tranquilos ahora/i.test(sheetText)) {
+      problems.push('la lista del mapa no dice que está ordenada por lo tranquilo');
+    }
+
+    /*
+     * Y el orden de verdad, no solo el rótulo.
+     *
+     * La primera versión de esta comprobación miraba el subtítulo —«los más
+     * tranquilos ahora, primero»— y pasaba en verde con el orden roto a mano:
+     * el rótulo lo pinta el acomodo, no la ordenación. Lo que se mira ahora es
+     * la lista: los sitios sin nadie tienen que ir **antes** que los que tienen
+     * gente, y para eso cada fila dice cuántos hay.
+     */
+    const rows = await page
+      .getByRole('button', { name: /, a \d|, tranquilo ahora|, \d+ ahora/ })
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label') ?? ''));
+    const withCrowd = rows
+      .map((label) => {
+        const busy = /, (\d+) ahora$/.exec(label);
+        if (busy) return Number(busy[1]);
+        return /tranquilo ahora$/.test(label) ? 0 : null;
+      })
+      .filter((count) => count !== null);
+
+    if (withCrowd.length < 2) {
+      problems.push('la lista del mapa no dice cuánta gente hay en cada sitio');
+    } else {
+      const outOfOrder = withCrowd.some(
+        (count, index) => index > 0 && count < withCrowd[index - 1],
+      );
+      console.log(`sitios por gente ahora: ${withCrowd.join(', ')}`);
+      if (outOfOrder) {
+        problems.push(
+          `el acomodo de sitios tranquilos no ordenó la lista: ${withCrowd.join(', ')}`,
+        );
+      }
+    }
   }
 }
 

@@ -48,7 +48,12 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import {
+  ASSISTANCE_ACCESS_NOTE,
+  ASSISTANCE_TYPES,
+  AUTISTIC_DEFAULT_NEEDS,
+  DOG_ROLES,
   GATE_NOTE,
+  HANDLER_NEEDS,
   CHIP_NOTE,
   HEALTH_FLAG_LABEL,
   HONESTY_NOTE,
@@ -65,7 +70,11 @@ import {
   missingShelterFields,
   missingSteps,
   searchBreeds,
+  suggestedPlayStyles,
   validateShelterProfile,
+  type AssistanceType,
+  type DogRole,
+  type HandlerNeed,
   type HealthFlag,
   type PetDraft,
 } from '@coincide/core';
@@ -310,6 +319,11 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   const [days, setDays] = useState<number[]>([]);
   const [slot, setSlot] = useState<string | null>(null);
   const [chip, setChip] = useState('');
+  const [role, setRole] = useState<DogRole>('companion');
+  const [assistanceType, setAssistanceType] = useState<AssistanceType | null>(null);
+  const [showRole, setShowRole] = useState(true);
+  const [autistic, setAutistic] = useState(false);
+  const [needs, setNeeds] = useState<HandlerNeed[]>([]);
 
   /* Avanzar solo, un poco después de tocar. El retraso no es estético: sin él
      la ficha elegida no llega a verse marcada y el paso cambia como si se
@@ -484,6 +498,124 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       ),
     },
     {
+      id: 'role',
+      title: 'Qué hace tu perro',
+      why: 'La mayoría son de compañía y no hay nada que explicar. Los que trabajan cambian dos cosas aquí: lo que se les propone, y lo que se le dice a quien se los cruza.',
+      ready: true,
+      content: (
+        <View style={{ gap: theme.space[3] }}>
+          <Chips
+            options={DOG_ROLES.map((option) => ({
+              id: option.id,
+              label: option.label,
+            }))}
+            selected={[role]}
+            onPress={(id) => {
+              setRole(id as DogRole);
+              if (id !== 'assistance') setAssistanceType(null);
+              /* Lo que le encaja a un perro que trabaja es paseo tranquilo, no
+                 lucha libre con cuatro desconocidos. Se propone —se puede
+                 quitar— porque el mismo perro fuera de servicio juega como
+                 cualquiera y su tutor sabe cuál de las dos cosas busca aquí. */
+              const suggested = suggestedPlayStyles(id as DogRole);
+              if (suggested.length > 0) setPlay([...suggested]);
+            }}
+          />
+          <Caption>
+            {DOG_ROLES.find((option) => option.id === role)?.hint}
+          </Caption>
+
+          {role === 'assistance' ? (
+            <View style={{ gap: theme.space[3], paddingTop: theme.space[2] }}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.displayBold,
+                  fontSize: theme.fontSize.base,
+                }}
+              >
+                Para qué asiste
+              </Text>
+              {/* Y lo que va con la pregunta, en la misma pantalla: esto no
+                  sale de aquí. Decirlo donde se pregunta es lo que hace que se
+                  pueda contestar; ponerlo en una política que nadie abre, no. */}
+              <Caption>
+                Esto se queda en tu teléfono y no se publica nunca. «Alerta médica» es una
+                enfermedad y «autismo» es un diagnóstico tuyo, no de tu perro: no va al lado de su
+                foto. Se guarda para no proponerle lo que le estorba.
+              </Caption>
+              <Chips
+                options={ASSISTANCE_TYPES.map((option) => ({
+                  id: option.id,
+                  label: option.label,
+                }))}
+                selected={assistanceType ? [assistanceType] : []}
+                onPress={(id) => setAssistanceType(id as AssistanceType)}
+              />
+              <Separator />
+              <Toggle
+                label="Enseñar que es perro de asistencia"
+                hint="Es lo que evita que lo distraigan trabajando. Enseñarlo dice que tienes una discapacidad, así que lo decides tú."
+                on={showRole}
+                onToggle={() => setShowRole(!showRole)}
+              />
+              <Caption>{ASSISTANCE_ACCESS_NOTE}</Caption>
+            </View>
+          ) : null}
+        </View>
+      ),
+    },
+    {
+      id: 'handler',
+      title: 'Y tú, ¿qué necesitas?',
+      why: 'Opcional, privado y no se publica. Lo que ve la otra persona no es esto: es que le propones quedar el martes a las siete en un sitio concreto.',
+      ready: true,
+      skippable: true,
+      content: (
+        <View style={{ gap: theme.space[4] }}>
+          <Toggle
+            label="Soy autista"
+            hint="No pone ninguna insignia: marca los acomodos de abajo, y los puedes cambiar uno a uno."
+            on={autistic}
+            onToggle={() => {
+              const next = !autistic;
+              setAutistic(next);
+              if (next) {
+                setNeeds((current) => [
+                  ...current,
+                  ...AUTISTIC_DEFAULT_NEEDS.filter((need) => !current.includes(need)),
+                ]);
+              }
+            }}
+          />
+
+          <View style={{ gap: theme.space[2] }}>
+            {HANDLER_NEEDS.map((need) => {
+              const on = needs.includes(need.id);
+              return (
+                <Toggle
+                  key={need.id}
+                  label={need.label}
+                  hint={need.effect}
+                  on={on}
+                  onToggle={() =>
+                    setNeeds((current) =>
+                      on ? current.filter((value) => value !== need.id) : [...current, need.id],
+                    )
+                  }
+                />
+              );
+            })}
+          </View>
+
+          <Caption>
+            Cada uno cambia algo de verdad; si no cambiara nada no estaría en la lista. Se pueden
+            encender sin decir por qué, y se cambian después en Configuración.
+          </Caption>
+        </View>
+      ),
+    },
+    {
       id: 'trust',
       title: 'Con quién se lleva',
       why: 'Esto no ordena la lista: veta. «De su tamaño» quita de en medio a los que le sacan dos escalones, y «cachorros no» impide que le propongan un cachorro que no para.',
@@ -622,6 +754,10 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
               label="Chip"
               value={chipCheck?.valid ? 'Declarado, sin verificar' : 'Sin chip'}
             />
+            <Summary
+              label="Qué hace"
+              value={DOG_ROLES.find((option) => option.id === role)?.label ?? 'Compañía'}
+            />
           </View>
 
           {/* Lo que la raza ha marcado, y se puede quitar aquí mismo.
@@ -654,6 +790,40 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
                   setFlags((current) => current.filter((flag) => flag !== (id as HealthFlag)))
                 }
               />
+            </View>
+          ) : null}
+
+          {needs.length > 0 || assistanceType !== null ? (
+            <View
+              style={{
+                gap: theme.space[2],
+                padding: theme.space[4],
+                borderRadius: theme.radius.lg,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surface,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+                <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    fontFamily: fonts.displayBold,
+                    fontSize: theme.fontSize.base,
+                  }}
+                >
+                  Esto se queda en tu teléfono
+                </Text>
+              </View>
+              <Caption>
+                {assistanceType !== null
+                  ? 'Para qué asiste tu perro y '
+                  : ''}
+                lo que has marcado sobre ti no se publica ni se enseña a nadie: cambia cómo se
+                comporta la aplicación contigo. Quien quede contigo ve un plan con hora y sitio, no
+                por qué se lo propones así.
+              </Caption>
             </View>
           ) : null}
 
@@ -717,6 +887,10 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
           breedLabel: describeBreeds(breeds),
           healthFlags: flags,
           trustCircle: trust,
+          role,
+          assistanceType: assistanceType ?? undefined,
+          showRole,
+          handler: { autistic: autistic || undefined, needs },
         });
       }}
       onSkip={() => {
@@ -913,6 +1087,106 @@ function BreedPicker({
       ) : null}
     </View>
   );
+}
+
+/**
+ * Un interruptor con su explicación.
+ *
+ * Se usa en los dos pasos que no son una elección entre opciones sino un sí o
+ * un no: enseñar el papel del perro, y cada acomodo de la persona. Lleva la
+ * explicación **debajo y siempre visible**, no detrás de un icono de ayuda:
+ * son justo los interruptores en los que hace falta saber qué hacen antes de
+ * tocarlos.
+ */
+function Toggle({
+  label,
+  hint,
+  on,
+  onToggle,
+}: {
+  label: string;
+  hint: string;
+  on: boolean;
+  onToggle: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on }}
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      onPress={() => {
+        haptics.tap();
+        onToggle();
+      }}
+      /* `accessibilityState` no llega a la web: react-native-web no lo traduce a
+         `aria-checked` en un `Pressable` con papel de interruptor, así que un
+         lector de pantalla anunciaba «interruptor» sin decir si estaba puesto.
+         Se vio en la auditoría del empaquetado, que buscaba ese atributo para
+         comprobar otra cosa y lo encontró vacío. En nativo manda el de arriba;
+         en web, este. */
+      aria-checked={on}
+
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: theme.space[3],
+        minHeight: theme.touchTarget.comfortable,
+        paddingVertical: theme.space[2],
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontFamily: on ? fonts.bodyBold : fonts.body,
+            fontSize: theme.fontSize.base,
+          }}
+        >
+          {label}
+        </Text>
+        <Caption>{hint}</Caption>
+      </View>
+      <View
+        style={{
+          width: 52,
+          height: 32,
+          borderRadius: theme.radius.full,
+          padding: 3,
+          justifyContent: 'center',
+          alignItems: on ? 'flex-end' : 'flex-start',
+          backgroundColor: on ? theme.colors.primary : theme.colors.muted,
+        }}
+      >
+        <View
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.colors.background,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon
+            icon={on ? Check : X}
+            size="sm"
+            color={on ? theme.colors.primary : theme.colors.mutedForeground}
+            decorative
+          />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+/** Una línea de separación, para partir un paso en dos mitades. */
+function Separator() {
+  const theme = useTheme();
+  return <View style={{ height: 1, backgroundColor: theme.colors.border }} />;
 }
 
 /** Un enlace de texto, para lo que no es la acción principal del paso. */

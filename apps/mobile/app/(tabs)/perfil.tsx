@@ -24,6 +24,7 @@ import {
   Screen,
 } from '@/components/ui';
 import { useAccount } from '@/lib/account';
+import { DOG_ROLES, publicPetCard } from '@coincide/core';
 import { useActivePet } from '@/lib/active-pet';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -35,6 +36,7 @@ import {
   FileText,
   Grid3x3,
   HeartPulse,
+  Hand,
   ImageOff,
   Lock,
   Menu,
@@ -97,6 +99,15 @@ function PetProfile() {
   const [walkMode, setWalkMode] = useState(false);
   const [tab, setTab] = useState<'grid' | 'saved' | 'record'>('grid');
   const [menu, setMenu] = useState(false);
+  /* Lo que se publica de este perro, calculado por el núcleo y no aquí: así la
+     regla —el papel sí, para qué asiste no— vive en un sitio con test y no en
+     el criterio de quien escriba la próxima pantalla. */
+  const card = publicPetCard({
+    name: pet.name,
+    role: pet.role ?? 'companion',
+    showRole: pet.showRole ?? true,
+    assistanceType: pet.assistanceType ?? undefined,
+  });
 
   /* Las entradas desde configuración: `/perfil?tab=record` abre la ficha y
      `/perfil?modo=paseo` enciende el código. Van por parámetro y no por estado
@@ -229,7 +240,40 @@ function PetProfile() {
               <Badge tone="neutral">Chip sin verificar</Badge>
             )}
             <Badge tone="neutral">{speciesName(pet.speciesId)}</Badge>
+            {card.role !== 'companion' ? (
+              <Badge tone="warning">{DOG_ROLES.find((role) => role.id === card.role)?.label}</Badge>
+            ) : null}
           </Row>
+
+          {/*
+            Lo que hay que saber al cruzarse con él, y va **antes** que las
+            fotos.
+
+            Un perro guía distraído deja de hacer su trabajo justo cuando hace
+            falta, así que la frase no pide permiso ni se disculpa: dice qué
+            hacer. Y lo que sale es solo el papel: **para qué asiste no sale de
+            aquí**, porque eso es una enfermedad o un diagnóstico de su tutora y
+            no va al lado de la foto de un perro. La proyección la hace
+            `publicPetCard` en el núcleo, con el test que lo comprueba.
+          */}
+          {card.note ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: theme.space[2],
+                marginTop: theme.space[2],
+                padding: theme.space[3],
+                borderRadius: theme.radius.lg,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surface,
+              }}
+            >
+              <Icon icon={Hand} size="base" color={theme.colors.warning} decorative />
+              <Caption>{card.note}</Caption>
+            </View>
+          ) : null}
         </View>
 
         {/* Los destacados de Instagram, con un trabajo distinto: aquí no son

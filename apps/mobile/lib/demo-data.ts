@@ -22,7 +22,7 @@
  * bienestar, y es mucho más frecuente que el de dos especies distintas.
  */
 
-import type { MatchablePet, RoutineWindow } from '@coincide/core';
+import type { AssistanceType, DogRole, MatchablePet, RoutineWindow } from '@coincide/core';
 
 export type DemoPet = MatchablePet & {
   name: string;
@@ -42,6 +42,18 @@ export type DemoPet = MatchablePet & {
    */
   home: { lat: number; lng: number };
   location: { lat: number; lng: number };
+  /**
+   * Qué hace este perro.
+   *
+   * La mayoría son de compañía y por eso es lo que se supone cuando falta. Los
+   * que no —asistencia, terapia, trabajo, deporte— cambian lo que se les
+   * propone y lo que se le dice a quien se los cruza.
+   */
+  role?: DogRole;
+  /** Para qué asiste. **No se publica**: ver `publicPetCard` en el núcleo. */
+  assistanceType?: AssistanceType | null;
+  /** Si su tutora enseña que es de asistencia. Es decisión suya. */
+  showRole?: boolean;
   /** Presencia en vivo: minutos que le quedan de check-in, o null. */
   walkingUntilMinutes: number | null;
   placeName: string | null;

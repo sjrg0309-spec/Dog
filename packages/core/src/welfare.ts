@@ -51,8 +51,22 @@ export const HEALTH_FLAGS = [
   'heat_sensitive',
   /** En celo: los encuentros con desconocidos se posponen. */
   'in_heat',
+  /**
+   * Sin pelo.
+   *
+   * Entra con las razas americanas —xoloitzcuintle, peruano sin pelo, pila
+   * argentino— y no es un detalle estético: un perro sin pelo **se quema al sol
+   * y pasa frío antes que cualquier otro**. El techo de calor no le cambia
+   * (aguanta bien el calor, que para eso viene de donde viene); lo que le
+   * cambia es el suelo, y es la primera señal de este catálogo que toca el frío
+   * en vez del calor.
+   */
+  'hairless',
 ] as const;
 export type HealthFlag = (typeof HEALTH_FLAGS)[number];
+
+/** Por debajo de esto, un perro sin pelo necesita abrigo para estar fuera. */
+export const HAIRLESS_FLOOR_C = 10;
 
 export const HEALTH_FLAG_LABEL: Record<HealthFlag, string> = {
   brachycephalic: 'Hocico chato',
@@ -61,6 +75,7 @@ export const HEALTH_FLAG_LABEL: Record<HealthFlag, string> = {
   joint_issues: 'Problemas de articulaciones',
   heat_sensitive: 'Sensible al calor',
   in_heat: 'En celo',
+  hairless: 'Sin pelo',
 };
 
 /** Superficie del encuentro. El asfalto quema mucho antes que la hierba. */
@@ -261,7 +276,14 @@ export function assessWelfare(subject: CareSubject, conditions: Conditions): Wel
 
   // --- Condiciones del momento --------------------------------------------
   const ceiling = heatCeilingC(subject, species);
-  const floor = species.care.comfortTempC.min;
+  /* El suelo de un perro sin pelo no es «un poco más alto»: es otro.
+     El de la especie está puesto para un perro con pelaje —menos cinco grados
+     es un día de invierno para un husky—, y a esa temperatura un xoloitzcuintle
+     sin abrigo lleva un rato tiritando. Diez grados es el número que se repite
+     en las guías de estas razas para sacar el abrigo, y es el que se usa. */
+  const floor = flags.includes('hairless')
+    ? Math.max(species.care.comfortTempC.min, HAIRLESS_FLOOR_C)
+    : species.care.comfortTempC.min;
   const outdoors = conditions.surface !== 'indoor';
 
   if (outdoors && conditions.temperatureC > ceiling) {
@@ -290,9 +312,24 @@ export function assessWelfare(subject: CareSubject, conditions: Conditions): Wel
     reasons.push({
       level: conditions.temperatureC < floor - 5 ? 'stop' : 'caution',
       code: 'too_cold',
+      message: flags.includes('hairless')
+        ? `${degrees(conditions.temperatureC)} °C es poco para un perro sin pelo: sin abrigo, a esta ` +
+          'temperatura se enfría antes de terminar el paseo.'
+        : `${degrees(conditions.temperatureC)} °C está por debajo de lo que esta especie lleva bien a la ` +
+          'intemperie. Dentro, sí.',
+    });
+  }
+
+  /* Y el sol, que en un perro sin pelo no es incomodidad sino quemadura. Va
+     aparte del calor a propósito: un día de veinte grados con sol de mediodía
+     no dispara ningún techo y le quema igual. */
+  if (outdoors && flags.includes('hairless') && conditions.temperatureC >= 18) {
+    reasons.push({
+      level: 'caution',
+      code: 'hairless_sun',
       message:
-        `${degrees(conditions.temperatureC)} °C está por debajo de lo que esta especie lleva bien a la ` +
-        'intemperie. Dentro, sí.',
+        'Sin pelo, la piel se quema como la de una persona. Sombra a mediodía, y si le da el sol, ' +
+        'protector apto para perros.',
     });
   }
 

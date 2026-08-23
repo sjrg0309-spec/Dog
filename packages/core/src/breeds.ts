@@ -65,7 +65,20 @@ export const MIXED_BREED_ID = 'mestizo';
 export const UNKNOWN_BREED_ID = 'no_lo_se';
 
 export const BREEDS: readonly Breed[] = [
-  { id: MIXED_BREED_ID, name: 'Mestizo', size: null, energy: null, aliases: ['mezcla', 'criollo', 'quiltro', 'chusco', 'sin raza', 'callejero'] },
+  {
+    id: MIXED_BREED_ID,
+    name: 'Mestizo',
+    size: null,
+    energy: null,
+    /* Cómo se le llama en cada sitio. Quien escribe «zaguate» no busca una raza
+       rara: escribe la palabra de su familia, y quedarse sin resultados le dice
+       que su perro no cabe aquí. */
+    aliases: [
+      'mezcla', 'criollo', 'quiltro', 'chusco', 'cusco', 'sin raza', 'callejero',
+      'zaguate', 'aguacatero', 'gozque', 'chandoso', 'pichicho', 'mestiza',
+      'sato', 'runcho', 'jibaro', 'perro comun', 'sin pedigri',
+    ],
+  },
   { id: UNKNOWN_BREED_ID, name: 'No lo sé', size: null, energy: null, aliases: ['no se', 'ni idea', 'desconocida'] },
 
   { id: 'labrador', name: 'Labrador retriever', size: 'large', energy: 'high', aliases: ['labra'] },
@@ -128,6 +141,43 @@ export const BREEDS: readonly Breed[] = [
   { id: 'sabueso', name: 'Sabueso', size: 'medium', energy: 'medium' },
   { id: 'labradoodle', name: 'Labradoodle', size: 'large', energy: 'high' },
   { id: 'cavalier', name: 'Cavalier king charles', size: 'small', energy: 'low', flags: ['brachycephalic'] },
+
+  /*
+   * América Latina.
+   *
+   * No van al final por ser menos importantes —el orden de esta lista no lo ve
+   * nadie, porque se busca escribiendo— sino porque se añadieron después, y
+   * conviene que se note de dónde salió cada tanda.
+   *
+   * Aquí hay dos cosas distintas mezcladas a propósito. Unas son razas de
+   * verdad, con estándar y con siglos encima: el xoloitzcuintle y el peruano
+   * sin pelo estaban en América antes que los españoles. Otras son razas
+   * nacionales que en Europa casi no se ven y en su país son el perro de la
+   * calle de al lado: el cimarrón uruguayo, el ovejero magallánico, el terrier
+   * chileno.
+   *
+   * Y luego está lo que de verdad faltaba, que no es una raza: **cómo se llama
+   * al mestizo en cada sitio**. Quiltro en Chile, zaguate en Costa Rica,
+   * aguacatero en Cuba, gozque y chandoso en Colombia, chusco y cusco en Perú,
+   * pichicho en Argentina, callejero en todas partes. Quien escribe «zaguate»
+   * en el buscador de una aplicación no está buscando una raza rara: está
+   * escribiendo la palabra que usa su familia, y quedarse sin resultados le
+   * dice que su perro no cabe aquí.
+   */
+  { id: 'xoloitzcuintle', name: 'Xoloitzcuintle', size: 'medium', energy: 'medium', flags: ['hairless'], aliases: ['xolo', 'perro azteca', 'itzcuintli'] },
+  { id: 'peruano_sin_pelo', name: 'Perro sin pelo del Perú', size: 'medium', energy: 'medium', flags: ['hairless'], aliases: ['viringo', 'calato', 'chimu'] },
+  { id: 'chino_crestado', name: 'Crestado chino', size: 'mini', energy: 'medium', flags: ['hairless'] },
+  { id: 'dogo_argentino', name: 'Dogo argentino', size: 'large', energy: 'high', aliases: ['dogo'] },
+  { id: 'cimarron', name: 'Cimarrón uruguayo', size: 'large', energy: 'high', aliases: ['cimarron'] },
+  { id: 'fila', name: 'Fila brasileño', size: 'giant', energy: 'medium', flags: ['joint_issues'], aliases: ['fila brasileiro'] },
+  { id: 'terrier_brasileno', name: 'Terrier brasileño', size: 'small', energy: 'high', aliases: ['fox paulistinha'] },
+  { id: 'terrier_chileno', name: 'Terrier chileno', size: 'small', energy: 'high', aliases: ['ratonero chileno'] },
+  { id: 'mucuchies', name: 'Mucuchíes', size: 'large', energy: 'medium', aliases: ['mucuchies', 'perro nevado de merida'] },
+  { id: 'chihuahueno_pelo_largo', name: 'Chihuahueño de pelo largo', size: 'mini', energy: 'medium', aliases: ['chihuahua pelo largo'] },
+  { id: 'pastor_ganadero', name: 'Pastor ganadero australiano', size: 'medium', energy: 'high', aliases: ['blue heeler', 'cattle dog'] },
+  { id: 'ovejero_aleman_criollo', name: 'Ovejero criollo', size: 'medium', energy: 'high', aliases: ['perro de campo', 'criollo de campo'] },
+  { id: 'pila_argentino', name: 'Pila argentino', size: 'medium', energy: 'medium', flags: ['hairless'] },
+  { id: 'chiribaya', name: 'Pastor chiribaya', size: 'medium', energy: 'high', aliases: ['perro chiribaya'] },
 ];
 
 const ORDER: readonly PetSize[] = ['mini', 'small', 'medium', 'large', 'giant'];

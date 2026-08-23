@@ -233,6 +233,24 @@ export const SETTINGS: readonly SettingGroup[] = [
     ],
   },
   {
+    id: 'handler',
+    title: 'Lo que necesitas tú',
+    note: 'Privado, y no se publica. Quien quede contigo ve un plan con hora y sitio, no por qué se lo propones así.',
+    rows: [
+      {
+        id: 'needs',
+        label: 'Acomodos',
+        hint: 'Sitios tranquilos primero, quedar con antelación, menos movimiento, escribir antes',
+        keywords: [
+          'autismo', 'autista', 'tea', 'accesibilidad', 'sensorial', 'ansiedad',
+          'ruido', 'tranquilo', 'planes', 'antelación',
+        ],
+        kind: 'link',
+        href: '/acomodos',
+      },
+    ],
+  },
+  {
     id: 'private',
     title: 'Tuyo y privado',
     note: 'Nada de esto lo ve con quien quedes. Está aquí porque es donde se busca.',

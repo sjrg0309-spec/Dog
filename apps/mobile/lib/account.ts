@@ -25,6 +25,10 @@ import {
   accessLevel,
   can,
   whyNot,
+  type AssistanceType,
+  type DogRole,
+  type Handler,
+  type HandlerNeed,
   type AccessLevel,
   type AccountKind,
   type Capability,
@@ -33,10 +37,24 @@ import {
 } from '@coincide/core';
 
 import { setActivePetId } from './active-pet';
+import { setSetting } from './settings';
 import { addMyPet, MY_PETS, PLACES, type DemoPet } from './demo-data';
 
 type Account = {
   registered: boolean;
+  /**
+   * Lo que necesita la persona para que esto le sirva.
+   *
+   * Vive aquí, **no se publica y no sale del teléfono**. Que alguien sea
+   * autista, o que prefiera sitios tranquilos, no es información que le
+   * corresponda a quien queda con él en un parque: lo que esa persona ve es que
+   * se le propone quedar el martes a las siete en un sitio concreto.
+   *
+   * Y el diagnóstico ni siquiera hace falta para que funcione: lo que la
+   * aplicación mira son los acomodos, que existen por su cuenta y que puede
+   * encender cualquiera sin decir por qué.
+   */
+  handler: Handler;
   kind: AccountKind;
   /** Solo en cuentas de protectora. */
   shelterName: string | null;
@@ -52,6 +70,7 @@ type Account = {
 
 let account: Account = {
   registered: false,
+  handler: { needs: [] },
   kind: 'tutor',
   shelterName: null,
   shelterProfile: null,
@@ -131,6 +150,25 @@ export function setMicrochipCode(code: string | null): void {
   emit();
 }
 
+/**
+ * Cambiar los acomodos. Lo único de la persona que la aplicación mira.
+ *
+ * «Menos movimiento» no se queda aquí guardado esperando a que alguien lo
+ * consulte: **enciende el ajuste de movimiento reducido**, que ya existe y que
+ * ya apaga el pulso del radar y las entradas animadas. Un acomodo que solo se
+ * guarda es un acomodo que no hace nada.
+ */
+export function setHandler(handler: Handler): void {
+  account = { ...account, handler };
+  if (handler.needs.includes('less_motion')) setSetting('motion', 'reduced');
+  emit();
+}
+
+/** ¿Ha pedido esto la persona? Lo consultan las pantallas que cambian por ello. */
+export function useHandlerNeed(need: HandlerNeed): boolean {
+  return useAccount().handler.needs.includes(need);
+}
+
 /** Lo que se gana usando la aplicación, no diciéndolo. */
 export function recordWalk(): void {
   account = { ...account, walks: account.walks + 1 };
@@ -160,6 +198,22 @@ export function registerPet(
     microchipCode?: string | null;
     /** Cómo se llama su raza, ya escrita: «Mestizo de labrador y pastor». */
     breedLabel?: string;
+    /** Qué hace este perro: compañía, asistencia, terapia, trabajo, deporte. */
+    role?: DogRole;
+    /**
+     * Para qué asiste. **No se publica nunca.**
+     *
+     * Se guarda para no proponerle lo que le estorba y para recordar lo que le
+     * corresponde a su trabajo. «Alerta médica» es una enfermedad y «autismo» es
+     * un diagnóstico de su tutora: eso no va al lado de la foto de un perro en
+     * una aplicación de barrio. La proyección pública vive en `publicPetCard`,
+     * en el núcleo, con el test que lo comprueba.
+     */
+    assistanceType?: AssistanceType;
+    /** Enseñar o no que es perro de asistencia. Lo decide su tutora. */
+    showRole?: boolean;
+    /** Los acomodos de la persona, que se guardan en la cuenta y no en el perro. */
+    handler?: Handler;
     /**
      * Lo que trae de serie y cambia lo que puede hacer hoy.
      *
@@ -191,6 +245,9 @@ export function registerPet(
     ageMonths: draft.ageMonths ?? 12,
     isMicrochipVerified: false,
     healthFlags: (draft.healthFlags ?? []) as DemoPet['healthFlags'],
+    role: draft.role ?? 'companion',
+    assistanceType: draft.assistanceType ?? null,
+    showRole: draft.showRole ?? true,
     availability: draft.days.map((weekday) => ({
       weekday,
       startTime: draft.startTime,
@@ -207,7 +264,13 @@ export function registerPet(
 
   addMyPet(pet);
   setActivePetId(pet.id);
-  account = { ...account, registered: true, microchipCode: draft.microchipCode ?? null };
+  account = {
+    ...account,
+    registered: true,
+    microchipCode: draft.microchipCode ?? null,
+    handler: draft.handler ?? account.handler,
+  };
+  if (account.handler.needs.includes('less_motion')) setSetting('motion', 'reduced');
   emit();
 }
 
