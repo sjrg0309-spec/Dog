@@ -1,6 +1,13 @@
 import { RadarRing } from '@/components/radar-ring';
-import { activeSpots, allPlaces, upcomingPlaydates } from '@/lib/db';
-import { ENERGY_LABEL, SIZE_LABEL, formatPrice, formatRelative, formatWhen } from '@/lib/format';
+import { activeSpots, allSpecies, communitiesNear, servicesNear, upcomingPlaydates } from '@/lib/db';
+import {
+  ENERGY_LABEL,
+  SIZE_LABEL,
+  SERVICE_KIND_LABEL,
+  formatPrice,
+  formatRelative,
+  formatWhen,
+} from '@/lib/format';
 
 // Los datos cambian con cada check-in, así que no tiene sentido servir una
 // versión estática de esta página.
@@ -10,49 +17,53 @@ const ENGINES = [
   {
     eyebrow: 'Ahora mismo',
     title: 'Radar en vivo',
-    body: '“Estoy en el Parque Central hasta las 19:00.” Quien tenga un perro compatible a dos kilómetros lo ve. El check-in caduca solo, así que nadie se queda visible en el mapa por olvidarse de apagarlo.',
+    body: '“Estoy en el Parque Central hasta las 19:00.” Quien tenga un animal compatible a dos kilómetros lo ve. El check-in caduca solo, así que nadie se queda visible en el mapa por olvidarse de apagarlo.',
   },
   {
     eyebrow: 'A cualquier hora',
     title: 'Coincidencia de horarios',
-    body: 'Dices cuándo sacas al perro y con quién coincides aparece solo, sin que ninguno de los dos tenga que estar conectado. Es lo que hace que esto sirva a las once de la noche, que es cuando más solo se pasea.',
+    body: 'Dices cuándo sales y con quién coincides aparece solo, sin que ninguno de los dos tenga que estar conectado. Es lo que hace que esto sirva a las once de la noche, que es cuando más solo se pasea.',
   },
   {
-    eyebrow: 'Cuando toca organizar',
-    title: 'Quedadas y espacios',
-    body: 'Paseos en manada con parámetros de admisión, y patios privados que se alquilan entre varios. Antes de unirte ves la afinidad del grupo por su pareja más débil, no por el promedio.',
+    eyebrow: 'Para las que no quedan',
+    title: 'Comunidad y servicios',
+    body: 'Un gato no debe conocer a otro gato, y un gecko tampoco. Pero sus tutores sí se buscan entre ellos, y necesitan saber qué veterinario de exóticos está de guardia el domingo.',
   },
 ];
 
 export default async function HomePage() {
-  const [playdates, spots, places] = await Promise.all([
+  const [playdates, spots, species, communities, services] = await Promise.all([
     upcomingPlaydates(3),
     activeSpots(2),
-    allPlaces(),
+    allSpecies(),
+    communitiesNear(),
+    servicesNear(),
   ]);
 
-  const fencedParks = places.filter((place) => place.is_fenced).length;
+  const social = species.filter((entry) => entry.social_model !== 'solitary').length;
+  const solitary = species.filter((entry) => entry.social_model === 'solitary').length;
+  const emergency = services.filter((entry) => entry.is_24h);
 
   return (
     <div className="shell">
       <section className="hero">
         <div>
-          <p className="eyebrow">Red social de paseos caninos</p>
+          <p className="eyebrow">Red social de mascotas</p>
           <h1 className="hero__title">
-            Que tu perro salga <em>con alguien</em>.
+            Que tu mascota salga <em>con alguien</em>.
           </h1>
           <p className="lede">
-            Coincide empareja perros por energía, tamaño y forma de jugar, y cruza vuestros
-            horarios de paseo. No hace falta que nadie esté conectado a la vez: basta con que
-            salgáis a la misma hora.
+            Coincide empareja animales de la misma especie por carácter, tamaño y forma de jugar, y
+            cruza vuestros horarios de salida. Y cuando la especie no socializa, que son muchas,
+            deja de fingir que sí y te conecta con quien sí puede ayudarte.
           </p>
 
           <div className="row" style={{ marginTop: 'var(--co-space-6)' }}>
             <a className="button button--primary" href="#quedadas">
               Ver quedadas cerca
             </a>
-            <a className="button button--outline" href="#como-funciona">
-              Cómo funciona
+            <a className="button button--outline" href="/especies">
+              Qué especies entran
             </a>
           </div>
 
@@ -60,21 +71,22 @@ export default async function HomePage() {
             className="card__meta"
             style={{ marginTop: 'var(--co-space-5)', maxWidth: 'var(--co-measure-narrow)' }}
           >
-            {places.length} parques en el directorio, {fencedParks} de ellos vallados.{' '}
+            {species.length} especies en el catálogo: {social} con encuentros y {solitary} sin
+            ellos.{' '}
             {playdates.length > 0
               ? `Próxima quedada ${formatRelative(new Date(playdates[0]!.starts_at))}.`
               : 'Aún no hay quedadas programadas.'}
           </p>
         </div>
 
-        <RadarRing label="Anillo de radar: perros compatibles paseando cerca ahora mismo" />
+        <RadarRing label="Anillo de radar: mascotas compatibles cerca ahora mismo" />
       </section>
 
       {/* ------------------------------------------------------------------ */}
       <section className="section" id="como-funciona">
         <div className="section__head">
-          <p className="eyebrow">Tres motores de encuentro</p>
-          <h2>Uno para cada momento del día</h2>
+          <p className="eyebrow">Tres motores</p>
+          <h2>Uno para cada momento, y uno para quien no queda</h2>
           <p className="lede">
             Un radar sin gente es una pantalla vacía. Por eso el motor central no es quién está
             fuera ahora, sino con quién coincides siempre.
@@ -96,7 +108,12 @@ export default async function HomePage() {
       <section className="section" id="quedadas">
         <div className="section__head">
           <p className="eyebrow">Próximas quedadas</p>
-          <h2>Paseos abiertos cerca de ti</h2>
+          <h2>Encuentros abiertos cerca de ti</h2>
+          <p className="lede">
+            Cada quedada es de una sola especie. No es una restricción de la interfaz: un hurón fue
+            criado para cazar conejos, y ninguna puntuación de carácter debería poder ponerlos en el
+            mismo sitio.
+          </p>
         </div>
 
         {playdates.length === 0 ? (
@@ -112,9 +129,8 @@ export default async function HomePage() {
             {playdates.map((playdate) => (
               <a className="card" key={playdate.id} href={`/quedada/${playdate.public_slug}`}>
                 <div className="row">
-                  <span className="badge badge--accent">
-                    {formatRelative(new Date(playdate.starts_at))}
-                  </span>
+                  <span className="badge badge--accent">{playdate.species_name}</span>
+                  <span className="badge">{formatRelative(new Date(playdate.starts_at))}</span>
                   {playdate.leashed ? <span className="badge">Con correa</span> : null}
                 </div>
                 <h3 className="card__title">{playdate.title}</h3>
@@ -122,10 +138,10 @@ export default async function HomePage() {
                   {formatWhen(new Date(playdate.starts_at), new Date(playdate.ends_at))}
                 </p>
                 <p className="card__meta">
-                  {playdate.place_name ?? 'Punto en el mapa'} ·{' '}
+                  {playdate.place_name ?? 'Punto acordado en el mapa'} ·{' '}
                   {playdate.attendee_count === 1
-                    ? '1 perro apuntado'
-                    : `${playdate.attendee_count} perros apuntados`}
+                    ? '1 animal apuntado'
+                    : `${playdate.attendee_count} animales apuntados`}
                 </p>
                 <div className="row">
                   {playdate.admits_sizes.map((size) => (
@@ -146,13 +162,81 @@ export default async function HomePage() {
       </section>
 
       {/* ------------------------------------------------------------------ */}
+      <section className="section" id="comunidad">
+        <div className="section__head">
+          <p className="eyebrow">Para las especies que no quedan</p>
+          <h2>No todas las mascotas socializan; todos los tutores sí</h2>
+          <p className="lede">
+            Un tutor de reptiles no necesita una quedada. Necesita saber qué veterinario de exóticos
+            está abierto un domingo y con quién hablar cuando su animal deja de comer. Eso es tan
+            producto como un paseo en el parque.
+          </p>
+        </div>
+
+        <div className="grid">
+          {communities.map((community) => (
+            <article className="card" key={community.id}>
+              <div className="row">
+                <h3 className="card__title">{community.name}</h3>
+                {community.species_name ? (
+                  <span className="badge badge--accent">{community.species_name}</span>
+                ) : (
+                  <span className="badge">Todas las especies</span>
+                )}
+              </div>
+              <p className="card__meta">
+                {community.member_count === 1
+                  ? '1 tutor'
+                  : `${community.member_count} tutores`}
+              </p>
+            </article>
+          ))}
+        </div>
+
+        {emergency.length > 0 ? (
+          <div className="notice" style={{ marginTop: 'var(--co-space-6)' }}>
+            <span aria-hidden="true">!</span>
+            <p>
+              <strong>Urgencias cerca:</strong> {emergency.map((entry) => entry.name).join(', ')}.
+              El directorio se consulta sin cuenta, porque buscar un veterinario de guardia a las
+              tres de la mañana no debería exigir registrarse.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="grid" style={{ marginTop: 'var(--co-space-6)' }}>
+          {services
+            .filter((entry) => !entry.is_24h)
+            .slice(0, 3)
+            .map((service) => (
+              <article className="card" key={service.id}>
+                <div className="row">
+                  <h3 className="card__title">{service.name}</h3>
+                  {service.is_verified ? (
+                    <span className="badge badge--verified">✓ Verificado</span>
+                  ) : null}
+                </div>
+                <p className="card__meta">{SERVICE_KIND_LABEL[service.kind] ?? service.kind}</p>
+                <p className="card__meta">
+                  {service.species_names.length > 0
+                    ? `Atiende: ${service.species_names.join(', ')}`
+                    : 'No ha declarado a qué especies atiende'}
+                </p>
+              </article>
+            ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
       <section className="section" id="espacios">
         <div className="section__head">
           <p className="eyebrow">Espacios privados</p>
-          <h2>Un patio cerrado sale barato entre cinco</h2>
+          <h2>Un espacio cerrado sale barato entre varios</h2>
           <p className="lede">
             Alquilar un espacio privado a una persona es caro. Lo interesante es que Coincide ya
-            sabe qué perros encajan entre sí, así que puede proponer el grupo y repartir el importe.
+            sabe qué animales encajan entre sí, así que puede proponer el grupo y repartir el
+            importe. Y para presentar conejos o hurones, un terreno neutral no es un lujo: es la
+            única forma de hacerlo bien.
           </p>
         </div>
 
@@ -167,12 +251,7 @@ export default async function HomePage() {
               </div>
               <h3 className="card__title">{spot.title}</h3>
               <p className="card__meta">{spot.description}</p>
-              <p className="card__meta">
-                Hasta {spot.max_dogs} perros ·{' '}
-                {spot.max_dogs > 1
-                  ? `${Math.round(spot.price_per_slot_cents / spot.max_dogs / 100)} € por perro al completo`
-                  : 'Un solo perro'}
-              </p>
+              <p className="card__meta">Hasta {spot.max_pets} animales</p>
             </a>
           ))}
         </div>

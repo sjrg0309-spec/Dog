@@ -415,6 +415,10 @@ export const SPECIES: readonly SpeciesProfile[] = [
           'comercio están prohibidos. No puede registrarse en Coincide.',
       ),
     ],
+    // El modelo social de una especie prohibida no se llega a usar nunca: la
+    // base de datos rechaza el registro antes. Se deja en `solitary` porque es
+    // el valor que no habilita nada, no porque la cotorra sea solitaria —es un
+    // ave gregaria—, y por eso la nota habla de la ley y no del carácter.
     socialNote: 'No procede: la especie no puede tenerse como animal de compañía en España.',
   },
 ];

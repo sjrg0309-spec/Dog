@@ -1,14 +1,38 @@
 # Coincide
 
-Red social de paseos caninos. Empareja perros por temperamento, cruza los horarios de paseo de sus
-tutores y facilita que la salida ocurra de verdad.
+Red social de mascotas. Empareja animales **de la misma especie** por temperamento, cruza los
+horarios de salida de sus tutores y facilita que el encuentro ocurra de verdad. Y cuando la especie
+no socializa —que son muchas— deja de fingir que sí y conecta a su tutor con quien sí puede
+ayudarle.
 
-El producto se apoya en **tres motores de encuentro**, y el segundo es el que sostiene a los otros
-dos:
+## El modelo social es el eje del producto
+
+Coincide no es una aplicación de perros con otras especies añadidas encima. Cada especie tiene su
+propia forma de relacionarse, y eso decide qué se le ofrece al tutor:
+
+| Modelo | Qué significa | Qué ofrece la aplicación |
+|---|---|---|
+| `pack` | Encuentros abiertos en grupo, con desconocidos | Radar, quedadas, espacios. Solo el perro |
+| `small_group` | Dos o tres, terreno neutral, supervisados y cortos | Presentaciones y salas neutrales. Hurones, conejos, cobayas, ratas |
+| `solitary` | **Sin encuentros**, y no por una limitación de la app | Comunidad de tutores, lugares y servicios. Gatos, hámsteres, aves, reptiles, peces |
+
+Meter a un gato territorial en una quedada para conocer a otro gato es estresarlo. La aplicación no
+lo ofrece, y lo dice en lugar de callarlo. Un hurón fue criado para cazar conejos: **los encuentros
+son siempre entre animales de la misma especie**, y eso lo impide un disparador en Postgres, no una
+condición en el cliente.
+
+El catálogo cubre 15 especies con su estado legal en España, su fuente y su aviso. Coincide no da
+asesoramiento legal: repite lo que dice una norma concreta y enlaza a ella. Las especies excluidas
+—la cotorra argentina, por ejemplo— aparecen para poder decir que no y por qué, y su registro se
+rechaza en la base de datos.
+
+## Tres motores de encuentro
+
+Para las especies que sí quedan, y el segundo es el que sostiene a los otros dos:
 
 | Motor | Responde a | Cuándo sirve |
 |---|---|---|
-| Radar en vivo | ¿Quién está paseando ahora? | Hora punta, cuando ya hay densidad |
+| Radar en vivo | ¿Quién está fuera ahora? | Hora punta, cuando ya hay densidad |
 | **Coincidencia de horarios** | ¿Con quién coincido siempre? | **A cualquier hora**, incluso con la app vacía |
 | Quedadas y espacios | Organicemos algo | Fin de semana, cumpleaños, ocasiones |
 
@@ -17,6 +41,13 @@ coincidencia de horarios, en cambio, funciona desde el segundo usuario y **sin q
 estar conectado a la vez**. Es lo que hace que la aplicación sirva a las once de la noche, que es
 justo cuando más solo se pasea.
 
+## Y un cuarto para quien no queda
+
+Comunidad de tutores por especie y zona, y un directorio de servicios que declara **a qué especies
+atiende de verdad**. Un veterinario de perros y gatos no sabe tratar a un gecko, y mandarle uno es
+peor que no tener directorio. Las urgencias 24 h salen primero y se consultan sin cuenta: buscar un
+veterinario de guardia a las tres de la mañana no debería exigir registrarse.
+
 ---
 
 ## Estructura
@@ -24,10 +55,10 @@ justo cuando más solo se pasea.
 ```
 coincide/
 ├── apps/
-│   ├── web/          Next.js — páginas públicas de quedada, espacio y parques
-│   └── mobile/       Expo — el producto: descubrir, radar, quedadas, espacios
+│   ├── web/          Next.js — páginas públicas: quedada, espacio, parques, especies
+│   └── mobile/       Expo — descubrir, radar, quedadas, espacios y comunidad
 ├── packages/
-│   ├── core/         Algoritmo de compatibilidad, horarios, grupos y geo. Puro
+│   ├── core/         Catálogo de especies, compatibilidad, horarios, grupos y geo. Puro
 │   ├── tokens/       Sistema de diseño en OKLCH → CSS para web, hex para RN
 │   ├── trackers/     Collares, geocercas y validación de chip
 │   └── db/           Cliente de Postgres, semilla y tests de integración
@@ -68,19 +99,31 @@ pnpm --filter @coincide/mobile start
 
 ## Decisiones que conviene conocer antes de tocar el código
 
-**El algoritmo reparte 100 puntos** entre batería (35), estilo de juego (30), tamaño (25) y círculo
-de confianza (10), con vetos de seguridad por encima de la puntuación. Un veto no se compensa: da
+**El algoritmo decide en tres niveles, y el primero es la especie.** Distinta especie o especie
+solitaria son bloqueos con su propio motivo, no puntuaciones bajas: la interfaz los explica de forma
+distinta a un veto por tamaño. Solo lo que pasa esos dos niveles llega a puntuarse.
+
+**El nivel de puntuación reparte 100 puntos** entre actividad (35), estilo de juego (30), tamaño
+(25) y círculo de confianza (10), con vetos de seguridad por encima. Un veto no se compensa: da
 igual lo bien que encajen en todo lo demás.
 
-**El estilo de juego usa una matriz y toma el máximo, no el promedio.** A dos perros les basta una
-forma compartida de jugar para pasarlo bien; promediar penalizaría al perro versátil, que es justo
-el que mejor encaja con todo el mundo.
+**La talla es relativa dentro de la especie.** Un conejo "gigante" y un perro "gigante" no tienen
+nada que ver, y da igual: la comparación nunca cruza ese límite. Inventar categorías absolutas de
+peso no significaría lo mismo para un hurón que para un mastín.
+
+**El nivel de actividad se guarda neutro y se traduce en la interfaz.** La base guarda `low`,
+`medium`, `high` para que el algoritmo no necesite saber de qué animal habla; "de sofá" y
+"velocista" son vocabulario de perro y se aplican solo cuando toca.
+
+**El estilo de juego usa una matriz y toma el máximo, no el promedio.** A dos animales les basta una
+forma compartida de jugar para pasarlo bien; promediar penalizaría al versátil, que es justo el que
+mejor encaja con todo el mundo.
 
 **La afinidad de un grupo es el mínimo par a par, no el promedio.** Un grupo vale lo que vale su
-peor pareja: un promedio del 85 % puede esconder un par al 30 % que arruina el paseo.
+peor pareja: un promedio del 85 % puede esconder un par al 30 % que arruina el encuentro.
 
 **Los tres ejes se muestran por separado y nunca se funden en un porcentaje.** Mezclarlos
-convertiría a un perro mediocre pero cercano en un "95 % compatible", que es mentirle al usuario
+convertiría a un animal mediocre pero cercano en un "95 % compatible", que es mentirle al usuario
 sobre lo único que le importa.
 
 **El chip identifica, no localiza.** Un microchip es un transpondedor RFID pasivo: sin batería, sin
@@ -95,7 +138,7 @@ Publicar horarios de paseo es publicar la rutina diaria de una persona. Cinco re
 esquema y no en un documento:
 
 1. **El horario solo se revela como coincidencia.** `schedule_matches` es `security definer`,
-   comprueba que quien pregunta es el tutor del perro y devuelve el agregado —"coincidís cinco
+   comprueba que quien pregunta es el tutor del animal y devuelve el agregado —"coincidís cinco
    días"— nunca las franjas de nadie.
 2. **La presencia caduca por restricción**, con un máximo de cuatro horas. Nadie queda visible en el
    mapa por olvidarse de apagar el check-in.
@@ -105,16 +148,21 @@ esquema y no en un documento:
    treinta días.
 5. **El chip, el teléfono y la dirección de un espacio quedan fuera de las vistas públicas**, porque
    RLS filtra filas y no columnas.
+6. **Quién está dentro de una comunidad solo lo ven sus miembros.** El contador de integrantes es
+   público; la lista no. La comprobación vive en una función `security definer` porque una política
+   sobre `community_members` que consulte `community_members` se llama a sí misma.
 
 ---
 
 ## Verificación
 
 ```bash
-pnpm test          # 213 tests unitarios y de integración
+pnpm test          # 239 tests unitarios y de integración
 pnpm typecheck     # todos los paquetes y aplicaciones
-pnpm --filter @coincide/web e2e   # 42 casos en Chromium, dos viewports
-node scripts/screenshots.mjs       # capturas en claro, oscuro y sistema
+pnpm lint          # ESLint en la web, typecheck en el resto
+pnpm --filter @coincide/web e2e    # 56 casos en Chromium, dos viewports
+node scripts/screenshots.mjs        # capturas de la web en claro, oscuro y sistema
+node scripts/mobile-screenshots.mjs # capturas del móvil, con perro y con gato
 ```
 
 Los 22 tests de RLS están escritos como **intentos de acceso indebido**: leer las políticas y darlas
@@ -122,7 +170,12 @@ por buenas no demuestra nada. Los 13 de paridad comparan el cálculo de SQL con 
 sobre las mismas entradas, para que servidor y cliente no puedan dar respuestas distintas a la misma
 pregunta.
 
-Los 42 casos de navegador incluyen auditoría de accesibilidad con axe en las cuatro páginas,
+Los 18 tests de especie comprueban las reglas **en la base de datos**, no en el cliente: que no se
+puede registrar una cotorra argentina, que sí se puede una especie pendiente del listado positivo,
+que no se puede crear una quedada de gatos y que un hurón no puede apuntarse a una de perros. Un
+cliente móvil se desensambla en cinco minutos; un disparador en Postgres, no.
+
+Los 56 casos de navegador incluyen auditoría de accesibilidad con axe en las cinco páginas,
 recorrido de teclado, anillo de foco, conmutador de tema, movimiento reducido y ausencia de
 desbordamiento a 320 px.
 

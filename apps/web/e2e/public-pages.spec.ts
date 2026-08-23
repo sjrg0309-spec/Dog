@@ -11,6 +11,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const PAGES = [
   { path: '/', name: 'portada' },
+  { path: '/especies', name: 'especies' },
   { path: '/parques', name: 'parques' },
   { path: '/quedada/paseo-manana-central', name: 'quedada' },
   { path: '/spot/patio-chamberi', name: 'spot' },
@@ -148,7 +149,7 @@ test('la quedada pública se lee sin cuenta y muestra a los asistentes', async (
   await page.goto('/quedada/paseo-manana-central');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Paseo de la mañana');
-  await expect(page.getByRole('heading', { name: 'Perros apuntados' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Animales apuntados' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3, name: 'Nina' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 3, name: 'Toby' })).toBeVisible();
 });
@@ -175,4 +176,53 @@ test('una quedada inexistente devuelve 404 y ofrece salida', async ({ page }) =>
   const response = await page.goto('/quedada/no-existe-esta-quedada');
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { name: /no existe/i })).toBeVisible();
+});
+
+/**
+ * El catálogo de especies es la página que mejor explica el producto: Coincide
+ * no es una aplicación de perros con otras especies añadidas encima, y eso se ve
+ * en cuanto se agrupa por modelo social.
+ */
+test('el catálogo agrupa por modelo social e incluye especies que no socializan', async ({
+  page,
+}) => {
+  await page.goto('/especies');
+
+  await expect(page.getByRole('heading', { level: 2, name: /Socializa en grupo$/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 2, name: /No socializa con otros animales/ }),
+  ).toBeVisible();
+
+  // Si el gato desapareciera de aquí, la mitad del producto se habría perdido
+  // por el camino sin que ningún test se enterara.
+  await expect(page.getByRole('heading', { level: 3, name: 'Gato' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3, name: 'Perro' })).toBeVisible();
+});
+
+test('ningún estado legal se muestra sin su fuente ni su aviso', async ({ page }) => {
+  await page.goto('/especies');
+
+  const body = await page.locator('body').innerText();
+  expect(body).toContain('Fuente:');
+  expect(body).toContain('no da asesoramiento legal');
+});
+
+test('la portada ofrece comunidad y urgencias a quien no puede quedar', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(
+    page.getByRole('heading', { name: /No todas las mascotas socializan/ }),
+  ).toBeVisible();
+  // Buscar un veterinario de guardia es la necesidad que no distingue de
+  // especie, y por eso se enseña sin cuenta.
+  await expect(page.getByText(/Urgencias cerca/)).toBeVisible();
+});
+
+test('cada quedada declara de qué especie es', async ({ page }) => {
+  await page.goto('/');
+
+  // La regla de "una quedada, una especie" tiene que ser legible en la tarjeta,
+  // no solo cierta en la base de datos.
+  const first = page.locator('#quedadas .card').first();
+  await expect(first.locator('.badge--accent')).not.toBeEmpty();
 });

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Link from 'next/link';
 import { Atkinson_Hyperlegible, Bricolage_Grotesque } from 'next/font/google';
 
 import '@coincide/tokens/tokens.css';
@@ -74,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <header className="site-header">
           <div className="shell site-header__inner">
-            <a className="brand" href="/">
+            <Link className="brand" href="/">
               <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
                 <circle
                   cx="11"
@@ -95,19 +96,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 />
               </svg>
               <span className="brand__word">Coincide</span>
-            </a>
+            </Link>
 
             <nav className="site-nav" aria-label="Principal">
-              <a className="site-nav__section" href="/#como-funciona">
+              <Link className="site-nav__section" href="/#como-funciona">
                 Cómo funciona
-              </a>
-              <a href="/parques">Parques</a>
-              <a className="site-nav__section" href="/#quedadas">
+              </Link>
+              <Link href="/especies">Especies</Link>
+              <Link href="/parques">Parques</Link>
+              <Link className="site-nav__section" href="/#quedadas">
                 Quedadas
-              </a>
-              <a className="site-nav__section" href="/#espacios">
-                Espacios
-              </a>
+              </Link>
+              <Link className="site-nav__section" href="/#comunidad">
+                Comunidad
+              </Link>
               <ThemeToggle />
             </nav>
           </div>

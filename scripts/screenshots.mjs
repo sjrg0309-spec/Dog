@@ -18,6 +18,7 @@ const PAGES = [
   { path: '/quedada/paseo-manana-central', name: 'quedada' },
   { path: '/spot/patio-chamberi', name: 'spot' },
   { path: '/parques', name: 'parques' },
+  { path: '/especies', name: 'especies' },
 ];
 
 const VIEWPORTS = [

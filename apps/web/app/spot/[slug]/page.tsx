@@ -28,8 +28,8 @@ export default async function SpotPage({ params }: Params) {
   // El reparto se calcula con la misma función que usa la aplicación y que la
   // base de datos espeja, así que lo que se ve aquí es exactamente lo que se
   // cobrará: sin descuadres de céntimos entre pantallas.
-  const splitExamples = [2, 3, 4, spot.max_dogs]
-    .filter((count, index, all) => count >= 2 && count <= spot.max_dogs && all.indexOf(count) === index)
+  const splitExamples = [2, 3, 4, spot.max_pets]
+    .filter((count, index, all) => count >= 2 && count <= spot.max_pets && all.indexOf(count) === index)
     .map((count) => ({
       count,
       share: splitCost(spot.price_per_slot_cents, count)[0] ?? 0,
@@ -54,7 +54,7 @@ export default async function SpotPage({ params }: Params) {
         <dl className="facts">
           <div>
             <dt>Aforo</dt>
-            <dd>Hasta {spot.max_dogs} perros</dd>
+            <dd>Hasta {spot.max_pets} animales</dd>
           </div>
           <div>
             <dt>Superficie</dt>

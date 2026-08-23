@@ -1,12 +1,22 @@
 /**
- * Tarjeta de un perro en el descubrimiento.
+ * Tarjeta de una mascota en el descubrimiento.
  *
  * La decisión de diseño que gobierna este componente: **los tres ejes se
  * muestran por separado**. La afinidad es el titular porque es lo único que
- * habla del carácter del perro; la coincidencia de horarios y la distancia van
+ * habla del carácter del animal; la coincidencia de horarios y la distancia van
  * al lado, con su propia etiqueta. Fundirlos en un solo porcentaje convertiría a
- * un perro mediocre pero cercano en un "95 % compatible", que es mentirle al
+ * un animal mediocre pero cercano en un "95 % compatible", que es mentirle al
  * usuario sobre lo único que le importa.
+ *
+ * Lo que cambia respecto a una tarjeta de perro: el vocabulario. "Velocista"
+ * describe a un Border Collie y no significa nada en un conejo, así que las
+ * etiquetas de actividad se traducen con la especie delante.
+ *
+ * Lo que **no** lleva es una insignia de especie. Todo lo que llega a esta lista
+ * es de la misma especie que la mascota del tutor —no hay otra forma de que
+ * llegue—, así que repetirla en cada tarjeta sería una etiqueta que no informa
+ * de nada. La especie aparece cuando aporta algo: en la línea de descripción de
+ * los animales que no tienen raza.
  */
 
 import { Text, View } from 'react-native';
@@ -15,6 +25,7 @@ import type { AffinityBand } from '@coincide/core';
 
 import { Badge, Caption, Card, Heading, Row } from './ui';
 import { fonts } from '@/lib/fonts';
+import { PLAY_LABEL, SIZE_LABEL, energyLabel, speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
 import type { DiscoveryEntry } from '@/lib/data';
 
@@ -23,27 +34,6 @@ const BAND_LABEL: Record<AffinityBand, string> = {
   good: 'Buen match',
   supervised: 'Con supervisión',
   incompatible: 'No compatible',
-};
-
-const ENERGY_LABEL: Record<string, string> = {
-  couch: 'De sofá',
-  explorer: 'Explorador',
-  sprinter: 'Velocista',
-};
-
-const PLAY_LABEL: Record<string, string> = {
-  chase: 'Persecución',
-  wrestle: 'Lucha libre',
-  toys: 'Juguetes',
-  calm_walk: 'Caminata tranquila',
-};
-
-const SIZE_LABEL: Record<string, string> = {
-  mini: 'Mini',
-  small: 'Pequeño',
-  medium: 'Mediano',
-  large: 'Grande',
-  giant: 'Gigante',
 };
 
 /**
@@ -105,22 +95,29 @@ function AffinityMeter({ score, band }: { score: number; band: AffinityBand }) {
   );
 }
 
-export function DogCard({ entry }: { entry: DiscoveryEntry }) {
+/** Edad en el lenguaje que le corresponde: meses hasta el año, años después. */
+function ageLabel(ageMonths: number): string {
+  if (ageMonths < 12) return `${ageMonths} meses`;
+  const years = Math.floor(ageMonths / 12);
+  return years === 1 ? '1 año' : `${years} años`;
+}
+
+export function PetCard({ entry }: { entry: DiscoveryEntry }) {
   const theme = useTheme();
-  const { dog, match, distanceLabel } = entry;
-  const isWalking = dog.walkingUntilMinutes !== null;
+  const { pet, match, distanceLabel } = entry;
+  const isWalking = pet.walkingUntilMinutes !== null;
+  const descriptor = pet.breeds.length > 0 ? pet.breeds.join(', ') : speciesName(pet.speciesId);
 
   return (
     <Card>
       <Row>
-        <Heading>{dog.name}</Heading>
-        {dog.isMicrochipVerified ? <Badge tone="verified">✓ Chip verificado</Badge> : null}
-        {isWalking ? <Badge tone="live">Paseando ahora</Badge> : null}
+        <Heading>{pet.name}</Heading>
+        {pet.isMicrochipVerified ? <Badge tone="verified">✓ Chip verificado</Badge> : null}
+        {isWalking ? <Badge tone="live">Fuera ahora</Badge> : null}
       </Row>
 
       <Caption>
-        {dog.breeds.join(', ')} · {Math.floor(dog.ageMonths / 12)} años ·{' '}
-        {SIZE_LABEL[dog.size] ?? dog.size}
+        {descriptor} · {ageLabel(pet.ageMonths)} · {SIZE_LABEL[pet.size] ?? pet.size}
         {distanceLabel ? ` · a ${distanceLabel}` : ''}
       </Caption>
 
@@ -143,19 +140,19 @@ export function DogCard({ entry }: { entry: DiscoveryEntry }) {
           <Caption>{match.scheduleSummary}</Caption>
         </View>
       ) : (
-        <Caption>Vuestros horarios de paseo no coinciden</Caption>
+        <Caption>Vuestros horarios de salida no coinciden</Caption>
       )}
 
       <Row>
-        <Badge>{ENERGY_LABEL[dog.energyLevel] ?? dog.energyLevel}</Badge>
-        {dog.playStyles.map((style) => (
+        <Badge>{energyLabel(pet.energyLevel, pet.speciesId)}</Badge>
+        {pet.playStyles.map((style) => (
           <Badge key={style}>{PLAY_LABEL[style] ?? style}</Badge>
         ))}
       </Row>
 
-      {isWalking && dog.placeName ? (
+      {isWalking && pet.placeName ? (
         <Caption>
-          En {dog.placeName} · le quedan {dog.walkingUntilMinutes} min
+          En {pet.placeName} · le quedan {pet.walkingUntilMinutes} min
         </Caption>
       ) : null}
     </Card>

@@ -14,11 +14,24 @@ import { chromium } from '@playwright/test';
 const BASE = process.env.MOBILE_URL ?? 'http://127.0.0.1:8081';
 const OUT = new URL('../artifacts/screenshots/', import.meta.url).pathname;
 
+/**
+ * Las rutas, y con qué mascota se capturan.
+ *
+ * `pet` es el nombre del selector que hay que pulsar antes de la captura. Que
+ * exista es la mitad del producto: con una perra la aplicación enseña
+ * descubrimiento y quedadas, y con una gata enseña por qué no las enseña. Una
+ * captura solo del primer caso escondería justo el cambio que hace que esto sea
+ * una aplicación de mascotas y no de perros.
+ */
 const ROUTES = [
   { path: '/', name: 'app-descubrir' },
+  { path: '/', name: 'app-descubrir-gato', pet: 'Misi' },
   { path: '/radar', name: 'app-radar' },
   { path: '/quedadas', name: 'app-quedadas' },
+  { path: '/quedadas', name: 'app-quedadas-gato', pet: 'Misi' },
   { path: '/espacios', name: 'app-espacios' },
+  { path: '/comunidad', name: 'app-comunidad' },
+  { path: '/comunidad', name: 'app-comunidad-gato', pet: 'Misi' },
 ];
 
 const THEMES = [
@@ -57,6 +70,13 @@ for (const theme of THEMES) {
     await page.waitForSelector('text=/Coincide|Descubrir|Radar|Quedadas|Espacios|Con quién/i', {
       timeout: 15_000,
     });
+
+    if (route.pet) {
+      await page.getByRole('tab', { name: new RegExp(route.pet) }).click();
+      // El selector es estado de React, no navegación: se espera al texto que
+      // solo aparece cuando la pantalla ya se ha vuelto a pintar.
+      await page.waitForTimeout(300);
+    }
 
     await page.screenshot({ path: `${OUT}${route.name}-${theme.name}.png`, fullPage: true });
     count += 1;

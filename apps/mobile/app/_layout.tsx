@@ -10,9 +10,14 @@ import { useTheme } from '@/lib/theme';
 /**
  * Navegación principal.
  *
- * Cuatro pestañas y ninguna más. La primera es el descubrimiento, que es lo que
+ * Cinco pestañas y ninguna más. La primera es el descubrimiento, que es lo que
  * hace que la aplicación sirva de algo cuando el radar está vacío —es decir, la
  * mayor parte del tiempo al empezar en un barrio.
+ *
+ * La quinta, comunidad, es la que da sentido a la aplicación para la mitad del
+ * catálogo de especies: un gato, un gecko o un betta no van a conocer a nadie,
+ * pero sus tutores sí se buscan entre ellos y todos necesitan saber qué
+ * veterinario está de guardia el domingo.
  */
 export default function RootLayout() {
   const theme = useTheme();
@@ -82,6 +87,13 @@ export default function RootLayout() {
           options={{
             title: 'Espacios',
             tabBarIcon: ({ color }) => <TabIcon glyph="⬡" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="comunidad"
+          options={{
+            title: 'Comunidad',
+            tabBarIcon: ({ color }) => <TabIcon glyph="◈" color={color} />,
           }}
         />
       </Tabs>

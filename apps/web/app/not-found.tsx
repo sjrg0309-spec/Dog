@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function NotFound() {
   return (
     <div className="shell section stack">
@@ -8,12 +10,12 @@ export default function NotFound() {
         Coincide dejan de servir cuando el paseo se cancela, así que a veces es lo esperado.
       </p>
       <div className="row">
-        <a className="button button--primary" href="/">
+        <Link className="button button--primary" href="/">
           Volver al inicio
-        </a>
-        <a className="button button--outline" href="/parques">
+        </Link>
+        <Link className="button button--outline" href="/parques">
           Ver los parques
-        </a>
+        </Link>
       </div>
     </div>
   );

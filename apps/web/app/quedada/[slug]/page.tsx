@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { playdateAttendees, playdateBySlug } from '@/lib/db';
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: playdate.title,
     description:
       playdate.description ??
-      `Quedada canina en ${playdate.place_name ?? 'Madrid'}. Únete con tu perro.`,
+      `Quedada canina en ${playdate.place_name ?? 'Madrid'}. Únete con tu animal.`,
     openGraph: {
       title: playdate.title,
       description: playdate.description ?? undefined,
@@ -58,7 +59,8 @@ export default async function PlaydatePage({ params }: Params) {
       <article className="stack" style={{ gap: 'var(--co-space-8)' }}>
         <header className="stack">
           <div className="row">
-            <span className="badge badge--accent">{KIND_LABEL[playdate.kind] ?? playdate.kind}</span>
+            <span className="badge badge--accent">{playdate.species_name}</span>
+            <span className="badge">{KIND_LABEL[playdate.kind] ?? playdate.kind}</span>
             {isOver ? (
               <span className="badge">Ya ha terminado</span>
             ) : (
@@ -87,7 +89,7 @@ export default async function PlaydatePage({ params }: Params) {
             <dt>Aforo</dt>
             <dd>
               {playdate.attendee_count}
-              {playdate.max_dogs ? ` de ${playdate.max_dogs}` : ''} perros
+              {playdate.max_pets ? ` de ${playdate.max_pets}` : ''} animales
             </dd>
           </div>
         </dl>
@@ -96,8 +98,9 @@ export default async function PlaydatePage({ params }: Params) {
         <section className="stack">
           <h2>Quién puede venir</h2>
           <p className="card__meta">
-            Los parámetros de admisión no son un capricho: evitan que un velocista de treinta kilos
-            acabe jugando con un cachorro de cuatro.
+            Esta quedada es solo de {playdate.species_name.toLowerCase()}. Los encuentros son
+            siempre entre animales de la misma especie, y los parámetros de admisión evitan además
+            que uno de treinta kilos acabe jugando con un juvenil de cuatro.
           </p>
 
           <div className="row">
@@ -120,11 +123,29 @@ export default async function PlaydatePage({ params }: Params) {
 
           {playdate.leashed ? (
             <p className="card__meta">
-              Es un paseo con correa, así que también pueden venir perros reactivos con correa
+              Es un paseo con correa, así que también pueden venir animales reactivos con correa
               siempre que su tutor lo tenga en cuenta.
             </p>
           ) : null}
         </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {playdate.health_for_meetups.length > 0 ? (
+          <section className="stack">
+            <h2>Antes de venir</h2>
+            <p className="card__meta">
+              Un encuentro entre animales de casas distintas es también una vía de contagio. Lo que
+              conviene tener al día para esta especie:
+            </p>
+            <ul className="checklist">
+              {playdate.health_for_meetups.map((requirement) => (
+                <li data-state="yes" key={requirement}>
+                  {requirement}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {/* ---------------------------------------------------------------- */}
         {playdate.place_name ? (
@@ -146,7 +167,7 @@ export default async function PlaydatePage({ params }: Params) {
 
         {/* ---------------------------------------------------------------- */}
         <section className="stack">
-          <h2>Perros apuntados</h2>
+          <h2>Animales apuntados</h2>
 
           {attendees.length === 0 ? (
             <div className="notice">
@@ -170,7 +191,7 @@ export default async function PlaydatePage({ params }: Params) {
                   </div>
 
                   <p className="card__meta">
-                    {dog.breeds.join(', ') || 'Mestizo'}
+                    {dog.breeds.join(', ') || dog.species_name}
                     {dog.age_months !== null
                       ? ` · ${Math.floor(dog.age_months / 12)} años`
                       : ''}
@@ -199,7 +220,7 @@ export default async function PlaydatePage({ params }: Params) {
         <section className="stack">
           <h2>Apuntarse</h2>
           <p className="card__meta">
-            Para unirte hace falta la aplicación: es donde vive la ficha de tu perro y donde se
+            Para unirte hace falta la aplicación: es donde vive la ficha de tu animal y donde se
             calcula si encaja con el grupo. Esta página existe para que puedas ver el plan y
             decidir antes de instalar nada.
           </p>
@@ -207,9 +228,9 @@ export default async function PlaydatePage({ params }: Params) {
             <button className="button button--primary" type="button" disabled>
               Abrir en Coincide
             </button>
-            <a className="button button--outline" href="/">
+            <Link className="button button--outline" href="/">
               Ver otras quedadas
-            </a>
+            </Link>
           </div>
           <p className="card__meta">
             La aplicación móvil está en desarrollo, así que ese botón todavía no lleva a ninguna

@@ -16,18 +16,93 @@ export const SIZE_LABEL: Record<string, string> = {
   giant: 'Gigante',
 };
 
-export const ENERGY_LABEL: Record<string, string> = {
-  couch: 'De sofá',
-  explorer: 'Explorador',
-  sprinter: 'Velocista',
+/**
+ * Nivel de actividad, traducido al lenguaje de cada especie.
+ *
+ * El dato guardado es neutro —`low`, `medium`, `high`— para que el algoritmo no
+ * necesite saber de qué animal habla. Aquí se le pone el nombre que usaría su
+ * tutor: "de sofá" tiene sentido para un perro y ninguno para un gecko.
+ */
+const ENERGY_BY_SPECIES: Record<string, Record<string, string>> = {
+  dog: { low: 'De sofá', medium: 'Explorador', high: 'Velocista' },
+  cat: { low: 'Tranquilo', medium: 'Curioso', high: 'Incansable' },
+  ferret: { low: 'Dormilón', medium: 'Activo', high: 'Terremoto' },
+  rabbit: { low: 'Tranquilo', medium: 'Explorador', high: 'Muy activo' },
+  guinea_pig: { low: 'Tranquila', medium: 'Activa', high: 'Muy activa' },
+  rat: { low: 'Tranquila', medium: 'Curiosa', high: 'Incansable' },
 };
+
+const ENERGY_DEFAULT: Record<string, string> = {
+  low: 'Actividad baja',
+  medium: 'Actividad media',
+  high: 'Actividad alta',
+};
+
+export function energyLabel(level: string | null, speciesId?: string): string {
+  if (!level) return '';
+  const bySpecies = speciesId ? ENERGY_BY_SPECIES[speciesId] : undefined;
+  return bySpecies?.[level] ?? ENERGY_DEFAULT[level] ?? level;
+}
+
+/** Compatibilidad con las pantallas que aún no conocen la especie. */
+export const ENERGY_LABEL: Record<string, string> = ENERGY_DEFAULT;
 
 export const PLAY_STYLE_LABEL: Record<string, string> = {
   chase: 'Persecución',
-  wrestle: 'Lucha libre',
+  wrestle: 'Lucha',
   toys: 'Juguetes',
-  calm_walk: 'Caminata tranquila',
+  calm_walk: 'Paseo tranquilo',
+  grooming: 'Acicalarse',
+  side_by_side: 'Estar juntos',
+  forage: 'Buscar comida',
 };
+
+export const SOCIAL_MODEL_LABEL: Record<string, string> = {
+  pack: 'Socializa en grupo',
+  small_group: 'Grupo pequeño y supervisado',
+  solitary: 'No socializa con otros animales',
+};
+
+export const TAXON_LABEL: Record<string, string> = {
+  mammal_carnivore: 'Mamífero carnívoro',
+  mammal_lagomorph: 'Lagomorfo',
+  mammal_rodent: 'Roedor',
+  bird: 'Ave',
+  reptile: 'Reptil',
+  amphibian: 'Anfibio',
+  fish: 'Pez',
+  invertebrate: 'Invertebrado',
+};
+
+export const LEGAL_STATUS_LABEL: Record<string, string> = {
+  companion_animal: 'Animal de compañía por ley',
+  domestic: 'Especie doméstica',
+  positive_list_pending: 'Pendiente del listado positivo',
+  restricted: 'Permitida con requisitos',
+  excluded: 'No permitida',
+};
+
+export const SERVICE_KIND_LABEL: Record<string, string> = {
+  vet: 'Veterinario',
+  exotic_vet: 'Veterinario de exóticos',
+  emergency_vet: 'Urgencias 24 h',
+  groomer: 'Peluquería',
+  boarding: 'Alojamiento',
+  trainer: 'Educador',
+  shop: 'Tienda',
+  shelter: 'Protectora',
+};
+
+/**
+ * Aviso que acompaña a cualquier información legal.
+ *
+ * Se exporta como constante para que sea difícil mostrar un estado legal sin
+ * él: si alguien lo olvida en una pantalla, se nota en la revisión porque el
+ * dato viaja sin su advertencia.
+ */
+export const LEGAL_DISCLAIMER =
+  'Coincide no da asesoramiento legal. Esta información es orientativa y puede quedar ' +
+  'desactualizada: la lista vigente es siempre la del organismo competente.';
 
 export const KIND_LABEL: Record<string, string> = {
   live_walk: 'Paseando ahora',
