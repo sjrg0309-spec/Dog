@@ -110,6 +110,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link className="site-nav__section" href="/#comunidad">
                 Comunidad
               </Link>
+              <Link className="site-nav__section" href="/#bienestar">
+                Bienestar
+              </Link>
               <ThemeToggle />
             </nav>
           </div>

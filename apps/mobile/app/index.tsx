@@ -1,9 +1,12 @@
 import { ScrollView, View } from 'react-native';
 
+import { ConditionsControl } from '@/components/conditions-control';
 import { PetCard } from '@/components/pet-card';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { WelfareNotice } from '@/components/welfare-notice';
 import { Body, Caption, Eyebrow, Notice, Screen, Title } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
+import { useConditions } from '@/lib/conditions';
 import { communitiesFor, discover, petHasMeetups, servicesFor, speciesOf } from '@/lib/data';
 import { SERVICE_KIND_LABEL, speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
@@ -26,7 +29,11 @@ export default function DiscoverScreen() {
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
-  const { entries, emptyReason, safetyVetoed, otherSpeciesNearby } = discover(pet);
+  // 45 minutos es lo que dura un paseo normal; si el animal aguanta menos, el
+  // veredicto lo recorta y la pantalla enseña el número recortado.
+  const conditions = useConditions(45);
+  const { entries, emptyReason, safetyVetoed, otherSpeciesNearby, welfare, restingNearby } =
+    discover(pet, conditions);
 
   const outNow = entries.filter((entry) => entry.pet.walkingUntilMinutes !== null);
 
@@ -40,16 +47,34 @@ export default function DiscoverScreen() {
 
         <View style={{ gap: theme.space[2] }}>
           <Eyebrow>Para {pet.name}</Eyebrow>
-          <Title>{social ? 'Con quién puede salir' : 'Su especie no queda con nadie'}</Title>
+          {/* El titular tiene que decir lo mismo que el veredicto. Dejar "con
+              quién puede salir" encima de un "hoy no" es contradecirse en dos
+              líneas seguidas, y de las dos el usuario se cree la primera. */}
+          <Title>
+            {!social
+              ? 'Su especie no queda con nadie'
+              : welfare.level === 'stop'
+                ? `Hoy no toca salir`
+                : 'Con quién puede salir'}
+          </Title>
           <Body muted>
-            {social
-              ? 'Ordenado por temperamento, coincidencia de horarios y cercanía. Los tres se muestran por separado: mezclarlos daría un número más bonito y menos cierto.'
-              : species?.socialNote}
+            {!social
+              ? species?.socialNote
+              : welfare.level === 'stop'
+                ? `Con estas condiciones no le conviene a ${pet.name}, así que no proponemos a nadie. Cuando cambien, la lista vuelve sola.`
+                : 'Ordenado por temperamento, coincidencia de horarios y cercanía. Los tres se muestran por separado: mezclarlos daría un número más bonito y menos cierto.'}
           </Body>
         </View>
 
         {social ? (
           <>
+            <ConditionsControl />
+
+            {/* El veredicto va antes que la lista. Si apareciese debajo de doce
+                tarjetas de animales compatibles, la pantalla ya habría dicho lo
+                contrario de lo que dice el texto. */}
+            <WelfareNotice verdict={welfare} petName={pet.name} />
+
             {outNow.length > 0 ? (
               <Caption>
                 {outNow.length === 1
@@ -80,6 +105,15 @@ export default function DiscoverScreen() {
                   que su tutor ha declarado. No es una puntuación baja que se pueda compensar.
                 </Caption>
               </Notice>
+            ) : null}
+
+            {restingNearby > 0 ? (
+              <Caption>
+                {restingNearby === 1
+                  ? 'Hay 1 compañero que hoy descansa: a él tampoco le convienen estas condiciones.'
+                  : `Hay ${restingNearby} compañeros que hoy descansan: a ellos tampoco les convienen estas condiciones.`}{' '}
+                Volverán a aparecer cuando cambien, sin que nadie tenga que hacer nada.
+              </Caption>
             ) : null}
 
             {otherSpeciesNearby > 0 ? (
@@ -167,6 +201,20 @@ function EmptyState({
   name: string;
 }) {
   const kind = speciesName(speciesId).toLowerCase();
+
+  if (reason === 'welfare_stop') {
+    // El motivo ya lo ha explicado el aviso de arriba con todo el detalle.
+    // Repetirlo aquí sería decir dos veces lo mismo; lo que falta es qué hacer.
+    return (
+      <Notice>
+        <Body>Hoy no proponemos a nadie, y es por {name}.</Body>
+        <Caption>
+          No es que no haya con quien: es que hoy no le conviene. En la pestaña de comunidad hay
+          cosas que sí sirven ahora mismo, y mañana la lista vuelve sola.
+        </Caption>
+      </Notice>
+    );
+  }
 
   if (reason === 'no_candidates') {
     return (

@@ -6,6 +6,7 @@
  */
 
 import type { PlayStyle } from './species.js';
+import type { HealthFlag } from './welfare.js';
 
 export type { PlayStyle, SocialModel, SpeciesProfile, TaxonGroup } from './species.js';
 
@@ -61,6 +62,20 @@ export type MatchablePet = {
   trustCircle: readonly TrustCircleFlag[];
   sex: PetSex;
   ageMonths: number;
+
+  /**
+   * Lo que le pasa a este animal y cambia lo que puede hacer hoy.
+   *
+   * Son opcionales porque una ficha recién creada no las tiene, y porque no
+   * intervienen en la afinidad: el carácter y el bienestar son dos preguntas
+   * distintas. Ninguna puntuación de compatibilidad debería poder decidir si un
+   * bulldog sale a 34 grados.
+   */
+  healthFlags?: readonly HealthFlag[];
+  /** Techo de duración propio. Solo puede bajar del de la especie. */
+  ownMaxSessionMinutes?: number | null;
+  /** Techo térmico propio. También solo hacia abajo. */
+  ownMaxTempC?: number | null;
 };
 
 /** Franja declarada de paseo o de salida. `endTime <= startTime` cruza medianoche. */

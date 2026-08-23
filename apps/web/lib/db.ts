@@ -61,6 +61,11 @@ export type SpeciesRow = {
   legal_note: string | null;
   legal_source: string | null;
   pet_count: number;
+  max_session_minutes: number;
+  rest_between_sessions_hours: number;
+  comfort_temp_min_c: number;
+  comfort_temp_max_c: number;
+  needs_neutral_ground: boolean;
 };
 
 export function allSpecies() {
@@ -68,6 +73,8 @@ export function allSpecies() {
     `select
        s.id, s.common_name, s.scientific_name, s.taxon_group::text as taxon_group,
        s.social_model::text as social_model, s.social_note, s.juvenile_until_months,
+       s.max_session_minutes, s.rest_between_sessions_hours,
+       s.comfort_temp_min_c, s.comfort_temp_max_c, s.needs_neutral_ground,
        l.status::text as legal_status, l.note as legal_note, l.source as legal_source,
        (select count(*) from public.public_pets p where p.species_id = s.id)::int as pet_count
      from public.species s
@@ -98,6 +105,8 @@ export type PlaydateRow = {
   admits_energy: string[];
   leashed: boolean;
   max_pets: number | null;
+  session_minutes: number;
+  species_max_session_minutes: number;
   place_name: string | null;
   place_is_fenced: boolean | null;
   place_has_water: boolean | null;
@@ -114,7 +123,8 @@ const PLAYDATE_SELECT = `
     sp.health_for_meetups,
     d.starts_at, d.ends_at, d.public_slug,
     d.admits_sizes::text[] as admits_sizes, d.admits_energy::text[] as admits_energy,
-    d.leashed, d.max_pets,
+    d.leashed, d.max_pets, d.session_minutes,
+    sp.max_session_minutes as species_max_session_minutes,
     pl.name as place_name, pl.is_fenced as place_is_fenced,
     pl.has_water as place_has_water, pl.has_shade as place_has_shade,
     pr.display_name as host_name,
@@ -154,6 +164,8 @@ export type AttendeeRow = {
   age_months: number | null;
   is_microchip_verified: boolean;
   bio: string | null;
+  /** El techo ya calculado. El motivo por el que es ese se queda en privado. */
+  session_ceiling_minutes: number;
 };
 
 export function playdateAttendees(playdateId: string) {
@@ -163,7 +175,8 @@ export function playdateAttendees(playdateId: string) {
     `select
        p.id, p.name, p.species_name, p.size::text as size,
        p.energy_level::text as energy_level, p.play_styles::text[] as play_styles,
-       p.breeds, p.age_months, p.is_microchip_verified, p.bio
+       p.breeds, p.age_months, p.is_microchip_verified, p.bio,
+       p.session_ceiling_minutes
      from public.playdate_rsvps r
      join public.public_pets p on p.id = r.pet_id
      where r.playdate_id = $1 and r.status = 'going'

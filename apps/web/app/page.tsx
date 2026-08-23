@@ -1,3 +1,5 @@
+import { WELFARE_DISCLAIMER } from '@coincide/core';
+
 import { RadarRing } from '@/components/radar-ring';
 import { activeSpots, allSpecies, communitiesNear, servicesNear, upcomingPlaydates } from '@/lib/db';
 import {
@@ -29,6 +31,11 @@ const ENGINES = [
     title: 'Comunidad y servicios',
     body: 'Un gato no debe conocer a otro gato, y un gecko tampoco. Pero sus tutores sí se buscan entre ellos, y necesitan saber qué veterinario de exóticos está de guardia el domingo.',
   },
+  {
+    eyebrow: 'Y por encima de los tres',
+    title: 'El interés del animal',
+    body: 'Un bulldog a 25 grados no sale, aunque tenga un match del 100 % a dos calles. La aplicación no lo avisa en gris debajo de la lista: quita la lista.',
+  },
 ];
 
 export default async function HomePage() {
@@ -54,8 +61,9 @@ export default async function HomePage() {
           </h1>
           <p className="lede">
             Coincide empareja animales de la misma especie por carácter, tamaño y forma de jugar, y
-            cruza vuestros horarios de salida. Y cuando la especie no socializa, que son muchas,
-            deja de fingir que sí y te conecta con quien sí puede ayudarte.
+            cruza vuestros horarios de salida. Y cuando a tu animal no le conviene salir —porque
+            aprieta el calor, porque le falta pauta, porque su especie no queda con nadie—, lo dice
+            y deja de proponerlo.
           </p>
 
           <div className="row" style={{ marginTop: 'var(--co-space-6)' }}>
@@ -85,11 +93,12 @@ export default async function HomePage() {
       {/* ------------------------------------------------------------------ */}
       <section className="section" id="como-funciona">
         <div className="section__head">
-          <p className="eyebrow">Tres motores</p>
-          <h2>Uno para cada momento, y uno para quien no queda</h2>
+          <p className="eyebrow">Tres motores y un límite</p>
+          <h2>Uno para cada momento, uno para quien no queda, y uno que dice que no</h2>
           <p className="lede">
             Un radar sin gente es una pantalla vacía. Por eso el motor central no es quién está
-            fuera ahora, sino con quién coincides siempre.
+            fuera ahora, sino con quién coincides siempre. Y por encima de los tres hay un límite
+            que no negocia: si el plan no le conviene al animal, no se propone.
           </p>
         </div>
 
@@ -224,6 +233,64 @@ export default async function HomePage() {
                 </p>
               </article>
             ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      <section className="section" id="bienestar">
+        <div className="section__head">
+          <p className="eyebrow">De quién es esta aplicación</p>
+          <h2>El plan es del tutor; el cuerpo que lo aguanta, no</h2>
+          <p className="lede">
+            Casi todas las aplicaciones de mascotas resuelven el problema de la persona: con quién
+            queda, cómo llena la tarde, dónde encuentra sitio. Coincide hace eso, y además tiene una
+            capa que puede contestar que no.
+          </p>
+        </div>
+
+        <div className="grid">
+          <article className="card card--feature">
+            <p className="eyebrow">Calor</p>
+            <h3 className="card__title">El techo no es el mismo para todos</h3>
+            <p className="card__meta">
+              Cada especie tiene su franja, y de ahí se descuenta lo que sepamos del animal: hocico
+              chato, sénior, sensible al calor. Los descuentos se acumulan, porque sumar es la forma
+              prudente de equivocarse. Y si el suelo es asfalto, el límite baja otra vez: el aire a
+              28 grados convive con un suelo bastante más caliente, y quien lo pisa descalzo es él.
+            </p>
+          </article>
+
+          <article className="card card--feature">
+            <p className="eyebrow">Duración</p>
+            <h3 className="card__title">Dos horas es un buen plan para ti</h3>
+            <p className="card__meta">
+              Para un hurón son seis sesiones de veinte minutos con descanso entre medias, y son
+              cosas distintas. Una quedada declara los minutos de contacto seguidos, y ninguna puede
+              pasarse del máximo de su especie. Lo impide un disparador en Postgres, no una
+              comprobación del formulario.
+            </p>
+          </article>
+
+          <article className="card card--feature">
+            <p className="eyebrow">Estado</p>
+            <h3 className="card__title">Quien está de baja, está de baja</h3>
+            <p className="card__meta">
+              En recuperación, con la pauta de vacunación sin terminar, o con un encuentro hace un
+              rato: son motivos para no aparecer hoy en la lista de nadie. El grupo ve el
+              resultado —«aguanta veinte minutos»— y no el motivo, que es un dato de salud y se
+              queda en su ficha.
+            </p>
+          </article>
+        </div>
+
+        <div className="notice" style={{ marginTop: 'var(--co-space-6)' }}>
+          <span aria-hidden="true">!</span>
+          <p>
+            <strong>Esto no es consejo veterinario.</strong> {WELFARE_DISCLAIMER} Los umbrales están
+            publicados en el <a href="/especies">catálogo de especies</a> para que se puedan
+            discutir, y tu animal puede tener el suyo más estricto. Más laxo, no: un campo que
+            pudiera subirlos sería una forma elegante de que la regla no existiera.
+          </p>
         </div>
       </section>
 

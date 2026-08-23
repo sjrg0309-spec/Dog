@@ -37,6 +37,8 @@ export const SEED_IDS = {
     toby: '20000000-0000-4000-8000-000000000002',
     rocky: '20000000-0000-4000-8000-000000000003',
     bruno: '20000000-0000-4000-8000-000000000004',
+    /** Bulldog francés: el animal al que los límites de bienestar le afectan. */
+    kira: '20000000-0000-4000-8000-00000000000c',
     // Hurones
     lola: '20000000-0000-4000-8000-000000000005',
     pipo: '20000000-0000-4000-8000-000000000006',
@@ -149,48 +151,53 @@ export async function seed(db: Db): Promise<void> {
       `insert into public.pets
         (id, owner_id, species_id, name, breeds, birth_date, size, weight_kg, sex,
          is_neutered, energy_level, play_styles, trust_circle, is_leash_reactive,
-         microchip_code, microchip_verified_at, bio)
+         microchip_code, microchip_verified_at, bio, health_flags)
        values
         ($1,$12,'dog','Nina','{"Border Collie"}','2021-04-12','medium',18.5,'female',true,
           'high','{chase,toys}','{loves_everyone}',false,'941000012345678', now(),
-          'Le obsesiona la pelota. No para.'),
+          'Le obsesiona la pelota. No para.', '{}'),
         ($2,$13,'dog','Toby','{"Mestizo"}','2020-09-30','medium',21.0,'male',true,
           'high','{chase,wrestle}','{loves_everyone}',false,'941000023456789', now(),
-          'Corre con quien haga falta.'),
+          'Corre con quien haga falta.', '{}'),
         ($3,$14,'dog','Rocky','{"Galgo español"}','2019-02-08','large',28.0,'male',true,
           'medium','{chase,calm_walk}','{shy_at_first}',true,'941000034567890', null,
-          'Tímido al principio, luego no hay quien lo pare.'),
+          'Tímido al principio, luego no hay quien lo pare.', '{joint_issues}'),
         ($4,$15,'dog','Bruno','{"Pastor alemán"}','2025-12-05','large',24.0,'male',false,
           'high','{wrestle,chase}','{loves_everyone}',false,'941000078901234', null,
-          'Cachorro en plena socialización. Mucha energía.'),
+          'Cachorro en plena socialización. Mucha energía.', '{vaccination_pending}'),
 
         ($5,$16,'ferret','Lola','{"Hurón estándar"}','2023-05-14','small',0.9,'female',true,
           'high','{chase,wrestle,forage}','{loves_everyone}',false,'941000045678901', now(),
-          'No hay tubo por el que no se meta.'),
+          'No hay tubo por el que no se meta.', '{}'),
         ($6,$16,'ferret','Pipo','{"Hurón angora"}','2022-08-02','small',1.2,'male',true,
           'medium','{chase,forage,toys}','{shy_at_first}',false,'941000056789012', now(),
-          'Duerme dieciocho horas y las seis restantes las aprovecha.'),
+          'Duerme dieciocho horas y las seis restantes las aprovecha.', '{}'),
 
         ($7,$17,'rabbit','Trufa','{"Belier"}','2023-03-19','medium',2.4,'female',true,
           'medium','{grooming,side_by_side,forage}','{loves_everyone}',false,null, null,
-          'Se acicala con quien la deje. Muy sociable para ser conejo.'),
+          'Se acicala con quien la deje. Muy sociable para ser conejo.', '{}'),
         ($8,$17,'rabbit','Canela','{"Enano holandés"}','2024-01-25','small',1.3,'female',true,
           'low','{side_by_side,forage}','{shy_at_first}',false,null, null,
-          'Necesita su tiempo. Las presentaciones con ella van despacio.'),
+          'Necesita su tiempo. Las presentaciones con ella van despacio.', '{}'),
 
         ($9,$18,'cat','Misi','{"Común europeo"}','2019-06-30','medium',4.2,'female',true,
           'low','{chase,toys}','{shy_at_first}',false,'941000067890123', now(),
-          'Territorial y feliz de serlo. No quiere conocer a nadie.'),
+          'Territorial y feliz de serlo. No quiere conocer a nadie.', '{}'),
         ($10,$19,'leopard_gecko','Kiwi','{}','2022-11-11','mini',0.06,'male',false,
           'low','{}','{}',false,null, null,
-          'Come grillos los martes y jueves. Nada más que contar, y está bien así.'),
+          'Come grillos los martes y jueves. Nada más que contar, y está bien así.', '{}'),
         ($11,$18,'betta','Azul','{}','2025-02-01','mini',0.005,'male',false,
           'low','{}','{}',false,null, null,
-          'Vive solo por definición de su especie.')`,
+          'Vive solo por definición de su especie.', '{}'),
+
+        ($20,$13,'dog','Kira','{"Bulldog francés"}','2022-01-18','small',11.5,'female',true,
+          'low','{toys,calm_walk}','{shy_at_first}',false,'941000089012345', now(),
+          'Se cansa enseguida. Le va el paseo corto y la sombra.', '{brachycephalic,heat_sensitive}')`,
       [
         A.nina, A.toby, A.rocky, A.bruno, A.lola, A.pipo, A.trufa, A.canela,
         A.misi, A.kiwi, A.azul,
         P.marta, P.carlos, P.diego, P.pablo, P.ines, P.alvaro, P.lucia, P.sara,
+        A.kira,
       ],
     );
 
@@ -261,31 +268,33 @@ export async function seed(db: Db): Promise<void> {
       `insert into public.playdates
         (id, host_id, host_pet_id, species_id, kind, title, description, place_id, point,
          starts_at, ends_at, visibility, admits_sizes, admits_energy, leashed,
-         max_pets, public_slug)
+         max_pets, session_minutes, public_slug)
        values
         ($1,$5,$9,'dog','scheduled','Paseo de la mañana en Parque Central',
           'Salimos a las siete, como cada día. Ritmo alto: los nuestros corren.',
           $13, public.make_point(40.4098,-3.6939),
           ${atLocalTime(1, 7)}, ${atLocalTime(1, 7, 45)},
-          'public','{medium,large}','{medium,high}', false, 8,'paseo-manana-central'),
+          'public','{medium,large}','{medium,high}', false, 8, 45,'paseo-manana-central'),
 
         ($2,$6,$10,'ferret','scheduled','Tarde de hurones en sala neutral',
           'Cuatro como mucho, sesiones de veinte minutos con descanso. Traed transportín y el moquillo al día.',
           null, public.make_point(40.4405,-3.7012),
           ${atLocalTime(2, 17)}, ${atLocalTime(2, 19)},
-          'public','{mini,small}','{medium,high}', false, 4,'hurones-sala-neutral'),
+          -- Dos horas de tarde, veinte minutos de contacto. No es lo mismo, y el
+          -- esquema ya no deja confundirlo.
+          'public','{mini,small}','{medium,high}', false, 4, 20,'hurones-sala-neutral'),
 
         ($3,$7,$11,'rabbit','scheduled','Presentación de conejos, terreno neutral',
           'Espacio sin olores previos y supervisión constante. Si no se caen bien, se para y ya está: forzarlo acaba en peleas de verdad.',
           null, public.make_point(40.4405,-3.7012),
           ${atLocalTime(4, 18)}, ${atLocalTime(4, 19)},
-          'public','{small,medium}','{low,medium}', false, 3,'presentacion-conejos'),
+          'public','{small,medium}','{low,medium}', false, 3, 20,'presentacion-conejos'),
 
         ($4,$8,$12,'dog','scheduled','Caminata nocturna por Parque Berlín',
           'Para quienes paseamos cuando ya no hay nadie.',
           $14, public.make_point(40.4562,-3.6764),
           ${atLocalTime(2, 22, 30)}, ${atLocalTime(3, 0)},
-          'public','{medium,large}','{medium,high}', false, 6,'nocturna-berlin')`,
+          'public','{medium,large}','{medium,high}', false, 6, 60,'nocturna-berlin')`,
       [
         E.manana, E.hurones, E.conejos, E.nocturna,
         P.marta, P.ines, P.alvaro, P.diego,

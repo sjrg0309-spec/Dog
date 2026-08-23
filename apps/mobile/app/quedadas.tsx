@@ -1,8 +1,10 @@
 import { ScrollView, View } from 'react-native';
 
-import { groupAffinity } from '@coincide/core';
+import { groupAffinity, groupWelfare } from '@coincide/core';
 
+import { ConditionsControl } from '@/components/conditions-control';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { WelfareNotice } from '@/components/welfare-notice';
 import {
   Badge,
   Body,
@@ -17,6 +19,7 @@ import {
   Title,
 } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
+import { useDeclaredConditions } from '@/lib/conditions';
 import { allPlaydates, petById, petHasMeetups, playdatesFor, speciesOf } from '@/lib/data';
 import { SIZE_LABEL, energyLabel, speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
@@ -48,6 +51,7 @@ export default function PlaydatesScreen() {
   const social = petHasMeetups(pet);
   const mine = playdatesFor(pet.speciesId);
   const otherSpecies = allPlaydates().length - mine.length;
+  const declared = useDeclaredConditions();
 
   if (!social) {
     return (
@@ -84,6 +88,8 @@ export default function PlaydatesScreen() {
           </Body>
         </View>
 
+        <ConditionsControl />
+
         <Button
           label="Crear una quedada"
           accessibilityHint="Proponer un encuentro con fecha y lugar"
@@ -118,6 +124,14 @@ export default function PlaydatesScreen() {
 
           const alreadyIn = attendees.some((entry) => entry.id === pet.id);
 
+          // El bienestar es del grupo entero, incluido el animal del tutor: si a
+          // uno de los seis le está prohibiendo el calor, el encuentro no se
+          // hace porque a los otros cinco les venga bien.
+          const welfare = groupWelfare(withMine, {
+            ...declared,
+            durationMinutes: playdate.sessionMinutes,
+          });
+
           return (
             <Card key={playdate.id}>
               <Row>
@@ -133,6 +147,10 @@ export default function PlaydatesScreen() {
               </Caption>
               <Caption>
                 {playdate.placeName} · {attendees.length} de {playdate.maxPets} animales
+              </Caption>
+              <Caption>
+                {playdate.sessionMinutes} min de contacto seguidos, y luego descanso. No es la
+                duración del evento: es lo que aguanta la especie de una vez.
               </Caption>
 
               <Body muted>{playdate.description}</Body>
@@ -169,7 +187,10 @@ export default function PlaydatesScreen() {
                 ))}
               </Row>
 
-              {affinity.hasVeto ? (
+              {/* Va antes que el botón, y cuando dice que no, el botón no está. */}
+              <WelfareNotice verdict={welfare} petName={pet.name} showDisclaimer={false} />
+
+              {welfare.level === 'stop' ? null : affinity.hasVeto ? (
                 <Notice>
                   <Body>{pet.name} no puede unirse a este grupo.</Body>
                   <Caption>

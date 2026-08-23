@@ -86,6 +86,10 @@ export default async function PlaydatePage({ params }: Params) {
             <dd>{playdate.host_name ?? 'Un tutor de Coincide'}</dd>
           </div>
           <div>
+            <dt>Contacto seguido</dt>
+            <dd>{playdate.session_minutes} min</dd>
+          </div>
+          <div>
             <dt>Aforo</dt>
             <dd>
               {playdate.attendee_count}
@@ -130,6 +134,22 @@ export default async function PlaydatePage({ params }: Params) {
         </section>
 
         {/* ---------------------------------------------------------------- */}
+        <section className="stack">
+          <h2>Cuánto dura de verdad</h2>
+          <p className="card__meta">
+            El encuentro son <strong>{playdate.session_minutes} min de contacto seguidos</strong>, y
+            luego descanso. No es la duración del evento: es lo que aguanta un{' '}
+            {playdate.species_name.toLowerCase()} de una vez, y el máximo para esta especie son{' '}
+            {playdate.species_max_session_minutes} min.
+          </p>
+          <p className="card__meta">
+            Una tarde puede durar dos horas y estar bien hecha si son sesiones cortas con pausa
+            entre medias. Lo que no se puede es soltarlos dos horas y llamarlo lo mismo. Coincide no
+            deja crear una quedada que se pase de ese límite, y no es una comprobación del
+            formulario: la rechaza la base de datos.
+          </p>
+        </section>
+
         {playdate.health_for_meetups.length > 0 ? (
           <section className="stack">
             <h2>Antes de venir</h2>
@@ -208,6 +228,16 @@ export default async function PlaydatePage({ params }: Params) {
                       </span>
                     ))}
                   </div>
+
+                  {/* El techo, no el motivo. Que este animal aguante menos es
+                      información que el grupo necesita para organizarse; por qué
+                      aguanta menos es un dato de salud y se queda en su ficha. */}
+                  {dog.session_ceiling_minutes < playdate.species_max_session_minutes ? (
+                    <p className="card__meta">
+                      Aguanta {dog.session_ceiling_minutes} min seguidos, menos que la media de su
+                      especie. El grupo se organiza por él.
+                    </p>
+                  ) : null}
 
                   {dog.bio ? <p className="card__meta">{dog.bio}</p> : null}
                 </article>

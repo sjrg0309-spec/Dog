@@ -139,6 +139,9 @@ export const OTHER_PETS: DemoPet[] = [
     speciesId: 'dog',
     breeds: ['Galgo español'],
     bio: 'Tímido al principio, luego no hay quien lo pare.',
+    // Un galgo mayor con las articulaciones tocadas: la app le propone ratos
+    // más cortos que a Toby aunque los dos sean perros grandes y compatibles.
+    healthFlags: ['joint_issues'],
     size: 'large',
     energyLevel: 'medium',
     playStyles: ['chase', 'calm_walk'],
@@ -169,6 +172,9 @@ export const OTHER_PETS: DemoPet[] = [
     speciesId: 'dog',
     breeds: ['Pastor alemán'],
     bio: 'Cachorro en plena socialización. Mucha energía.',
+    // Le falta pauta. En una especie de manada eso no es un aviso: es que un
+    // parque abierto con desconocidos no es su sitio todavía.
+    healthFlags: ['vaccination_pending'],
     size: 'large',
     energyLevel: 'high',
     playStyles: ['wrestle', 'chase'],
@@ -183,6 +189,30 @@ export const OTHER_PETS: DemoPet[] = [
       placeId: PLACES.berlin.id,
     })),
     location: { lat: 40.4148, lng: -3.6851 },
+    walkingUntilMinutes: null,
+    placeName: null,
+  },
+
+  {
+    id: '20000000-0000-4000-8000-00000000000c',
+    name: 'Kira',
+    ownerName: 'Carlos M.',
+    ownerId: '10000000-0000-4000-8000-000000000002',
+    speciesId: 'dog',
+    breeds: ['Bulldog francés'],
+    bio: 'Se cansa enseguida. Le va el paseo corto y la sombra.',
+    // Es la mascota que separa una aplicación para el tutor de una para el
+    // animal: a 25 grados, un día corriente para Nina, Kira no debería salir.
+    healthFlags: ['brachycephalic', 'heat_sensitive'],
+    size: 'small',
+    energyLevel: 'low',
+    playStyles: ['toys', 'calm_walk'],
+    trustCircle: ['shy_at_first'],
+    sex: 'female',
+    ageMonths: 55,
+    isMicrochipVerified: true,
+    availability: weekdayMorning(PLACES.central.id),
+    location: { lat: 40.4104, lng: -3.6944 },
     walkingUntilMinutes: null,
     placeName: null,
   },
@@ -320,6 +350,14 @@ export type DemoPlaydate = {
   description: string;
   /** Una quedada es siempre de una sola especie. No es una restricción de la interfaz. */
   speciesId: string;
+  /**
+   * Minutos de contacto seguidos, que no son la duración del evento.
+   *
+   * Una tarde de hurones dura dos horas y son sesiones de veinte minutos con
+   * descanso. Confundirlas obligaría a elegir entre prohibir la tarde o
+   * permitir dos horas seguidas, y las dos respuestas son malas.
+   */
+  sessionMinutes: number;
   placeName: string;
   startsAt: Date;
   endsAt: Date;
@@ -344,6 +382,7 @@ export const PLAYDATES: DemoPlaydate[] = [
     title: 'Paseo de la mañana en Parque Central',
     description: 'Salimos a las siete, como cada día. Ritmo alto: los nuestros corren.',
     speciesId: 'dog',
+    sessionMinutes: 45,
     placeName: PLACES.central.name,
     startsAt: upcoming(1, 7),
     endsAt: upcoming(1, 7, 45),
@@ -359,6 +398,7 @@ export const PLAYDATES: DemoPlaydate[] = [
     description:
       'Cuatro como mucho, sesiones de veinte minutos con descanso. Traed transportín y el moquillo al día.',
     speciesId: 'ferret',
+    sessionMinutes: 20,
     placeName: 'Sala neutral para presentaciones',
     startsAt: upcoming(2, 17),
     endsAt: upcoming(2, 19),
@@ -374,6 +414,7 @@ export const PLAYDATES: DemoPlaydate[] = [
     description:
       'Espacio sin olores previos y supervisión constante. Si no se caen bien, se para y ya está: forzarlo acaba en peleas de verdad.',
     speciesId: 'rabbit',
+    sessionMinutes: 20,
     placeName: 'Sala neutral para presentaciones',
     startsAt: upcoming(4, 18),
     endsAt: upcoming(4, 19),
@@ -388,6 +429,7 @@ export const PLAYDATES: DemoPlaydate[] = [
     title: 'Caminata nocturna por Parque Berlín',
     description: 'Para quienes paseamos cuando ya no hay nadie.',
     speciesId: 'dog',
+    sessionMinutes: 60,
     placeName: PLACES.berlin.name,
     startsAt: upcoming(2, 22, 30),
     endsAt: upcoming(3, 0),

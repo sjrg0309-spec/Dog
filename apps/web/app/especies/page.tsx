@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
 import { allSpecies } from '@/lib/db';
+import { WELFARE_DISCLAIMER } from '@coincide/core';
+
 import { LEGAL_DISCLAIMER, LEGAL_STATUS_LABEL, SOCIAL_MODEL_LABEL, TAXON_LABEL } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -91,6 +93,28 @@ export default async function SpeciesPage() {
 
                   <p className="card__meta">{entry.social_note}</p>
 
+                  {/* Los límites de cuidado, a la vista.
+                      Están aquí y no escondidos en el código porque son una
+                      postura de la aplicación, no un criterio veterinario: hay
+                      que poder discutirlos, y para discutirlos hay que verlos. */}
+                  <ul className="facts facts--inline">
+                    <li>
+                      {entry.max_session_minutes > 0
+                        ? `${entry.max_session_minutes} min de contacto seguidos`
+                        : 'Sin encuentros'}
+                    </li>
+                    <li>
+                      Entre {entry.comfort_temp_min_c} y {entry.comfort_temp_max_c} °C a la
+                      intemperie
+                    </li>
+                    {entry.max_session_minutes > 0 ? (
+                      <li>{entry.rest_between_sessions_hours} h de descanso después</li>
+                    ) : null}
+                    {entry.needs_neutral_ground && entry.max_session_minutes > 0 ? (
+                      <li>Terreno neutral</li>
+                    ) : null}
+                  </ul>
+
                   {entry.legal_status ? (
                     <div
                       style={{
@@ -160,6 +184,16 @@ export default async function SpeciesPage() {
           </div>
         </section>
       ) : null}
+
+      <div className="notice">
+        <span aria-hidden="true">!</span>
+        <p>
+          <strong>Sobre los límites de cuidado.</strong> {WELFARE_DISCLAIMER} Son los mismos
+          números que aplica la aplicación cuando decide no proponerte un encuentro, y están aquí
+          para que puedas comprobar si te parecen razonables. Tu animal puede tener el suyo más
+          estricto; más laxo, no.
+        </p>
+      </div>
 
       <div className="notice">
         <span aria-hidden="true">!</span>

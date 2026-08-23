@@ -5,6 +5,38 @@ horarios de salida de sus tutores y facilita que el encuentro ocurra de verdad. 
 no socializa —que son muchas— deja de fingir que sí y conecta a su tutor con quien sí puede
 ayudarle.
 
+## Es una aplicación para el animal, no para su tutor
+
+Es la diferencia que decide el resto del diseño. Casi todo lo que hay resuelve el problema de la
+persona: con quién queda, cómo llena la tarde, dónde encuentra sitio. Coincide hace eso, y además
+tiene una capa —`packages/core/src/welfare.ts`— que puede contestar que no.
+
+Cuando contesta que no, **manda**. No se compensa con una afinidad del 100 %, no se entierra en una
+advertencia gris y no se convierte en un "continuar de todas formas": la lista de candidatos vuelve
+vacía y el botón de check-in no está. Un control desactivado invita a buscar cómo activarlo; un
+aviso debajo de doce tarjetas de animales compatibles ya ha dicho lo contrario de lo que dice su
+texto.
+
+| Qué mira | Qué hace |
+|---|---|
+| **Calor** | Cada especie tiene su franja, y de ahí se descuenta lo que se sepa del animal: hocico chato, sénior, sensible al calor. Los descuentos se acumulan. Sobre asfalto el límite baja otra vez |
+| **Duración** | Una quedada declara los minutos de **contacto seguidos**, que no son los del evento. Ninguna puede pasarse del máximo de su especie, y lo impide un disparador en Postgres |
+| **Estado** | En recuperación, con la pauta sin terminar o con un encuentro hace un rato: motivos para no aparecer hoy en la lista de nadie |
+| **El grupo** | El veredicto es el del animal que peor lo lleve, igual que la afinidad es la del peor par |
+
+Dos consecuencias que conviene leer juntas:
+
+- **El tutor puede endurecer los límites de su animal, nunca ablandarlos.** Quien lo conoce puede
+  decir "el mío no aguanta ni eso". Un campo que permitiera lo contrario sería una forma elegante
+  de que la regla no existiera.
+- **El grupo ve el resultado; el motivo se queda en la ficha.** Que un animal aguante veinte
+  minutos es información que los demás necesitan para organizarse. Que esté convaleciente, o en
+  celo, es un dato de salud, y la vista pública publica el techo ya calculado sin decir por qué es
+  ese.
+
+Esto **no es consejo veterinario**, y la aplicación lo repite donde hace falta: son umbrales
+prudentes propios, publicados en el catálogo de especies para que se puedan discutir.
+
 ## El modelo social es el eje del producto
 
 Coincide no es una aplicación de perros con otras especies añadidas encima. Cada especie tiene su
@@ -36,6 +68,9 @@ Para las especies que sí quedan, y el segundo es el que sostiene a los otros do
 | **Coincidencia de horarios** | ¿Con quién coincido siempre? | **A cualquier hora**, incluso con la app vacía |
 | Quedadas y espacios | Organicemos algo | Fin de semana, cumpleaños, ocasiones |
 
+Los tres responden a la pregunta del tutor. La capa de bienestar responde a la del animal, y va por
+encima de los tres.
+
 Un radar sin usuarios es una pantalla vacía, y ese es el estado normal al empezar en un barrio. La
 coincidencia de horarios, en cambio, funciona desde el segundo usuario y **sin que nadie tenga que
 estar conectado a la vez**. Es lo que hace que la aplicación sirva a las once de la noche, que es
@@ -58,7 +93,7 @@ coincide/
 │   ├── web/          Next.js — páginas públicas: quedada, espacio, parques, especies
 │   └── mobile/       Expo — descubrir, radar, quedadas, espacios y comunidad
 ├── packages/
-│   ├── core/         Catálogo de especies, compatibilidad, horarios, grupos y geo. Puro
+│   ├── core/         Especies, bienestar, compatibilidad, horarios, grupos y geo. Puro
 │   ├── tokens/       Sistema de diseño en OKLCH → CSS para web, hex para RN
 │   ├── trackers/     Collares, geocercas y validación de chip
 │   └── db/           Cliente de Postgres, semilla y tests de integración
@@ -126,6 +161,14 @@ peor pareja: un promedio del 85 % puede esconder un par al 30 % que arruina el e
 convertiría a un animal mediocre pero cercano en un "95 % compatible", que es mentirle al usuario
 sobre lo único que le importa.
 
+**El bienestar no puntúa: decide.** No es un cuarto eje que baje la nota. Devuelve `ok`, `caution`
+o `stop`, y un `stop` saca al animal de la lista en lugar de dejarlo abajo del ranking. Una
+puntuación se compensa; un límite, no.
+
+**Nadie consulta el tiempo desde `packages/core`.** El módulo de bienestar recibe las condiciones y
+devuelve un veredicto, para poder probarlo entero sin red. Hoy la temperatura la declara el tutor
+con un control visible, porque no hay proveedor meteorológico conectado y la pantalla lo dice.
+
 **El chip identifica, no localiza.** Un microchip es un transpondedor RFID pasivo: sin batería, sin
 GPS y sin forma de seguirlo. Sirve como insignia de tutor verificado, y el formato válido no
 demuestra que el chip exista, porque el número impreso no lleva dígito de control.
@@ -157,12 +200,12 @@ esquema y no en un documento:
 ## Verificación
 
 ```bash
-pnpm test          # 239 tests unitarios y de integración
+pnpm test          # 287 tests unitarios y de integración
 pnpm typecheck     # todos los paquetes y aplicaciones
 pnpm lint          # ESLint en la web, typecheck en el resto
-pnpm --filter @coincide/web e2e    # 56 casos en Chromium, dos viewports
+pnpm --filter @coincide/web e2e    # 62 casos en Chromium, dos viewports
 node scripts/screenshots.mjs        # capturas de la web en claro, oscuro y sistema
-node scripts/mobile-screenshots.mjs # capturas del móvil, con perro y con gato
+node scripts/mobile-screenshots.mjs # capturas del móvil: con perro, con gato y a 34 °C
 ```
 
 Los 22 tests de RLS están escritos como **intentos de acceso indebido**: leer las políticas y darlas
@@ -170,12 +213,18 @@ por buenas no demuestra nada. Los 13 de paridad comparan el cálculo de SQL con 
 sobre las mismas entradas, para que servidor y cliente no puedan dar respuestas distintas a la misma
 pregunta.
 
+Los 13 tests de bienestar en la base comprueban que una quedada no puede proponer más contacto
+seguido del que aguanta la especie, e incluyen **paridad**: el techo de duración y el térmico que
+calcula Postgres tienen que coincidir con los de `packages/core` para todas las mascotas de la
+semilla. Si no coincidieran, la aplicación propondría un rato y el servidor aceptaría otro, y quien
+lo pagaría no es ninguno de los dos.
+
 Los 18 tests de especie comprueban las reglas **en la base de datos**, no en el cliente: que no se
 puede registrar una cotorra argentina, que sí se puede una especie pendiente del listado positivo,
 que no se puede crear una quedada de gatos y que un hurón no puede apuntarse a una de perros. Un
 cliente móvil se desensambla en cinco minutos; un disparador en Postgres, no.
 
-Los 56 casos de navegador incluyen auditoría de accesibilidad con axe en las cinco páginas,
+Los 62 casos de navegador incluyen auditoría de accesibilidad con axe en las cinco páginas,
 recorrido de teclado, anillo de foco, conmutador de tema, movimiento reducido y ausencia de
 desbordamiento a 320 px.
 
@@ -192,4 +241,8 @@ desbordamiento a 320 px.
 - **Integración con Fi y Tractive.** Ninguno de los dos publica API para terceros; la capa de
   adaptadores está lista y declara su estado en lugar de fallar en silencio. Hoy funcionan el GPS
   del teléfono y una ingesta genérica por webhook firmado.
+- **Proveedor meteorológico.** La capa de bienestar recibe las condiciones y no las consulta; hoy
+  las declara el tutor. `api.open-meteo.com` está bloqueada por el proxy de salida de este entorno
+  (403, comprobado), así que conectarla queda pendiente de un entorno con salida a internet. Lo que
+  cambia entonces es un módulo.
 - **Feed social, grupos, chat y verificación de identidad.** Fase 2.

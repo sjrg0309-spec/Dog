@@ -226,3 +226,35 @@ test('cada quedada declara de qué especie es', async ({ page }) => {
   const first = page.locator('#quedadas .card').first();
   await expect(first.locator('.badge--accent')).not.toBeEmpty();
 });
+
+/**
+ * El bienestar no es una sección decorativa: si desaparece de la portada, la
+ * afirmación de que la aplicación es del animal deja de ser cierta y nadie se
+ * entera hasta que alguien la lee.
+ */
+test('la portada explica que el interés del animal puede decir que no', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(
+    page.getByRole('heading', { name: /El plan es del tutor; el cuerpo que lo aguanta, no/ }),
+  ).toBeVisible();
+  await expect(page.getByText(/no da consejo veterinario/i)).toBeVisible();
+});
+
+test('el catálogo publica los límites de cuidado de cada especie', async ({ page }) => {
+  await page.goto('/especies');
+
+  const body = await page.locator('body').innerText();
+  // Están publicados para que se puedan discutir; si dejaran de verse, serían
+  // una decisión escondida en el código.
+  expect(body).toContain('min de contacto seguidos');
+  expect(body).toContain('°C a la intemperie');
+});
+
+test('una quedada dice cuánto dura el contacto, no solo el evento', async ({ page }) => {
+  await page.goto('/quedada/hurones-sala-neutral');
+
+  await expect(page.getByRole('heading', { name: 'Cuánto dura de verdad' })).toBeVisible();
+  // La tarde dura dos horas; el contacto, veinte minutos.
+  await expect(page.getByText(/20 min de contacto seguidos/)).toBeVisible();
+});

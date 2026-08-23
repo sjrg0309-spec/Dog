@@ -13,7 +13,10 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { findSpecies, type Conditions } from '@coincide/core';
+
 import {
+  allPlaydates,
   communitiesFor,
   discover,
   petById,
@@ -25,6 +28,9 @@ import {
   walkingNow,
 } from './data';
 import { MY_PETS, OTHER_PETS } from './demo-data';
+
+/** Un día templado en hierba: condiciones en las que nada debería impedir salir. */
+const MILD = { temperatureC: 18, surface: 'grass', durationMinutes: 45 } as const;
 
 const nina = MY_PETS[0]!;
 const misi = MY_PETS[1]!;
@@ -53,13 +59,13 @@ describe('la demo cubre los tres modelos sociales', () => {
 
 describe('descubrimiento', () => {
   it('una perra ve solo perros', () => {
-    const { entries } = discover(nina);
+    const { entries } = discover(nina, MILD);
     expect(entries.length).toBeGreaterThan(0);
     expect(entries.every((entry) => entry.pet.speciesId === 'dog')).toBe(true);
   });
 
   it('una gata no descubre a nadie, y no por falta de datos', () => {
-    const { entries, otherSpeciesNearby } = discover(misi);
+    const { entries, otherSpeciesNearby } = discover(misi, MILD);
     expect(entries).toHaveLength(0);
     // La ficha de Misi está completa: tiene talla, energía, estilos y confianza.
     expect(misi.size).toBeTruthy();
@@ -69,7 +75,7 @@ describe('descubrimiento', () => {
   });
 
   it('los de otra especie se cuentan aparte de los vetados por seguridad', () => {
-    const { safetyVetoed, otherSpeciesNearby } = discover(nina);
+    const { safetyVetoed, otherSpeciesNearby } = discover(nina, MILD);
     const dogs = OTHER_PETS.filter((pet) => pet.speciesId === 'dog').length;
 
     expect(otherSpeciesNearby).toBe(OTHER_PETS.length - dogs);
@@ -79,7 +85,7 @@ describe('descubrimiento', () => {
   });
 
   it('nadie se descubre a sí mismo', () => {
-    const { entries } = discover(nina);
+    const { entries } = discover(nina, MILD);
     expect(entries.some((entry) => entry.pet.id === nina.id)).toBe(false);
   });
 });
@@ -151,6 +157,73 @@ describe('comunidad y servicios: lo que sí tienen las especies solitarias', () 
       // Si esto fallara, esa especie tendría una ficha bonita y ningún motivo
       // para volver a abrir la aplicación.
       expect(offer, `${pet.name} (${pet.speciesId}) se queda sin nada`).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('el interés del animal manda sobre el plan del tutor', () => {
+  const hot = { temperatureC: 34, surface: 'grass', durationMinutes: 45 } as const;
+  const asphalt = { temperatureC: 29, surface: 'asphalt', durationMinutes: 45 } as const;
+
+  it('a 34 grados no se propone a nadie, y el estado vacío lo dice', () => {
+    const { entries, emptyReason } = discover(nina, hot);
+    // Ni una tarjeta con un aviso encima: ninguna tarjeta.
+    expect(entries).toEqual([]);
+    expect(emptyReason).toBe('welfare_stop');
+  });
+
+  it('el asfalto caliente para la lista aunque el aire no llegue al techo', () => {
+    expect(discover(nina, asphalt).entries).toEqual([]);
+  });
+
+  it('un día templado sí devuelve candidatos', () => {
+    expect(discover(nina, MILD).entries.length).toBeGreaterThan(0);
+  });
+
+  it('el bulldog deja de aparecer antes que los demás perros', () => {
+    // 25 grados es un día de verano corriente. Para Nina no cambia nada; para
+    // Kira, que es de hocico chato, es el punto en el que deja de convenirle.
+    const warm = { temperatureC: 25, surface: 'grass', durationMinutes: 45 } as const;
+    const names = (conditions: Conditions) =>
+      discover(nina, conditions).entries.map((entry) => entry.pet.name);
+
+    expect(names(MILD)).toContain('Kira');
+    expect(names(warm)).not.toContain('Kira');
+    // Y el resto sigue ahí: no se ha vaciado la lista, se ha quitado a quien no
+    // debía estar en ella.
+    expect(names(warm).length).toBeGreaterThan(0);
+  });
+
+  it('quien descansa se cuenta aparte de quien no encaja', () => {
+    const warm = { temperatureC: 25, surface: 'grass', durationMinutes: 45 } as const;
+    const { restingNearby } = discover(nina, warm);
+    expect(restingNearby).toBeGreaterThan(0);
+  });
+
+  it('el veredicto se devuelve siempre, también cuando hay lista', () => {
+    // La pantalla tiene que poder decir "se puede, con cuidado" sin deducirlo de
+    // que la lista no esté vacía.
+    expect(discover(nina, MILD).welfare.level).toBe('ok');
+    expect(discover(nina, hot).welfare.level).toBe('stop');
+  });
+
+  it('una tarde de hurones se propone en sesiones, no de una vez', () => {
+    const tarde = playdatesFor('ferret')[0];
+    expect(tarde).toBeDefined();
+    // Dos horas de evento, veinte minutos de contacto.
+    expect(tarde!.sessionMinutes).toBeLessThanOrEqual(20);
+    expect(tarde!.endsAt.getTime() - tarde!.startsAt.getTime()).toBeGreaterThan(
+      tarde!.sessionMinutes * 60_000,
+    );
+  });
+
+  it('ninguna quedada propone más contacto del que aguanta su especie', () => {
+    for (const playdate of allPlaydates()) {
+      const species = findSpecies(playdate.speciesId)!;
+      expect(
+        playdate.sessionMinutes,
+        `${playdate.title} propone más de lo que aguanta un ${species.commonName.toLowerCase()}`,
+      ).toBeLessThanOrEqual(species.care.maxSessionMinutes);
     }
   });
 });

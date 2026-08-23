@@ -86,6 +86,24 @@ export const PLAY_STYLES = [
 ] as const;
 export type PlayStyle = (typeof PLAY_STYLES)[number];
 
+export type SpeciesCare = {
+  /** Minutos de contacto seguidos que tolera esta especie en un encuentro. */
+  maxSessionMinutes: number;
+  /** Horas de descanso recomendadas antes del siguiente encuentro. */
+  restBetweenSessionsHours: number;
+  /**
+   * Franja térmica en la que un encuentro al aire libre es razonable.
+   *
+   * Fuera de ella la aplicación no se limita a avisar: deja de proponer el
+   * encuentro. Un golpe de calor no se arregla con una advertencia en gris.
+   */
+  comfortTempC: { min: number; max: number };
+  /** Meses a partir de los cuales se considera sénior. */
+  seniorFromMonths: number;
+  /** Necesita terreno neutral para conocer a otro de su especie. */
+  needsNeutralGround: boolean;
+};
+
 export type SpeciesProfile = {
   id: string;
   commonName: string;
@@ -113,6 +131,20 @@ export type SpeciesProfile = {
    * fauna del catálogo en cachorros perpetuos.
    */
   juvenileUntilMonths: number;
+  /**
+   * Límites de cuidado de la especie.
+   *
+   * Es la parte del catálogo que existe para el animal y no para su tutor: son
+   * los límites que la aplicación aplica **aunque el tutor quiera otra cosa**.
+   * Un encuentro de dos horas es un buen plan para una persona y una jornada
+   * agotadora para un hurón.
+   *
+   * Los valores son **umbrales prudentes declarados por la aplicación**, no
+   * criterio veterinario: están para que el producto tenga una postura por
+   * defecto en lugar de ninguna, y el tutor puede endurecerlos en la ficha de su
+   * animal. Ablandarlos, no.
+   */
+  care: SpeciesCare;
   legal: readonly LegalEntry[];
   /** Nota para el tutor, en su idioma, sobre por qué su especie no queda. */
   socialNote: string;
@@ -175,6 +207,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['rabbit', 'guinea_pig', 'rat', 'hamster', 'canary', 'budgerigar'],
     healthForMeetups: ['Polivalente al día', 'Antiparasitario al día', 'Rabia según comunidad'],
     juvenileUntilMonths: 12,
+    care: {
+      maxSessionMinutes: 120,
+      restBetweenSessionsHours: 4,
+      comfortTempC: { min: -5, max: 26 },
+      seniorFromMonths: 96,
+      needsNeutralGround: false,
+    },
     legal: [companionByLaw],
     socialNote:
       'El perro es la única especie del catálogo que socializa bien en grupo abierto con ' +
@@ -190,6 +229,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['rat', 'hamster', 'canary', 'budgerigar', 'gerbil'],
     healthForMeetups: [],
     juvenileUntilMonths: 12,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 5, max: 30 },
+      seniorFromMonths: 120,
+      needsNeutralGround: true,
+    },
     legal: [companionByLaw],
     socialNote:
       'Los gatos son territoriales: llevar al tuyo a conocer a otro gato le genera estrés, no ' +
@@ -206,6 +252,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['rabbit', 'guinea_pig', 'rat', 'hamster', 'canary', 'budgerigar', 'gerbil'],
     healthForMeetups: ['Moquillo al día', 'Rabia según comunidad', 'Desparasitación reciente'],
     juvenileUntilMonths: 4,
+    care: {
+      maxSessionMinutes: 20,
+      restBetweenSessionsHours: 4,
+      comfortTempC: { min: 2, max: 24 },
+      seniorFromMonths: 48,
+      needsNeutralGround: true,
+    },
     legal: [companionByLaw],
     socialNote:
       'Los hurones juegan muy bien entre ellos, pero en grupos pequeños y con presentación ' +
@@ -221,6 +274,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['dog', 'ferret', 'cat'],
     healthForMeetups: ['Mixomatosis al día', 'Enfermedad hemorrágica vírica al día'],
     juvenileUntilMonths: 6,
+    care: {
+      maxSessionMinutes: 20,
+      restBetweenSessionsHours: 6,
+      comfortTempC: { min: 5, max: 24 },
+      seniorFromMonths: 60,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'Los conejos son sociales, pero presentarlos es un proceso delicado: territorio neutral, ' +
@@ -237,6 +297,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['dog', 'ferret', 'cat'],
     healthForMeetups: ['Revisión reciente de piel y respiratoria'],
     juvenileUntilMonths: 4,
+    care: {
+      maxSessionMinutes: 20,
+      restBetweenSessionsHours: 6,
+      comfortTempC: { min: 15, max: 26 },
+      seniorFromMonths: 48,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'Las cobayas viven mejor acompañadas, pero se presentan en espacio neutral y con calma. ' +
@@ -253,6 +320,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['dog', 'cat', 'ferret'],
     healthForMeetups: ['Sin síntomas respiratorios', 'Cuarentena tras contacto reciente'],
     juvenileUntilMonths: 3,
+    care: {
+      maxSessionMinutes: 30,
+      restBetweenSessionsHours: 6,
+      comfortTempC: { min: 15, max: 26 },
+      seniorFromMonths: 18,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'Son de las especies más sociales del catálogo y disfrutan de compañía de su especie, ' +
@@ -268,6 +342,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['dog', 'cat', 'ferret'],
     healthForMeetups: [],
     juvenileUntilMonths: 2,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 18, max: 26 },
+      seniorFromMonths: 14,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'El hámster sirio es solitario de forma estricta: juntar dos adultos termina en peleas ' +
@@ -284,6 +365,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['dog', 'cat', 'ferret'],
     healthForMeetups: [],
     juvenileUntilMonths: 3,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 18, max: 28 },
+      seniorFromMonths: 24,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'Viven bien en grupo estable dentro de casa, pero no aceptan desconocidos: introducir un ' +
@@ -299,6 +387,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['cat', 'dog', 'ferret'],
     healthForMeetups: [],
     juvenileUntilMonths: 8,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 18, max: 30 },
+      seniorFromMonths: 60,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'Son muy sociales dentro de su bandada, pero juntar aves de casas distintas es una vía ' +
@@ -315,6 +410,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['cat', 'dog', 'ferret'],
     healthForMeetups: [],
     juvenileUntilMonths: 8,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 15, max: 28 },
+      seniorFromMonths: 60,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'Mismo motivo que el resto de aves: el riesgo sanitario de mezclar ejemplares de hogares ' +
@@ -330,6 +432,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['cat', 'dog'],
     healthForMeetups: [],
     juvenileUntilMonths: 12,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 22, max: 34 },
+      seniorFromMonths: 84,
+      needsNeutralGround: true,
+    },
     legal: [
       pendingPositiveList(
         'Reptil de menos de 2 kg en estado adulto y no venenoso, que son los dos criterios de ' +
@@ -351,6 +460,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['cat', 'dog'],
     healthForMeetups: [],
     juvenileUntilMonths: 12,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 24, max: 38 },
+      seniorFromMonths: 72,
+      needsNeutralGround: true,
+    },
     legal: [
       pendingPositiveList('No venenoso y por debajo de los 2 kg en adulto en condiciones normales.'),
     ],
@@ -368,6 +484,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: ['dog'],
     healthForMeetups: [],
     juvenileUntilMonths: 60,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 20, max: 34 },
+      seniorFromMonths: 240,
+      needsNeutralGround: true,
+    },
     legal: [
       {
         jurisdiction: SPAIN,
@@ -394,6 +517,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: [],
     healthForMeetups: [],
     juvenileUntilMonths: 6,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 24, max: 30 },
+      seniorFromMonths: 24,
+      needsNeutralGround: true,
+    },
     legal: [domesticSpecies],
     socialNote:
       'El betta macho ataca a otros machos hasta matarlos; su nombre común es literalmente ' +
@@ -409,6 +539,13 @@ export const SPECIES: readonly SpeciesProfile[] = [
     predatorPreyWith: [],
     healthForMeetups: [],
     juvenileUntilMonths: 12,
+    care: {
+      maxSessionMinutes: 0,
+      restBetweenSessionsHours: 24,
+      comfortTempC: { min: 15, max: 32 },
+      seniorFromMonths: 60,
+      needsNeutralGround: true,
+    },
     legal: [
       excluded(
         'Incluida en el Catálogo Español de Especies Exóticas Invasoras: su tenencia, cría y ' +

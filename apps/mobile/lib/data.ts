@@ -13,16 +13,20 @@
  */
 
 import {
+  assessWelfare,
   calculateAffinity,
   classifyResults,
   findSpecies,
   formatDistance,
+  groupWelfare,
   hasMeetups,
   rankCandidates,
+  type Conditions,
   type DiscoveryCandidate,
   type DiscoveryMatch,
   type EmptyStateReason,
   type SpeciesProfile,
+  type WelfareVerdict,
 } from '@coincide/core';
 
 import {
@@ -65,6 +69,21 @@ export type DiscoveryResult = {
   safetyVetoed: number;
   /** Cuántos animales de otra especie hay cerca. Es contexto, no un rechazo. */
   otherSpeciesNearby: number;
+  /**
+   * Qué le conviene hoy al animal del tutor.
+   *
+   * Se devuelve siempre, también cuando el veredicto es "hoy no": es lo primero
+   * que la pantalla tiene que decir, y decirlo requiere tenerlo aquí y no
+   * deducirlo de que la lista esté vacía.
+   */
+  welfare: WelfareVerdict;
+  /**
+   * Compañeros que hoy no aparecen porque a **ellos** no les conviene.
+   *
+   * Se cuentan aparte de todo lo demás porque no es un rechazo de este par: es
+   * que el otro animal no está para encuentros hoy, y eso se explica distinto.
+   */
+  restingNearby: number;
 };
 
 /** El perfil de especie de una mascota, o null si no está en el catálogo. */
@@ -85,9 +104,10 @@ export function petHasMeetups(pet: DemoPet): boolean {
  * devuelve `entries` vacío y la pantalla enseña otra cosa —comunidad y
  * servicios—, porque el problema de ese tutor es distinto.
  */
-export function discover(viewerPet: DemoPet): DiscoveryResult {
+export function discover(viewerPet: DemoPet, conditions: Conditions): DiscoveryResult {
   const sameSpecies = OTHER_PETS.filter((pet) => pet.speciesId === viewerPet.speciesId);
   const otherSpeciesNearby = OTHER_PETS.length - sameSpecies.length;
+  const welfare = assessWelfare(viewerPet, conditions);
 
   if (!petHasMeetups(viewerPet)) {
     return {
@@ -95,6 +115,8 @@ export function discover(viewerPet: DemoPet): DiscoveryResult {
       emptyReason: 'no_candidates',
       safetyVetoed: 0,
       otherSpeciesNearby,
+      welfare,
+      restingNearby: 0,
     };
   }
 
@@ -110,7 +132,7 @@ export function discover(viewerPet: DemoPet): DiscoveryResult {
     location: pet.location,
   }));
 
-  const matches = rankCandidates(viewer, candidates, { radiusMeters: 5000 });
+  const matches = rankCandidates(viewer, candidates, { radiusMeters: 5000, conditions });
   const byId = new Map(sameSpecies.map((pet) => [pet.id, pet]));
 
   const entries: DiscoveryEntry[] = matches.flatMap((match) => {
@@ -131,11 +153,22 @@ export function discover(viewerPet: DemoPet): DiscoveryResult {
     (pet) => calculateAffinity(viewerPet, pet).vetoKind === 'safety',
   ).length;
 
+  // A quién le toca descansar hoy. Solo cuenta si la afinidad no lo habría
+  // descartado igualmente: mezclar los dos motivos convertiría "hoy no le
+  // conviene" en "no encajáis", que es otra cosa y se arregla de otra forma.
+  const restingNearby = sameSpecies.filter(
+    (pet) =>
+      !calculateAffinity(viewerPet, pet).vetoed &&
+      groupWelfare([viewerPet, pet], conditions).level === 'stop',
+  ).length;
+
   return {
     entries,
-    emptyReason: classifyResults(viewer, candidates, matches),
+    emptyReason: classifyResults(viewer, candidates, matches, conditions),
     safetyVetoed,
     otherSpeciesNearby,
+    welfare,
+    restingNearby,
   };
 }
 

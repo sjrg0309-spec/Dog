@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { ConditionsControl } from '@/components/conditions-control';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { WelfareNotice } from '@/components/welfare-notice';
 import {
   Badge,
   Body,
@@ -15,7 +17,10 @@ import {
   Screen,
   Title,
 } from '@/components/ui';
+import { assessWelfare } from '@coincide/core';
+
 import { useActivePet } from '@/lib/active-pet';
+import { useDeclaredConditions } from '@/lib/conditions';
 import { petHasMeetups, speciesOf, walkingNow } from '@/lib/data';
 import { PLACES } from '@/lib/demo-data';
 import { speciesName } from '@/lib/labels';
@@ -48,6 +53,7 @@ export default function RadarScreen() {
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
   const others = walkingNow(pet.speciesId);
+  const declared = useDeclaredConditions();
 
   const [activeUntil, setActiveUntil] = useState<Date | null>(null);
 
@@ -59,6 +65,16 @@ export default function RadarScreen() {
 
   const formatTime = (date: Date) =>
     `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+  // El check-in más corto es el que decide si hoy se puede salir siquiera; cada
+  // duración se comprueba por separado para no ofrecer las que no convienen.
+  const welfare = assessWelfare(pet, { ...declared, durationMinutes: DURATIONS[0].minutes });
+  const allowed = DURATIONS.filter(
+    (duration) =>
+      assessWelfare(pet, { ...declared, durationMinutes: duration.minutes }).recommendedMinutes >=
+      duration.minutes,
+  );
+  const longest = allowed[allowed.length - 1]?.minutes ?? 0;
 
   if (!social) {
     return (
@@ -92,6 +108,8 @@ export default function RadarScreen() {
           <Title>Fuera ahora</Title>
         </View>
 
+        <ConditionsControl />
+
         {activeUntil ? (
           <Card>
             <Row>
@@ -111,6 +129,10 @@ export default function RadarScreen() {
               onPress={() => setActiveUntil(null)}
             />
           </Card>
+        ) : welfare.level === 'stop' ? (
+          // No se enseña el botón en gris ni con un aviso al lado: no está.
+          // Un control desactivado invita a buscar cómo activarlo.
+          <WelfareNotice verdict={welfare} petName={pet.name} />
         ) : (
           <Card>
             <Heading>¿Salís ahora?</Heading>
@@ -118,17 +140,26 @@ export default function RadarScreen() {
               Elige hasta cuándo. No hay opción de dejarlo indefinido: el check-in caduca solo para
               que nadie se quede visible por olvido.
             </Body>
+            {/* Las duraciones que hoy no le convienen no se ofrecen. Enseñar
+                "4 horas" a 30 grados y avisar debajo es proponerlo igual. */}
             <View style={{ gap: theme.space[2] }}>
-              {DURATIONS.map((duration) => (
+              {allowed.map((duration) => (
                 <Button
                   key={duration.minutes}
                   label={`Estamos fuera · ${duration.label}`}
-                  variant={duration.minutes === 120 ? 'live' : 'outline'}
+                  variant={duration.minutes === longest ? 'live' : 'outline'}
                   accessibilityHint={`Os hará visibles durante ${duration.label} y se apagará solo`}
                   onPress={() => checkIn(duration.minutes)}
                 />
               ))}
             </View>
+
+            {allowed.length < DURATIONS.length ? (
+              <Caption>
+                Con estas condiciones no ofrecemos ratos más largos: {pet.name} aguanta bien{' '}
+                {allowed[allowed.length - 1]?.label} y a partir de ahí empieza a costarle.
+              </Caption>
+            ) : null}
           </Card>
         )}
 

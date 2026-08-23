@@ -14,6 +14,7 @@
 import { calculateAffinity } from './affinity.js';
 import { distanceMeters, proximityScore } from './geo.js';
 import { describeOverlap, scheduleOverlap, type ScheduleOverlap } from './schedule.js';
+import { assessWelfare, groupWelfare, type Conditions, type WelfareVerdict } from './welfare.js';
 import type { AffinityResult, Availability, LatLng, MatchablePet, PairHistory } from './types.js';
 
 /** Pesos del orden. Solo afectan a la ordenación, nunca a lo que se muestra. */
@@ -39,6 +40,13 @@ export type DiscoveryMatch = {
   proximity: number;
   /** Solo para ordenar. No se muestra. */
   rankScore: number;
+  /**
+   * Qué le conviene al par si quedasen hoy, o null si no se dieron condiciones.
+   *
+   * Es del par y no de uno solo: el encuentro tiene que convenirle también al
+   * otro animal, que no es un recurso del plan de nadie.
+   */
+  welfare: WelfareVerdict | null;
 };
 
 export type DiscoveryOptions = {
@@ -48,6 +56,15 @@ export type DiscoveryOptions = {
   minAffinity?: number;
   /** Incluir los que quedarían ocultos, para poder decir la verdad al usuario. */
   includeIncompatible?: boolean;
+  /**
+   * Condiciones del encuentro que se está planteando: hoy, aquí, este rato.
+   *
+   * Si se dan, el bienestar **manda sobre la lista**: cuando al animal del
+   * tutor no le conviene salir, no se devuelve ningún candidato. No es una
+   * advertencia encima de una lista que sigue ahí, porque una lista que sigue
+   * ahí se acaba usando.
+   */
+  conditions?: Conditions | null;
 };
 
 /**
@@ -61,7 +78,16 @@ export function rankCandidates(
   candidates: readonly DiscoveryCandidate[],
   options: DiscoveryOptions = {},
 ): DiscoveryMatch[] {
-  const { radiusMeters = 2000, minAffinity = 40, includeIncompatible = false } = options;
+  const {
+    radiusMeters = 2000,
+    minAffinity = 40,
+    includeIncompatible = false,
+    conditions = null,
+  } = options;
+
+  // El bienestar del propio animal se comprueba antes que nada: si hoy no le
+  // conviene salir, la pregunta de con quién ya no procede.
+  if (conditions && assessWelfare(viewer.pet, conditions).level === 'stop') return [];
 
   const matches: DiscoveryMatch[] = [];
 
@@ -71,6 +97,13 @@ export function rankCandidates(
     const affinity = calculateAffinity(viewer.pet, candidate.pet, candidate.history ?? {});
     if (affinity.vetoed) continue;
     if (!includeIncompatible && affinity.score < minAffinity) continue;
+
+    // Y el del otro animal también: un encuentro que a él no le conviene no es
+    // un match, por muy bien que encajen de carácter.
+    const welfare = conditions
+      ? groupWelfare([viewer.pet, candidate.pet], conditions)
+      : null;
+    if (welfare && welfare.level === 'stop') continue;
 
     const schedule = scheduleOverlap(viewer.availability, candidate.availability);
 
@@ -93,6 +126,7 @@ export function rankCandidates(
       distanceMeters: distance,
       proximity,
       rankScore: Math.round(rankScore * 100) / 100,
+      welfare,
     });
   }
 
@@ -114,14 +148,20 @@ export type EmptyStateReason =
   | 'no_candidates'
   | 'all_incompatible'
   | 'no_schedule_overlap'
+  /** Hoy no le conviene salir. Es un estado vacío del que la app se hace cargo. */
+  | 'welfare_stop'
   | 'has_matches';
 
 export function classifyResults(
   viewer: DiscoveryInput,
   candidates: readonly DiscoveryCandidate[],
   matches: readonly DiscoveryMatch[],
+  conditions?: Conditions | null,
 ): EmptyStateReason {
   if (matches.length > 0) return 'has_matches';
+  // Va antes que "no hay nadie": decirle a alguien que no hay candidatos cuando
+  // el motivo real es que hace 36 grados sería mentirle sobre lo que pasa.
+  if (conditions && assessWelfare(viewer.pet, conditions).level === 'stop') return 'welfare_stop';
   if (candidates.filter((candidate) => candidate.pet.id !== viewer.pet.id).length === 0) {
     return 'no_candidates';
   }

@@ -26,6 +26,8 @@ const OUT = new URL('../artifacts/screenshots/', import.meta.url).pathname;
 const ROUTES = [
   { path: '/', name: 'app-descubrir' },
   { path: '/', name: 'app-descubrir-gato', pet: 'Misi' },
+  // El caso que define de quién es la aplicación: a 34 grados no hay lista.
+  { path: '/', name: 'app-descubrir-calor', temperature: '34°' },
   { path: '/radar', name: 'app-radar' },
   { path: '/quedadas', name: 'app-quedadas' },
   { path: '/quedadas', name: 'app-quedadas-gato', pet: 'Misi' },
@@ -70,6 +72,11 @@ for (const theme of THEMES) {
     await page.waitForSelector('text=/Coincide|Descubrir|Radar|Quedadas|Espacios|Con quién/i', {
       timeout: 15_000,
     });
+
+    if (route.temperature) {
+      await page.getByRole('radio', { name: route.temperature }).click();
+      await page.waitForTimeout(300);
+    }
 
     if (route.pet) {
       await page.getByRole('tab', { name: new RegExp(route.pet) }).click();
