@@ -175,6 +175,12 @@ export default function MessagesScreen() {
                 key={option.id}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
+                /* El chip mide treinta de alto porque así se ven los chips —en
+                   Material son treinta y dos—, y aun así hay que poder tocarlo
+                   en cuarenta y cuatro. `hitSlop` amplía el área sin tocar el
+                   dibujo, que es justo la salida que da la guía para un control
+                   que tiene que verse pequeño. */
+                hitSlop={8}
                 onPress={() => {
                   haptics.tap();
                   setFilter(option.id);

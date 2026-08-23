@@ -185,6 +185,7 @@ export function SearchPanel<T extends Searchable>({
                   key={category.id}
                   accessibilityRole="button"
                   accessibilityLabel={category.label}
+                  hitSlop={6}
                   onPress={() => {
                     haptics.tap();
                     setQuery(category.id);

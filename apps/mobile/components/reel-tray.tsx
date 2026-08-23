@@ -140,7 +140,7 @@ export function ReelTray({ onOpen }: { onOpen: (id: string) => void }) {
                     backgroundColor: 'rgba(0,0,0,0.55)',
                   }}
                 >
-                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 10 }}>
+                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
                     {reel.durationS}s
                   </Text>
                 </View>

@@ -285,6 +285,9 @@ export default function ChatScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Adjuntar una foto"
+              // Cuarenta de dibujo para que quepa dentro de la píldora del
+              // compositor, cuarenta y ocho de dedo.
+              hitSlop={4}
               onPress={() => haptics.tap()}
               style={({ pressed }) => ({
                 width: 40,
@@ -477,7 +480,9 @@ function Bubble({
           style={{
             color: mine ? theme.colors.accentForeground : theme.colors.mutedForeground,
             fontFamily: fonts.body,
-            fontSize: 10,
+            // La hora de un mensaje es el sitio clásico donde se cuela un
+            // cuerpo de nueve o diez. Once es el mínimo de las dos guías.
+            fontSize: 11,
             opacity: mine ? 0.7 : 1,
           }}
         >

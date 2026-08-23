@@ -16,6 +16,14 @@
  * mapa: un peligro se reporta donde se ve, y preguntar «¿dónde?» a alguien que
  * está delante del peligro es la pregunta más fácil de contestar mal.
  *
+ * **Y se confirma antes de publicar.** La primera versión avisaba con un solo
+ * toque, y eso incumple la regla de las tres plataformas sobre acciones
+ * difíciles de deshacer: esto sale a cientos de vecinos, llega como
+ * notificación y ya no se puede recoger —resolverlo después no borra el aviso
+ * que la gente ya recibió—. El botón está sobre el mapa, al alcance del pulgar
+ * y en rojo: la probabilidad de dispararlo sin querer no es teórica. Un toque
+ * más, y a cambio se enseña **qué se va a publicar y hasta dónde llega**.
+ *
  * Dos de las cinco casillas del diseño no son peligros y por eso no salen de
  * aquí: «bebedero sin agua» es un dato del sitio y no una alerta con radio, y
  * «amigos en el parque» es presencia, que es lo que hace el radar. Meterlas en
@@ -23,6 +31,7 @@
  * que se pierde con eso es la seriedad del rojo.
  */
 
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { SAFETY_SCENARIOS, type SafetyScenario } from '@coincide/core';
@@ -82,6 +91,18 @@ export function ReportSheet({
   onClose: () => void;
 }) {
   const theme = useTheme();
+  const [pending, setPending] = useState<SafetyScenario | null>(null);
+
+  if (pending) {
+    return (
+      <Confirm
+        scenario={pending}
+        areaName={areaName}
+        onBack={() => setPending(null)}
+        onConfirm={() => onReport(pending)}
+      />
+    );
+  }
 
   return (
     <View
@@ -156,8 +177,8 @@ export function ReportSheet({
             accessibilityLabel={scenario.label}
             accessibilityHint={`${scenario.description} Avisa a ${radiusLabel(scenario.initialRadiusM)} a la redonda.`}
             onPress={() => {
-              haptics.commit();
-              onReport(scenario);
+              haptics.tap();
+              setPending(scenario);
             }}
             style={({ pressed }) => ({
               // Dos por fila, contando el hueco de ocho entre ellas.
@@ -207,6 +228,180 @@ export function ReportSheet({
       >
         ¿Se ha perdido un perro? Eso no se avisa desde aquí: va en SOS, que pide chip y teléfono y
         avisa mucho más lejos.
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Lo que se va a publicar, antes de publicarlo.
+ *
+ * No es un «¿estás seguro?» —esa pregunta no informa de nada—: es la ficha del
+ * aviso. Qué se dice, dónde, a cuánta distancia llega, y qué pasa después. Con
+ * eso, quien confirma sabe lo que hace; sin eso, la confirmación es un peaje.
+ */
+function Confirm({
+  scenario,
+  areaName,
+  onBack,
+  onConfirm,
+}: {
+  scenario: SafetyScenario;
+  areaName: string;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        gap: theme.space[3],
+        paddingHorizontal: theme.space[4],
+        paddingTop: theme.space[4],
+        paddingBottom: theme.space[6],
+        borderTopLeftRadius: theme.radius.xl,
+        borderTopRightRadius: theme.radius.xl,
+        backgroundColor: theme.colors.background,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
+      }}
+    >
+      <Text
+        accessibilityRole="header"
+        style={{
+          color: theme.colors.foreground,
+          fontFamily: fonts.displayBold,
+          fontSize: theme.fontSize.lg,
+        }}
+      >
+        {scenario.label}
+      </Text>
+
+      <Text
+        style={{
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.sm,
+          lineHeight: theme.fontSize.sm * 1.4,
+        }}
+      >
+        {scenario.description}
+      </Text>
+
+      <View style={{ gap: theme.space[1] }}>
+        <Row label="Dónde" value={areaName} />
+        <Row
+          label="A quién llega"
+          value={`A todo el que esté a ${radiusLabel(scenario.initialRadiusM)}${
+            scenario.growthPerHourM > 0
+              ? `, y más lejos según pasan las horas hasta ${radiusLabel(scenario.maxRadiusM)}`
+              : ''
+          }`}
+        />
+      </View>
+
+      <Text
+        style={{
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.xs,
+        }}
+      >
+        Sale como notificación. Se puede marcar como resuelto después, pero eso no borra el aviso
+        que la gente ya ha recibido.
+      </Text>
+
+      <View style={{ flexDirection: 'row', gap: theme.space[2] }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver a la lista de avisos"
+          onPress={() => {
+            haptics.tap();
+            onBack();
+          }}
+          style={({ pressed }) => ({
+            flex: 1,
+            minHeight: theme.touchTarget.comfortable,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: theme.radius.lg,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontFamily: fonts.bodyBold,
+              fontSize: theme.fontSize.base,
+            }}
+          >
+            Volver
+          </Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Publicar el aviso de ${scenario.label}`}
+          accessibilityHint={`Llega a todo el que esté a ${radiusLabel(scenario.initialRadiusM)}`}
+          onPress={() => {
+            haptics.commit();
+            onConfirm();
+          }}
+          style={({ pressed }) => ({
+            flex: 2,
+            minHeight: theme.touchTarget.comfortable,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: theme.radius.lg,
+            backgroundColor: theme.colors.destructive,
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Text
+            style={{
+              color: theme.colors.destructiveForeground,
+              fontFamily: fonts.bodyBold,
+              fontSize: theme.fontSize.base,
+            }}
+          >
+            Publicar el aviso
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', gap: theme.space[2] }}>
+      <Text
+        style={{
+          width: 96,
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.bodyBold,
+          fontSize: theme.fontSize.sm,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        style={{
+          flex: 1,
+          color: theme.colors.foreground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.sm,
+        }}
+      >
+        {value}
       </Text>
     </View>
   );

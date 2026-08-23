@@ -251,7 +251,10 @@ function Bubble({
                 style={{
                   color: theme.colors.background,
                   fontFamily: fonts.bodyBold,
-                  fontSize: 9,
+                  // Once, que es el suelo de las dos guías. A nueve, la insignia
+                  // que dice que alguien está fuera **ahora** era lo más
+                  // pequeño de la pantalla, que es exactamente al revés.
+                  fontSize: 11,
                   letterSpacing: 0.4,
                 }}
               >
