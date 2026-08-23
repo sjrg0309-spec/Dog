@@ -138,12 +138,31 @@ test('el selector de tema se opera entero con el teclado', async ({ page }) => {
   await trigger.focus();
   await page.keyboard.press('Enter');
 
-  await expect(page.getByRole('menu')).toBeVisible();
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('ArrowDown');
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+
+  // Abrir el menú tiene que meter el foco dentro. Es el requisito de verdad:
+  // sin él, la flecha abajo se la come la página y el menú queda abierto y
+  // muerto para quien no usa ratón.
+  await expect(menu.getByRole('menuitemradio').first()).toBeFocused();
+
+  // Se baja **hasta** la opción buscada, en lugar de contar pulsaciones.
+  //
+  // Contarlas era lo que hacía este test intermitente: si una flecha llegaba
+  // antes de que Radix terminara de mover el foco se perdía, el Enter caía en
+  // otra opción y el tema resultante no era el esperado. Fallaba una de cada
+  // varias ejecuciones y solo con la suite entera en paralelo, que es la peor
+  // forma de fallar que hay.
+  const target = menu.getByRole('menuitemradio', { name: 'Oscuro' });
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (await target.evaluate((element) => element === document.activeElement)) break;
+    await page.keyboard.press('ArrowDown');
+  }
+  await expect(target).toBeFocused();
+
   await page.keyboard.press('Enter');
 
-  await expect(page.locator('html')).toHaveAttribute('data-theme', /light|dark/);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   // Al cerrar, el foco vuelve al disparador: sin eso, quien navega con teclado
   // se queda al principio de la página después de cada elección.
   await expect(trigger).toBeFocused();
