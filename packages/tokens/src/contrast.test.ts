@@ -170,3 +170,53 @@ describe('conversión a hexadecimal para React Native', () => {
     expect(luminance(oklchToHex(neutral[500]))).toBeGreaterThan(luminance(oklchToHex(neutral[950])));
   });
 });
+
+
+/**
+ * Los colores de estado usados **como texto**.
+ *
+ * Las comprobaciones de arriba miran el par «primer plano sobre su superficie»
+ * —texto oscuro sobre el verde de éxito—, que es como se usan en una insignia.
+ * Pero la aplicación también los escribe directamente sobre el fondo: la banda
+ * de afinidad, el aviso de bienestar. Ese par no estaba cubierto por nada, así
+ * que podía romperse sin que fallara ningún test.
+ */
+describe('estados escritos sobre el fondo', () => {
+  for (const [name, theme] of themes) {
+    for (const token of ['success', 'warning', 'information', 'primary'] as const) {
+      it(`${token} se lee sobre el fondo y sobre la superficie en tema ${name}`, () => {
+        expect(contrastRatio(theme[token], theme.background)).toBeGreaterThanOrEqual(AA_TEXT);
+        expect(contrastRatio(theme[token], theme.surface)).toBeGreaterThanOrEqual(AA_TEXT);
+      });
+    }
+  }
+});
+
+/**
+ * Dos estados distintos no pueden ser el mismo color.
+ *
+ * Lo encontró una revisión de interfaz, no un test: en tema oscuro `primary` y
+ * `success` tenían exactamente el mismo valor, así que la banda «Gran match» y
+ * la «Buen match» salían pintadas igual. No era un fallo de accesibilidad
+ * —ambas llevan su etiqueta escrita— pero sí un color que no significaba nada.
+ */
+describe('los colores de estado se distinguen entre sí', () => {
+  for (const [name, theme] of themes) {
+    it(`éxito, información y aviso son tres colores distintos en tema ${name}`, () => {
+      const used = [theme.success, theme.information, theme.warning];
+      expect(new Set(used).size, `en ${name} hay dos estados con el mismo color`).toBe(used.length);
+    });
+
+    it(`ningún estado se confunde con el color de lo interactivo en tema ${name}`, () => {
+      // `primary` es el color con el que esta aplicación dice «esto se toca».
+      // Un estado que no se toca pintado igual convierte el color en ruido.
+      for (const [token, value] of [
+        ['success', theme.success],
+        ['information', theme.information],
+        ['warning', theme.warning],
+      ] as const) {
+        expect(value, `${token} es idéntico a primary en ${name}`).not.toBe(theme.primary);
+      }
+    });
+  }
+});

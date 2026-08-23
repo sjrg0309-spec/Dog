@@ -1,132 +1,171 @@
-import { ScrollView, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 
 import { ConditionsControl } from '@/components/conditions-control';
-import { PetCard } from '@/components/pet-card';
+import { FeedCard } from '@/components/feed-card';
+import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { StoryRail } from '@/components/story-rail';
 import { WelfareNotice } from '@/components/welfare-notice';
-import { Body, Caption, Eyebrow, Notice, Screen, Title } from '@/components/ui';
+import { Body, Caption, Notice, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { useConditions } from '@/lib/conditions';
-import { communitiesFor, discover, petHasMeetups, servicesFor, speciesOf } from '@/lib/data';
+import {
+  communitiesFor,
+  discover,
+  petHasMeetups,
+  servicesFor,
+  speciesOf,
+  walkingNow,
+} from '@/lib/data';
 import { SERVICE_KIND_LABEL, speciesName } from '@/lib/labels';
+import { fonts } from '@/lib/fonts';
 import { useTheme } from '@/lib/theme';
 
 /**
- * Descubrimiento.
+ * El feed.
  *
  * Es la pantalla principal a propósito, y no el radar. Un radar sin gente es una
  * pantalla vacía, y al empezar en un barrio esa es la situación normal. La
  * coincidencia de horarios, en cambio, funciona desde el segundo usuario y sin
  * que nadie tenga que estar conectado.
  *
- * Con una especie solitaria seleccionada esta pantalla **cambia de contenido**,
- * no se queda vacía con una disculpa. Un gato no debe conocer a otro gato; su
- * tutor sí necesita a otros tutores y un veterinario que sepa tratarlo, y eso es
- * lo que se enseña en su lugar.
+ * La forma es la de un feed —fila de burbujas arriba, entradas a sangre debajo—
+ * porque es la que la gente ya sabe leer sin que nadie se lo explique. Lo que
+ * **no** cambia por eso es el contenido: la afinidad sigue siendo el titular, los
+ * tres ejes siguen separados, y el bienestar sigue mandando por encima de todo.
+ *
+ * Con una especie solitaria seleccionada la pantalla cambia de contenido, no se
+ * queda vacía con una disculpa.
  */
-export default function DiscoverScreen() {
+export default function FeedScreen() {
   const theme = useTheme();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
-  // 45 minutos es lo que dura un paseo normal; si el animal aguanta menos, el
-  // veredicto lo recorta y la pantalla enseña el número recortado.
   const conditions = useConditions(45);
   const { entries, emptyReason, safetyVetoed, otherSpeciesNearby, welfare, restingNearby } =
     discover(pet, conditions);
+  const { scrolled, onScroll } = useScrolled();
 
-  const outNow = entries.filter((entry) => entry.pet.walkingUntilMinutes !== null);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const outNow = social ? walkingNow(pet.speciesId) : [];
+  const stopped = social && welfare.level === 'stop';
+
+  const title = !social
+    ? 'Su especie no queda con nadie'
+    : stopped
+      ? 'Hoy no toca salir'
+      : 'Con quién puede salir';
+
+  const subtitle = !social
+    ? species?.socialNote
+    : stopped
+      ? `Con estas condiciones no le conviene a ${pet.name}, así que no proponemos a nadie. Cuando cambien, la lista vuelve sola.`
+      : 'Por temperamento, horarios y cercanía. Los tres van por separado: mezclarlos daría un número más bonito y menos cierto.';
 
   return (
     <Screen>
+      <NavBar title="Coincide" scrolled={scrolled} />
+
       <ScrollView
-        contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: theme.space[16] }}
         contentInsetAdjustmentBehavior="automatic"
       >
-        <PetSwitcher />
+        <View style={{ paddingTop: theme.space[3], paddingBottom: theme.space[4] }}>
+          <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
+            <PetSwitcher />
+          </View>
 
-        <View style={{ gap: theme.space[2] }}>
-          <Eyebrow>Para {pet.name}</Eyebrow>
-          {/* El titular tiene que decir lo mismo que el veredicto. Dejar "con
-              quién puede salir" encima de un "hoy no" es contradecirse en dos
-              líneas seguidas, y de las dos el usuario se cree la primera. */}
-          <Title>
-            {!social
-              ? 'Su especie no queda con nadie'
-              : welfare.level === 'stop'
-                ? `Hoy no toca salir`
-                : 'Con quién puede salir'}
-          </Title>
-          <Body muted>
-            {!social
-              ? species?.socialNote
-              : welfare.level === 'stop'
-                ? `Con estas condiciones no le conviene a ${pet.name}, así que no proponemos a nadie. Cuando cambien, la lista vuelve sola.`
-                : 'Ordenado por temperamento, coincidencia de horarios y cercanía. Los tres se muestran por separado: mezclarlos daría un número más bonito y menos cierto.'}
-          </Body>
+          {social ? (
+            <StoryRail
+              me={pet}
+              others={outNow}
+              checkedIn={checkedIn}
+              onCheckIn={() => setCheckedIn((value) => !value)}
+              disabled={stopped}
+              disabledReason={
+                stopped
+                  ? `No ofrecemos salir ahora: con estas condiciones no le conviene a ${pet.name}.`
+                  : undefined
+              }
+            />
+          ) : null}
         </View>
+
+        <LargeTitle subtitle={subtitle}>{title}</LargeTitle>
+
+        {social ? (
+          <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
+            <ConditionsControl />
+          </View>
+        ) : null}
+
+        {social && welfare.level !== 'ok' ? (
+          <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
+            <WelfareNotice verdict={welfare} petName={pet.name} />
+          </View>
+        ) : null}
 
         {social ? (
           <>
-            <ConditionsControl />
-
-            {/* El veredicto va antes que la lista. Si apareciese debajo de doce
-                tarjetas de animales compatibles, la pantalla ya habría dicho lo
-                contrario de lo que dice el texto. */}
-            <WelfareNotice verdict={welfare} petName={pet.name} />
-
-            {outNow.length > 0 ? (
-              <Caption>
-                {outNow.length === 1
-                  ? '1 de ellos está fuera ahora mismo'
-                  : `${outNow.length} de ellos están fuera ahora mismo`}
-              </Caption>
-            ) : null}
-
             {entries.length === 0 ? (
-              <EmptyState reason={emptyReason} speciesId={pet.speciesId} name={pet.name} />
+              <View style={{ paddingHorizontal: theme.space[4] }}>
+                <EmptyState reason={emptyReason} speciesId={pet.speciesId} name={pet.name} />
+              </View>
             ) : null}
 
-            <View style={{ gap: theme.space[4] }}>
-              {entries.map((entry) => (
-                <PetCard key={entry.pet.id} entry={entry} />
-              ))}
-            </View>
+            {entries.map((entry) => (
+              <FeedCard key={entry.pet.id} entry={entry} viewerName={pet.name} />
+            ))}
 
-            {safetyVetoed > 0 ? (
-              <Notice>
-                <Body>
-                  {safetyVetoed === 1
-                    ? `Hay 1 ${speciesName(pet.speciesId).toLowerCase()} cerca que no aparece aquí.`
-                    : `Hay ${safetyVetoed} cerca que no aparecen aquí.`}
-                </Body>
+            <View
+              style={{
+                paddingHorizontal: theme.space[4],
+                paddingTop: theme.space[6],
+                gap: theme.space[3],
+              }}
+            >
+              {safetyVetoed > 0 ? (
+                <Notice>
+                  <Body>
+                    {safetyVetoed === 1
+                      ? `Hay 1 ${speciesName(pet.speciesId).toLowerCase()} cerca que no aparece aquí.`
+                      : `Hay ${safetyVetoed} cerca que no aparecen aquí.`}
+                  </Body>
+                  <Caption>
+                    Quedan fuera por seguridad: diferencia de tamaño con riesgo de lesión, o un
+                    límite que su tutor ha declarado. No es una puntuación baja que se pueda
+                    compensar.
+                  </Caption>
+                </Notice>
+              ) : null}
+
+              {restingNearby > 0 ? (
                 <Caption>
-                  Quedan fuera por seguridad: diferencia de tamaño con riesgo de lesión, o un límite
-                  que su tutor ha declarado. No es una puntuación baja que se pueda compensar.
+                  {restingNearby === 1
+                    ? 'Hay 1 compañero que hoy descansa: a él tampoco le convienen estas condiciones.'
+                    : `Hay ${restingNearby} compañeros que hoy descansan: a ellos tampoco les convienen estas condiciones.`}{' '}
+                  Volverán a aparecer cuando cambien, sin que nadie tenga que hacer nada.
                 </Caption>
-              </Notice>
-            ) : null}
+              ) : null}
 
-            {restingNearby > 0 ? (
-              <Caption>
-                {restingNearby === 1
-                  ? 'Hay 1 compañero que hoy descansa: a él tampoco le convienen estas condiciones.'
-                  : `Hay ${restingNearby} compañeros que hoy descansan: a ellos tampoco les convienen estas condiciones.`}{' '}
-                Volverán a aparecer cuando cambien, sin que nadie tenga que hacer nada.
-              </Caption>
-            ) : null}
-
-            {otherSpeciesNearby > 0 ? (
-              <Caption>
-                Hay {otherSpeciesNearby} animales de otras especies registrados cerca. No aparecen
-                porque los encuentros son siempre entre animales de la misma especie: un hurón fue
-                criado para cazar conejos, y ninguna puntuación de carácter debería poder ponerlos
-                en el mismo sitio.
-              </Caption>
-            ) : null}
+              {otherSpeciesNearby > 0 ? (
+                <Caption>
+                  Hay {otherSpeciesNearby} animales de otras especies registrados cerca. No aparecen
+                  porque los encuentros son siempre entre animales de la misma especie: un hurón fue
+                  criado para cazar conejos, y ninguna puntuación de carácter debería poder ponerlos
+                  en el mismo sitio.
+                </Caption>
+              ) : null}
+            </View>
           </>
         ) : (
-          <SolitaryPlan speciesId={pet.speciesId} name={pet.name} />
+          <View style={{ paddingHorizontal: theme.space[4] }}>
+            <SolitaryPlan speciesId={pet.speciesId} name={pet.name} />
+          </View>
         )}
       </ScrollView>
     </Screen>
@@ -166,22 +205,25 @@ function SolitaryPlan({ speciesId, name }: { speciesId: string; name: string }) 
         </Notice>
       ) : null}
 
-      <View style={{ gap: theme.space[2] }}>
-        <Caption>
-          {communities.length === 1
-            ? '1 comunidad de tutores cerca'
-            : `${communities.length} comunidades de tutores cerca`}
-          {' · '}
-          {services.length === 1
-            ? '1 servicio que la atiende'
-            : `${services.length} servicios que la atienden`}
-        </Caption>
-        <Caption>
-          El más específico: {services[0]?.name}
-          {services[0] ? ` · ${SERVICE_KIND_LABEL[services[0].kind] ?? services[0].kind}` : ''}. En
-          la pestaña de comunidad está el resto.
-        </Caption>
-      </View>
+      <Text
+        style={{
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.sm,
+          lineHeight: theme.fontSize.sm * 1.5,
+        }}
+      >
+        {communities.length === 1
+          ? '1 comunidad de tutores cerca'
+          : `${communities.length} comunidades de tutores cerca`}
+        {' · '}
+        {services.length === 1
+          ? '1 servicio que la atiende'
+          : `${services.length} servicios que la atienden`}
+        {services[0]
+          ? `. El más específico: ${services[0].name} (${SERVICE_KIND_LABEL[services[0].kind] ?? services[0].kind}). En la pestaña de comunidad está el resto.`
+          : '.'}
+      </Text>
     </View>
   );
 }
@@ -203,8 +245,6 @@ function EmptyState({
   const kind = speciesName(speciesId).toLowerCase();
 
   if (reason === 'welfare_stop') {
-    // El motivo ya lo ha explicado el aviso de arriba con todo el detalle.
-    // Repetirlo aquí sería decir dos veces lo mismo; lo que falta es qué hacer.
     return (
       <Notice>
         <Body>Hoy no proponemos a nadie, y es por {name}.</Body>

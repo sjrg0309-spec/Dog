@@ -95,26 +95,69 @@ test('todo elemento enfocable muestra un anillo de foco visible', async ({ page 
   }
 });
 
-test('el conmutador de tema recorre sistema, claro y oscuro', async ({ page }) => {
+/**
+ * El selector de tema.
+ *
+ * Antes era un botón que rotaba entre tres estados y el caso comprobaba que el
+ * ciclo diera la vuelta. Ahora es un menú con las tres opciones a la vez, así
+ * que se comprueba lo que de verdad importa de un menú: que se puede operar con
+ * el teclado, que la elección se aplica y que sobrevive a una recarga.
+ */
+test('el selector de tema ofrece las tres opciones y aplica la elegida', async ({ page }) => {
   await page.goto('/');
 
-  const toggle = page.getByRole('button', { name: /tema/i });
-  await expect(toggle).toBeVisible();
+  const trigger = page.getByRole('button', { name: /tema/i });
+  await expect(trigger).toBeVisible();
 
-  // Arranca en "sistema": sin atributo, manda prefers-color-scheme.
+  // Arranca en automático: sin atributo, manda prefers-color-scheme.
   await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
 
-  await toggle.click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await trigger.click();
+  const menu = page.getByRole('menu');
+  await expect(menu.getByRole('menuitemradio', { name: 'Automático' })).toBeVisible();
+  await expect(menu.getByRole('menuitemradio', { name: 'Claro' })).toBeVisible();
+  await expect(menu.getByRole('menuitemradio', { name: 'Oscuro' })).toBeVisible();
 
-  await toggle.click();
+  // Se llega directo a oscuro, sin adivinar cuántas veces hay que pulsar.
+  await menu.getByRole('menuitemradio', { name: 'Oscuro' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-  // La elección sobrevive a una recarga.
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-  await toggle.click();
+  // Y se puede volver a automático, que es lo que antes costaba dos pulsaciones
+  // a ciegas.
+  await trigger.click();
+  await page.getByRole('menuitemradio', { name: 'Automático' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
+});
+
+test('el selector de tema se opera entero con el teclado', async ({ page }) => {
+  await page.goto('/');
+
+  const trigger = page.getByRole('button', { name: /tema/i });
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+
+  await expect(page.getByRole('menu')).toBeVisible();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', /light|dark/);
+  // Al cerrar, el foco vuelve al disparador: sin eso, quien navega con teclado
+  // se queda al principio de la página después de cada elección.
+  await expect(trigger).toBeFocused();
+});
+
+test('Escape cierra el menú sin cambiar el tema', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: /tema/i }).click();
+  await expect(page.getByRole('menu')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await expect(page.getByRole('menu')).toBeHidden();
   await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
 });
 
@@ -122,10 +165,14 @@ test('el fondo cambia de verdad entre tema claro y oscuro', async ({ page }) => 
   await page.goto('/');
   const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
-  await page.getByRole('button', { name: /tema/i }).click(); // claro
+  const trigger = page.getByRole('button', { name: /tema/i });
+
+  await trigger.click();
+  await page.getByRole('menuitemradio', { name: 'Claro' }).click();
   const light = await background();
 
-  await page.getByRole('button', { name: /tema/i }).click(); // oscuro
+  await trigger.click();
+  await page.getByRole('menuitemradio', { name: 'Oscuro' }).click();
   const dark = await background();
 
   expect(light).not.toBe(dark);

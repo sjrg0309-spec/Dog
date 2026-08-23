@@ -2,6 +2,7 @@ import { ScrollView, View } from 'react-native';
 
 import { formGroup, formatCents, splitCost } from '@coincide/core';
 
+import { NavBar, useScrolled } from '@/components/chrome';
 import { PetSwitcher } from '@/components/pet-switcher';
 import {
   Badge,
@@ -39,6 +40,7 @@ import { useTheme } from '@/lib/theme';
  */
 export default function SpotsScreen() {
   const theme = useTheme();
+  const { scrolled, onScroll } = useScrolled();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
@@ -47,7 +49,8 @@ export default function SpotsScreen() {
   if (!social) {
     return (
       <Screen>
-        <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+        <NavBar title="Espacios" scrolled={scrolled} />
+        <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
           <PetSwitcher />
           <View style={{ gap: theme.space[2] }}>
             <Eyebrow>Alquilar entre varios</Eyebrow>
@@ -68,7 +71,8 @@ export default function SpotsScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+      <NavBar title="Espacios" scrolled={scrolled} />
+      <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
         <PetSwitcher />
 
         <View style={{ gap: theme.space[2] }}>

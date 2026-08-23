@@ -85,8 +85,12 @@ function Chip({
       accessibilityHint={hint}
       onPress={onPress}
       style={{
+        // 44 de alto por relleno, no por el tamaño del texto: era 34 y se
+        // quedaba por debajo del mínimo táctil de la plataforma.
+        minHeight: theme.touchTarget.min,
+        justifyContent: 'center',
         paddingVertical: theme.space[2],
-        paddingHorizontal: theme.space[3],
+        paddingHorizontal: theme.space[4],
         borderRadius: theme.radius.full,
         borderWidth: 1,
         borderColor: active ? theme.colors.primary : theme.colors.border,

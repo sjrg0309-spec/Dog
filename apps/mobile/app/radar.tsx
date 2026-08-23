@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { NavBar, useScrolled } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { WelfareNotice } from '@/components/welfare-notice';
@@ -49,6 +50,7 @@ const DURATIONS = [
  */
 export default function RadarScreen() {
   const theme = useTheme();
+  const { scrolled, onScroll } = useScrolled();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
@@ -79,7 +81,8 @@ export default function RadarScreen() {
   if (!social) {
     return (
       <Screen>
-        <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+        <NavBar title="Radar" scrolled={scrolled} />
+        <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
           <PetSwitcher />
           <View style={{ gap: theme.space[2] }}>
             <Eyebrow>Ahora mismo</Eyebrow>
@@ -100,7 +103,8 @@ export default function RadarScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+      <NavBar title="Radar" scrolled={scrolled} />
+      <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
         <PetSwitcher />
 
         <View style={{ gap: theme.space[2] }}>

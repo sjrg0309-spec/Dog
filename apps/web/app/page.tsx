@@ -1,4 +1,5 @@
 import { WELFARE_DISCLAIMER } from '@coincide/core';
+import { Notice } from '@/components/notice';
 
 import { RadarRing } from '@/components/radar-ring';
 import { activeSpots, allSpecies, communitiesNear, servicesNear, upcomingPlaydates } from '@/lib/db';
@@ -126,13 +127,12 @@ export default async function HomePage() {
         </div>
 
         {playdates.length === 0 ? (
-          <div className="notice">
-            <span aria-hidden="true">○</span>
+          <Notice>
             <p>
               <strong>Todavía no hay ninguna quedada.</strong> Es el estado normal al empezar en un
               barrio: la primera la organiza alguien, y a partir de ahí el horario hace el resto.
             </p>
-          </div>
+          </Notice>
         ) : (
           <div className="grid">
             {playdates.map((playdate) => (
@@ -203,14 +203,13 @@ export default async function HomePage() {
         </div>
 
         {emergency.length > 0 ? (
-          <div className="notice" style={{ marginTop: 'var(--co-space-6)' }}>
-            <span aria-hidden="true">!</span>
+          <Notice tone="warning">
             <p>
               <strong>Urgencias cerca:</strong> {emergency.map((entry) => entry.name).join(', ')}.
               El directorio se consulta sin cuenta, porque buscar un veterinario de guardia a las
               tres de la mañana no debería exigir registrarse.
             </p>
-          </div>
+          </Notice>
         ) : null}
 
         <div className="grid" style={{ marginTop: 'var(--co-space-6)' }}>
@@ -283,15 +282,14 @@ export default async function HomePage() {
           </article>
         </div>
 
-        <div className="notice" style={{ marginTop: 'var(--co-space-6)' }}>
-          <span aria-hidden="true">!</span>
+        <Notice tone="warning">
           <p>
             <strong>Esto no es consejo veterinario.</strong> {WELFARE_DISCLAIMER} Los umbrales están
             publicados en el <a href="/especies">catálogo de especies</a> para que se puedan
             discutir, y tu animal puede tener el suyo más estricto. Más laxo, no: un campo que
             pudiera subirlos sería una forma elegante de que la regla no existiera.
           </p>
-        </div>
+        </Notice>
       </section>
 
       {/* ------------------------------------------------------------------ */}
@@ -323,15 +321,14 @@ export default async function HomePage() {
           ))}
         </div>
 
-        <div className="notice" style={{ marginTop: 'var(--co-space-6)' }}>
-          <span aria-hidden="true">!</span>
+        <Notice tone="warning">
           <p>
             <strong>El cobro todavía no ocurre dentro de la aplicación.</strong> En esta fase el
             pago se acuerda con quien alquila el espacio. Repartir dinero entre varias personas
             exige reembolsos parciales, alta fiscal y una postura sobre responsabilidad civil, y es
             la única parte de esto de la que no se sale iterando.
           </p>
-        </div>
+        </Notice>
       </section>
     </div>
   );

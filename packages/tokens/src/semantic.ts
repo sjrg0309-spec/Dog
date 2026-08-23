@@ -172,7 +172,13 @@ export const dark: SemanticTokens = {
   destructive: red[400],
   destructiveForeground: neutral[950],
   destructiveHover: red[300],
-  success: green[400],
+  /**
+   * En oscuro apuntaba al mismo escalón que `primary`, así que un estado que no
+   * se toca se pintaba con el color que en esta aplicación significa «esto se
+   * puede tocar». Sube un escalón: sigue siendo el mismo verde de la rampa y ya
+   * no se confunde con lo interactivo.
+   */
+  success: green[300],
   successForeground: green[900],
   successSurface: green[900],
   warning: amber[300],

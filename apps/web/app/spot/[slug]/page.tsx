@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Notice } from '@/components/notice';
 import { notFound } from 'next/navigation';
 
 import { formatCents, splitCost } from '@coincide/core';
@@ -180,15 +181,14 @@ export default async function SpotPage({ params }: Params) {
         </section>
 
         {/* ---------------------------------------------------------------- */}
-        <div className="notice">
-          <span aria-hidden="true">!</span>
+        <Notice tone="warning">
           <p>
             <strong>La dirección exacta se envía al confirmar la reserva.</strong> Antes solo se
             muestra la zona: es la propiedad privada de alguien, y publicarla a cualquiera que abra
             la página no sería aceptable por muy cómodo que resultara. El pago, en esta fase, se
             acuerda directamente con el anfitrión.
           </p>
-        </div>
+        </Notice>
       </article>
     </div>
   );

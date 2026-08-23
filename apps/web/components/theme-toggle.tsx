@@ -1,33 +1,41 @@
 'use client';
 
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'coincide-theme';
 
-const LABEL: Record<Theme, string> = {
-  light: 'Claro',
-  dark: 'Oscuro',
-  system: 'Sistema',
-};
-
-const NEXT: Record<Theme, Theme> = {
-  system: 'light',
-  light: 'dark',
-  dark: 'system',
-};
+const OPTIONS: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
+  { value: 'system', label: 'Automático', icon: Monitor },
+  { value: 'light', label: 'Claro', icon: Sun },
+  { value: 'dark', label: 'Oscuro', icon: Moon },
+];
 
 /**
- * Conmutador de tema con tres estados.
+ * Selector de tema.
  *
- * "Sistema" es el valor por defecto y quita el atributo del documento, de modo
- * que manda `prefers-color-scheme`. Elegir claro u oscuro estampa el atributo y
- * gana sobre el sistema en ambas direcciones.
+ * Antes era un botón que rotaba entre tres estados. Funcionaba, pero obligaba a
+ * pulsar y ver qué salía: para llegar a «oscuro» desde «automático» había que
+ * adivinar cuántas veces tocar, y quien usa lector de pantalla oía el estado
+ * después del cambio, nunca antes. Ahora las tres opciones están a la vez y se
+ * elige la que se quiere.
  *
- * Cada lectura y escritura va en try/catch: el almacenamiento puede lanzar en
- * ventanas privadas o con las cookies de sitio bloqueadas, y perder el tema
- * nunca debe romper la página.
+ * El menú es de Radix y no propio a propósito. Un desplegable correcto necesita
+ * foco atrapado mientras está abierto, cierre con Escape, navegación con
+ * flechas, devolución del foco al disparador al cerrar y `aria-expanded`
+ * coherente. Escribir todo eso a mano es la clase de cosa que parece hecha hasta
+ * que alguien lo prueba con el teclado.
+ *
+ * `system` es el valor por defecto y **quita** el atributo del documento, así que
+ * manda `prefers-color-scheme`. Elegir claro u oscuro lo estampa y gana sobre el
+ * sistema en las dos direcciones.
+ *
+ * Cada lectura y escritura va en try/catch: el almacenamiento lanza en ventanas
+ * privadas o con las cookies de sitio bloqueadas, y perder el tema nunca debe
+ * romper la página.
  */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('system');
@@ -39,7 +47,7 @@ export function ThemeToggle() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === 'light' || stored === 'dark') setTheme(stored);
     } catch {
-      // Sin almacenamiento se sigue con "sistema", que es un buen valor por
+      // Sin almacenamiento se sigue con "automático", que es un buen valor por
       // defecto de todas formas.
     }
   }, []);
@@ -47,11 +55,9 @@ export function ThemeToggle() {
   function apply(next: Theme) {
     setTheme(next);
     const root = document.documentElement;
-    if (next === 'system') {
-      root.removeAttribute('data-theme');
-    } else {
-      root.setAttribute('data-theme', next);
-    }
+    if (next === 'system') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', next);
+
     try {
       if (next === 'system') localStorage.removeItem(STORAGE_KEY);
       else localStorage.setItem(STORAGE_KEY, next);
@@ -60,19 +66,48 @@ export function ThemeToggle() {
     }
   }
 
+  const current = OPTIONS.find((option) => option.value === theme) ?? OPTIONS[0]!;
+  const CurrentIcon = current.icon;
+
   return (
-    <button
-      type="button"
-      className="button button--ghost"
-      onClick={() => apply(NEXT[theme])}
-      // Antes de hidratar no se sabe el tema guardado; se anuncia como
-      // indeterminado en vez de mentir con un valor que puede cambiar.
-      aria-label={mounted ? `Tema: ${LABEL[theme]}. Cambiar a ${LABEL[NEXT[theme]]}` : 'Cambiar tema'}
-    >
-      <span aria-hidden="true">
-        {theme === 'dark' ? '◐' : theme === 'light' ? '○' : '◑'}
-      </span>
-      <span className="theme-toggle__label">{mounted ? LABEL[theme] : 'Tema'}</span>
-    </button>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className="button button--ghost"
+          // Antes de hidratar no se sabe el tema guardado; se anuncia sin valor
+          // en vez de mentir con uno que va a cambiar.
+          aria-label={mounted ? `Tema: ${current.label}. Cambiar` : 'Cambiar tema'}
+        >
+          <CurrentIcon size={17} strokeWidth={2} aria-hidden="true" />
+          <span className="theme-toggle__label">{mounted ? current.label : 'Tema'}</span>
+        </button>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content className="menu" sideOffset={6} align="end">
+          <DropdownMenu.RadioGroup value={theme} onValueChange={(value) => apply(value as Theme)}>
+            {OPTIONS.map((option) => {
+              const OptionIcon = option.icon;
+              return (
+                <DropdownMenu.RadioItem
+                  key={option.value}
+                  value={option.value}
+                  className="menu__item"
+                >
+                  <OptionIcon size={16} strokeWidth={2} aria-hidden="true" />
+                  <span>{option.label}</span>
+                  {/* La marca de selección va además del resaltado: el estado no
+                      se comunica solo con un fondo de color. */}
+                  <DropdownMenu.ItemIndicator className="menu__check">
+                    <Check size={16} strokeWidth={2.5} aria-hidden="true" />
+                  </DropdownMenu.ItemIndicator>
+                </DropdownMenu.RadioItem>
+              );
+            })}
+          </DropdownMenu.RadioGroup>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }

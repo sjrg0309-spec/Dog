@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Notice } from '@/components/notice';
 
 import { allSpecies } from '@/lib/db';
 import { WELFARE_DISCLAIMER } from '@coincide/core';
@@ -185,18 +186,16 @@ export default async function SpeciesPage() {
         </section>
       ) : null}
 
-      <div className="notice">
-        <span aria-hidden="true">!</span>
+      <Notice tone="warning">
         <p>
           <strong>Sobre los límites de cuidado.</strong> {WELFARE_DISCLAIMER} Son los mismos
           números que aplica la aplicación cuando decide no proponerte un encuentro, y están aquí
           para que puedas comprobar si te parecen razonables. Tu animal puede tener el suyo más
           estricto; más laxo, no.
         </p>
-      </div>
+      </Notice>
 
-      <div className="notice">
-        <span aria-hidden="true">!</span>
+      <Notice tone="warning">
         <p>
           <strong>Sobre la información legal.</strong> {LEGAL_DISCLAIMER} El listado positivo de
           animales de compañía que introduce la Ley 7/2023 seguía pendiente de desarrollo
@@ -204,7 +203,7 @@ export default async function SpeciesPage() {
           el aviso, porque prohibirlo sería decidir por ti sobre una norma que todavía se está
           escribiendo.
         </p>
-      </div>
+      </Notice>
     </div>
   );
 }

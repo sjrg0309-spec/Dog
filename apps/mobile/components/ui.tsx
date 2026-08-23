@@ -6,10 +6,19 @@
  * y el espaciado de estos componentes salen del mismo sitio que los de la web.
  */
 
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 
+import { Icon } from './icon';
 import { fonts } from '@/lib/fonts';
+import type { LucideIcon } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
 export function Screen({ children }: { children: ReactNode }) {
@@ -124,7 +133,24 @@ export function Card({ children, style }: { children: ReactNode; style?: ViewSty
 
 type BadgeTone = 'neutral' | 'accent' | 'live' | 'verified' | 'warning';
 
-export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: BadgeTone }) {
+export function Badge({
+  children,
+  tone = 'neutral',
+  icon,
+}: {
+  children: ReactNode;
+  tone?: BadgeTone;
+  /**
+   * Icono del estado, opcional.
+   *
+   * Antes esto se hacía metiendo un «✓» o un «×» dentro del texto de la
+   * insignia. Además de descuadrar la línea base, obligaba al lector de pantalla
+   * a leer el carácter, así que el estado se anunciaba como «por Verificado» o
+   * cosas parecidas según la fuente. Como icono es decorativo y la palabra que
+   * va al lado ya dice de qué estado se trata.
+   */
+  icon?: LucideIcon;
+}) {
   const theme = useTheme();
 
   const palette: Record<BadgeTone, { bg: string; fg: string }> = {
@@ -140,12 +166,16 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   return (
     <View
       style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[1],
         backgroundColor: bg,
         borderRadius: theme.radius.full,
         paddingHorizontal: theme.space[2],
         paddingVertical: theme.space[0.5],
       }}
     >
+      {icon ? <Icon icon={icon} size="sm" color={fg} decorative /> : null}
       <Text style={{ color: fg, fontSize: theme.fontSize.xs, fontFamily: fonts.bodyBold }}>
         {children}
       </Text>
@@ -169,11 +199,25 @@ export function Button({
   onPress,
   variant = 'primary',
   accessibilityHint,
+  icon,
+  disabled = false,
+  loading = false,
 }: {
   label: string;
   onPress?: () => void;
   variant?: 'primary' | 'outline' | 'live';
   accessibilityHint?: string;
+  icon?: LucideIcon;
+  /** Deshabilitado con motivo: quien lo pone debería poder explicarlo al lado. */
+  disabled?: boolean;
+  /**
+   * En curso.
+   *
+   * Ocupa el mismo sitio que el estado normal a propósito: sustituir la etiqueta
+   * por un indicador haría saltar el botón de tamaño y moverse todo lo de abajo
+   * justo cuando el usuario acaba de tocarlo.
+   */
+  loading?: boolean;
 }) {
   const theme = useTheme();
 
@@ -196,26 +240,50 @@ export function Button({
   } as const;
 
   const style = styles[variant];
+  const inert = disabled || loading;
+
+  // El foco se lleva aparte porque el estado que expone `Pressable` no lo
+  // incluye en esta versión. En web —donde vive el teclado— `onFocus` sí llega.
+  const [focused, setFocused] = useState(false);
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
+      // Se anuncia el estado además de pintarlo: un botón atenuado que el lector
+      // de pantalla presenta como pulsable es una trampa.
+      accessibilityState={{ disabled: inert, busy: loading }}
+      disabled={inert}
       onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       style={({ pressed }) => ({
         // 44 es el suelo del área táctil, no el objetivo.
         minHeight: theme.touchTarget.min,
+        flexDirection: 'row',
+        gap: theme.space[2],
         paddingHorizontal: theme.space[5],
         borderRadius: theme.radius.md,
         borderWidth: 1,
-        borderColor: style.border,
+        borderColor: focused ? theme.colors.focusRing : style.border,
         backgroundColor: style.bg,
         alignItems: 'center',
         justifyContent: 'center',
-        opacity: pressed ? 0.85 : 1,
+        // El foco se ve, y se ve por algo más que el color del borde: en web
+        // esta es la única pista que tiene quien navega con teclado.
+        outlineColor: theme.colors.focusRing,
+        outlineWidth: focused ? 3 : 0,
+        outlineStyle: 'solid',
+        outlineOffset: 2,
+        opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
       })}
     >
+      {loading ? (
+        <ActivityIndicator size="small" color={style.fg} />
+      ) : icon ? (
+        <Icon icon={icon} size="base" color={style.fg} decorative />
+      ) : null}
       <Text style={{ color: style.fg, fontSize: theme.fontSize.base, fontFamily: fonts.bodyBold }}>
         {label}
       </Text>

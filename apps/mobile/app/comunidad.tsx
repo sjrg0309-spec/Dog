@@ -1,5 +1,6 @@
 import { ScrollView, View } from 'react-native';
 
+import { NavBar, useScrolled } from '@/components/chrome';
 import { PetSwitcher } from '@/components/pet-switcher';
 import {
   Badge,
@@ -15,6 +16,7 @@ import {
   Title,
 } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
+import { BadgeCheck } from '@/lib/icons';
 import { communitiesFor, petHasMeetups, servicesFor, speciesOf } from '@/lib/data';
 import { SERVICE_KIND_LABEL, legalSource, legalSummary, speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
@@ -32,6 +34,7 @@ import { useTheme } from '@/lib/theme';
  */
 export default function CommunityScreen() {
   const theme = useTheme();
+  const { scrolled, onScroll } = useScrolled();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const communities = communitiesFor(pet.speciesId);
@@ -41,7 +44,8 @@ export default function CommunityScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+      <NavBar title="Comunidad" scrolled={scrolled} />
+      <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
         <PetSwitcher />
 
         <View style={{ gap: theme.space[2] }}>
@@ -114,7 +118,11 @@ export default function CommunityScreen() {
             <Card key={service.id}>
               <Row>
                 <Heading>{service.name}</Heading>
-                {service.isVerified ? <Badge tone="verified">✓ Verificado</Badge> : null}
+                {service.isVerified ? (
+                  <Badge tone="verified" icon={BadgeCheck}>
+                    Verificado
+                  </Badge>
+                ) : null}
               </Row>
               <Caption>
                 {SERVICE_KIND_LABEL[service.kind] ?? service.kind} · a {service.distanceLabel}

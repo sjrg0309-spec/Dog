@@ -58,16 +58,22 @@ export const radius = {
  * Aquí no hay `clamp()`: en móvil el ancho no varía lo suficiente como para que
  * un tamaño fluido aporte algo, así que se fija el extremo inferior de la escala
  * de la web. Nada baja de 16 px en el cuerpo.
+ *
+ * `base` es 17 y no 16 porque es el tamaño de cuerpo por defecto que pide la
+ * guía de interfaz de la plataforma para móvil, y el mínimo legible que fija son
+ * 11. Un punto de más no se nota al mirarlo y sí al leer una ficha de pie en la
+ * calle, que es donde se usa esto.
  */
 export const fontSize = {
   xs: 12,
-  sm: 14,
-  base: 16,
-  lg: 18,
-  xl: 21,
-  '2xl': 24,
-  '3xl': 30,
-  '4xl': 36,
+  sm: 15,
+  base: 17,
+  lg: 19,
+  xl: 22,
+  '2xl': 26,
+  '3xl': 32,
+  /** Título grande de cabecera, el que se encoge al desplazar. */
+  '4xl': 38,
 } as const;
 
 export const fontWeight = {

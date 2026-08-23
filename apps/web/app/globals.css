@@ -575,13 +575,91 @@ a.card:hover {
   padding: var(--co-space-4);
   border-radius: var(--co-radius-md);
   border: 1px solid var(--co-border);
+  /* El filo de color da el tono; el icono lo dice sin depender del color. */
+  border-left-width: 3px;
+  border-left-color: var(--co-border-strong);
   background: var(--co-surface-sunken);
   font-size: var(--co-font-size-sm);
   color: var(--co-muted-foreground);
 }
 
+.notice[data-tone='warning'] {
+  border-left-color: var(--co-warning);
+}
+
+.notice[data-tone='critical'] {
+  border-left-color: var(--co-destructive);
+}
+
+.notice__icon {
+  flex: none;
+  /* Alineado con la primera línea de texto, no con la caja entera. */
+  margin-top: 0.15em;
+  color: var(--co-muted-foreground);
+}
+
+.notice[data-tone='warning'] .notice__icon {
+  color: var(--co-warning);
+}
+
+.notice[data-tone='critical'] .notice__icon {
+  color: var(--co-destructive);
+}
+
+.notice__body {
+  display: grid;
+  gap: var(--co-space-2);
+  min-width: 0;
+}
+
 .notice strong {
   color: var(--co-foreground);
+}
+
+/* --------------------------------------------------------------------------
+   Menú desplegable (Radix). Los estilos son nuestros; el comportamiento —foco
+   atrapado, Escape, flechas, devolución del foco al cerrar— es suyo.
+   -------------------------------------------------------------------------- */
+
+.menu {
+  min-width: 12rem;
+  padding: var(--co-space-1);
+  border-radius: var(--co-radius-md);
+  border: 1px solid var(--co-border);
+  background: var(--co-surface-elevated);
+  box-shadow: var(--co-shadow-md);
+  z-index: 50;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--co-space-2);
+  /* 44 de alto: el mismo suelo táctil que en la aplicación móvil. */
+  min-height: 44px;
+  padding-inline: var(--co-space-3);
+  border-radius: var(--co-radius-sm);
+  font-size: var(--co-font-size-sm);
+  color: var(--co-foreground);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+/* Radix marca la opción bajo el cursor o bajo el teclado con el mismo atributo,
+   así que ratón y teclado se ven igual sin escribir dos reglas. */
+.menu__item[data-highlighted] {
+  background: var(--co-muted);
+}
+
+.menu__item[data-state='checked'] {
+  font-weight: var(--co-font-weight-semibold);
+}
+
+.menu__check {
+  margin-left: auto;
+  color: var(--co-primary);
+  display: inline-flex;
 }
 
 /* --------------------------------------------------------------------------

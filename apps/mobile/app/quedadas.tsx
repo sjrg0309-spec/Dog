@@ -2,6 +2,7 @@ import { ScrollView, View } from 'react-native';
 
 import { groupAffinity, groupWelfare } from '@coincide/core';
 
+import { NavBar, useScrolled } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { WelfareNotice } from '@/components/welfare-notice';
@@ -46,6 +47,7 @@ const timeFormatter = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute
  */
 export default function PlaydatesScreen() {
   const theme = useTheme();
+  const { scrolled, onScroll } = useScrolled();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
@@ -56,7 +58,8 @@ export default function PlaydatesScreen() {
   if (!social) {
     return (
       <Screen>
-        <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+        <NavBar title="Quedadas" scrolled={scrolled} />
+        <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
           <PetSwitcher />
           <View style={{ gap: theme.space[2] }}>
             <Eyebrow>Organizar</Eyebrow>
@@ -76,7 +79,8 @@ export default function PlaydatesScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+      <NavBar title="Quedadas" scrolled={scrolled} />
+      <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
         <PetSwitcher />
 
         <View style={{ gap: theme.space[2] }}>

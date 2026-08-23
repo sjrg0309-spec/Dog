@@ -16,6 +16,7 @@ import { View } from 'react-native';
 import { WELFARE_DISCLAIMER, type WelfareVerdict } from '@coincide/core';
 
 import { Badge, Body, Caption, Card, Heading, Row } from './ui';
+import { Ban, TriangleAlert } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
 export function WelfareNotice({
@@ -42,7 +43,9 @@ export function WelfareNotice({
     >
       <Row>
         <Heading>{stopped ? `Hoy no, por ${petName}` : `Se puede, con cuidado`}</Heading>
-        <Badge tone="warning">{stopped ? '× No lo proponemos' : '! Con condiciones'}</Badge>
+        <Badge tone="warning" icon={stopped ? Ban : TriangleAlert}>
+          {stopped ? 'No lo proponemos' : 'Con condiciones'}
+        </Badge>
       </Row>
 
       {verdict.reasons.map((reason) => (

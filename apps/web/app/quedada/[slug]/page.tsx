@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { BadgeCheck } from 'lucide-react';
+import { Notice } from '@/components/notice';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -190,13 +192,12 @@ export default async function PlaydatePage({ params }: Params) {
           <h2>Animales apuntados</h2>
 
           {attendees.length === 0 ? (
-            <div className="notice">
-              <span aria-hidden="true">○</span>
+            <Notice>
               <p>
                 <strong>Todavía no se ha apuntado nadie.</strong> Alguien tiene que ser el primero
                 para que el resto se anime.
               </p>
-            </div>
+            </Notice>
           ) : (
             <div className="grid">
               {attendees.map((dog) => (
@@ -205,7 +206,8 @@ export default async function PlaydatePage({ params }: Params) {
                     <h3 className="card__title">{dog.name}</h3>
                     {dog.is_microchip_verified ? (
                       <span className="badge badge--verified">
-                        <span aria-hidden="true">✓</span> Chip verificado
+                        <BadgeCheck size={14} strokeWidth={2.5} aria-hidden="true" />
+                        Chip verificado
                       </span>
                     ) : null}
                   </div>
