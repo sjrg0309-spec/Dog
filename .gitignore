@@ -31,5 +31,7 @@ artifacts/screenshots/*.png
 # `node scripts/build-demo-data.mjs && node scripts/build-demo-page.mjs`.
 artifacts/coincide-demo.html
 artifacts/coincide-web.html
+artifacts/coincide-app.html
 artifacts/demo-data.json
 scripts/demo-pets.mjs
+apps/mobile/dist-web/
