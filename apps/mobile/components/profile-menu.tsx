@@ -40,9 +40,15 @@ export function ProfileMenu({
   onWalkMode,
 }: {
   onClose: () => void;
-  /** Guardados no es una pantalla: es una pestaña de este mismo perfil. */
-  onSaved: () => void;
-  onWalkMode: () => void;
+  /**
+   * Guardados no es una pantalla: es una pestaña de este mismo perfil.
+   *
+   * Las dos son opcionales porque una cuenta de protectora no tiene ni
+   * guardados ni Modo Paseo —no tiene animal—, y su menú tiene que ser el suyo
+   * y no el de un tutor con dos filas que no llevan a ninguna parte.
+   */
+  onSaved?: () => void;
+  onWalkMode?: () => void;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -56,9 +62,13 @@ export function ProfileMenu({
       go: () => router.push('/ajustes'),
     },
     { icon: Bell, label: 'Tu actividad', go: () => router.push('/actividad') },
-    { icon: Bookmark, label: 'Guardados', go: onSaved },
-    { icon: Footprints, label: 'Historial de paseos', go: () => router.push('/historial') },
-    { icon: QrCode, label: 'Modo Paseo', go: onWalkMode },
+    ...(onSaved ? [{ icon: Bookmark, label: 'Guardados', go: onSaved }] : []),
+    ...(onWalkMode
+      ? [
+          { icon: Footprints, label: 'Historial de paseos', go: () => router.push('/historial') },
+          { icon: QrCode, label: 'Modo Paseo', go: onWalkMode },
+        ]
+      : []),
   ];
 
   return (
@@ -134,8 +144,9 @@ export function ProfileMenu({
 
         <View style={{ paddingHorizontal: theme.space[5], paddingTop: theme.space[3] }}>
           <Caption>
-            Lo de aquí es tuyo y no lo ve nadie con quien quedes. Lo que se enseña es lo de arriba:
-            el nombre, la raza y las fotos.
+            {onWalkMode
+              ? 'Lo de aquí es tuyo y no lo ve nadie con quien quedes. Lo que se enseña es lo de arriba: el nombre, la raza y las fotos.'
+              : 'Lo de aquí es de la cuenta del colectivo. Lo que se enseña fuera es el nombre y el perfil público que disteis.'}
           </Caption>
         </View>
       </View>

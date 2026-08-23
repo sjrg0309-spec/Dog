@@ -125,6 +125,19 @@ describe('el buscador de ajustes', () => {
     expect(found.map((row) => row.id)).toContain('account');
   });
 
+  it('cada cuenta ve sus ajustes y no los de la otra', () => {
+    /* Una protectora no tiene chip que verificar y un tutor no tiene revisión
+       de perfil pendiente. Enseñar la fila del otro sería enseñar un ajuste que
+       no se puede tocar, que es la versión educada del interruptor decorativo. */
+    const tutor = searchSettings('', 'tutor').flatMap((group) => group.rows).map((row) => row.id);
+    const shelter = searchSettings('', 'rescuer').flatMap((group) => group.rows).map((row) => row.id);
+    expect(tutor).toContain('chip');
+    expect(tutor).not.toContain('shelter');
+    expect(shelter).toContain('shelter');
+    expect(shelter).not.toContain('chip');
+    expect(shelter).not.toContain('rescuer');
+  });
+
   it('con algo que no está, no inventa', () => {
     expect(searchSettings('zzzz')).toEqual([]);
   });

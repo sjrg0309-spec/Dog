@@ -11,3 +11,4 @@ export * from './welfare.js';
 export * from './safety.js';
 export * from './rescue.js';
 export * from './walks.js';
+export * from './access.js';

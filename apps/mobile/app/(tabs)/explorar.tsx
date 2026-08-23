@@ -26,6 +26,7 @@ import { placeAt } from '@/lib/geofence';
 import { reportRescue } from '@/lib/rescue';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { spanMeters } from '@/lib/tiles';
+import { useCan } from '@/lib/account';
 import { walkingNow } from '@/lib/data';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
@@ -164,7 +165,14 @@ export default function ExploreScreen() {
      demás, que es lo que hace Snapchat y es lo correcto —esconderte no debería
      costarte la función—. Lo que se apaga es tu presencia, y eso lo decide el
      radar, no esta pantalla. */
-  const outNow = useMemo(() => walkingNow(pet.speciesId), [pet.speciesId]);
+  /* Las caras del mapa son lo que la puerta protege. Sin chip verificado no se
+     calculan: el mapa sigue siendo el mapa —parques, agua, sombra,
+     veterinarios— y deja de ser el directorio de quién pasea y a qué hora. */
+  const canSeePeople = useCan('live_people');
+  const outNow = useMemo(
+    () => (canSeePeople ? walkingNow(pet.speciesId) : []),
+    [pet.speciesId, canSeePeople],
+  );
   /* El sitio en el que se está, si es uno del catálogo. Es a lo que se pega un
      aporte: «una fuente en el Parque Central» y no «una fuente en 40.4098,
      −3.6939», que además publicaría una coordenada. */

@@ -13,6 +13,7 @@ import { Body, Caption, Notice, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { haptics } from '@/lib/haptics';
 import { useConditions, useWeatherState } from '@/lib/conditions';
+import { useCan } from '@/lib/account';
 import { discover, petHasMeetups, walkingNow } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
 import { Compass, Heart, SquarePlus, Send, Siren, type LucideIcon } from '@/lib/icons';
@@ -77,6 +78,7 @@ export default function FeedScreen() {
   const { location } = useWeatherState();
   const { welfare } = discover(pet, conditions);
   const { scrolled, onScroll } = useScrolled();
+  const canSeePeople = useCan('live_people');
 
   const [tab, setTab] = useState<FeedTab>('nearby');
   /* El radio vive en los ajustes y no aquí: es el mismo valor que se toca
@@ -94,7 +96,9 @@ export default function FeedScreen() {
   const outside = useOutsideRadiusCount(location, radiusM);
 
   const [checkedIn, setCheckedIn] = useState(false);
-  const outNow = social ? walkingNow(pet.speciesId) : [];
+  /* La etiqueta EN VIVO de la fila de historias dice quién está fuera ahora, así
+     que va detrás de la misma puerta que el mapa de gente. */
+  const outNow = social && canSeePeople ? walkingNow(pet.speciesId) : [];
   const stopped = social && welfare?.level === 'stop';
 
   // Los estados y la presencia son dos cosas distintas que comparten la fila:

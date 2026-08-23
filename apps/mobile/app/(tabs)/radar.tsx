@@ -25,8 +25,9 @@ import { useActivePet } from '@/lib/active-pet';
 import { setLocation, useConditionsBuilder, useWeatherState } from '@/lib/conditions';
 import { RADAR_AREA_NOTE, petFriendlyPlaces, placeAt } from '@/lib/geofence';
 import { Icon } from '@/components/icon';
-import { ChevronRight, Footprints, MapPin } from '@/lib/icons';
+import { ChevronRight, Footprints, Lock, MapPin } from '@/lib/icons';
 import { fonts } from '@/lib/fonts';
+import { useCan, useWhyNot } from '@/lib/account';
 import { petHasMeetups, speciesOf, walkingNow } from '@/lib/data';
 import { PLACES } from '@/lib/demo-data';
 import { speciesName } from '@/lib/labels';
@@ -61,7 +62,12 @@ export default function RadarScreen() {
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
-  const others = walkingNow(pet.speciesId);
+  /* Quién está fuera es lo que la puerta protege: la cara, el sitio y la hora.
+     Sin chip verificado no se calcula siquiera —no se filtra al dibujar—, que
+     es la diferencia entre una lista escondida y una lista que no existe. */
+  const canSeePeople = useCan('live_people');
+  const whyNotPeople = useWhyNot('live_people');
+  const others = canSeePeople ? walkingNow(pet.speciesId) : [];
   const declared = useWeatherState();
   const build = useConditionsBuilder();
 
@@ -273,7 +279,15 @@ export default function RadarScreen() {
         <View style={{ gap: theme.space[3] }}>
           <Heading>Quién está fuera</Heading>
 
-          {others.length === 0 ? (
+          {!canSeePeople ? (
+            <Notice>
+              <Row gap={2}>
+                <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
+                <Body>Esto se abre con el chip verificado</Body>
+              </Row>
+              <Caption>{whyNotPeople}</Caption>
+            </Notice>
+          ) : others.length === 0 ? (
             <Notice>
               <Body>
                 Ahora mismo no hay ningún {speciesName(pet.speciesId).toLowerCase()} fuera cerca.

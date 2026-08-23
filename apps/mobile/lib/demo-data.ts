@@ -133,6 +133,18 @@ const weekendAfternoon = (): RoutineWindow[] =>
  * es de hocico chato, no debería salir. Eso es lo que hace visible que la
  * aplicación decide por el animal y no por el plan de su tutor.
  */
+/**
+ * Dar de alta un animal nuevo, el del tutor que se acaba de registrar.
+ *
+ * Va delante de las dos de la semilla porque es el suyo: es el que quiere ver
+ * al abrir la aplicación. Nina y Kira se quedan en la cuenta a propósito —son
+ * el caso de bienestar que enseña que a dos perros de la misma casa les conviene
+ * algo distinto el mismo día—, y sin ellas esa parte del producto no se vería.
+ */
+export function addMyPet(pet: DemoPet): void {
+  MY_PETS.unshift(pet);
+}
+
 export const MY_PETS: DemoPet[] = [
   {
     id: '20000000-0000-4000-8000-000000000001',

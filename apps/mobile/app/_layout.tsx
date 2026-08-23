@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { Registro } from '@/components/registro';
+import { useAccount } from '@/lib/account';
 import { FONT_MAP } from '@/lib/fonts';
 import { useTheme } from '@/lib/theme';
 
@@ -45,6 +47,7 @@ function RootStack() {
      necesita: son seis, y seis consultas al abrir la aplicación es exactamente
      lo que la caché existe para evitar. */
   useWeatherBootstrap();
+  const { registered } = useAccount();
 
   // Se espera a las fuentes antes de pintar. Sin esto, la primera pasada sale
   // con la fuente del sistema y salta a la definitiva, y el salto de métricas se
@@ -61,6 +64,23 @@ function RootStack() {
       >
         <ActivityIndicator color={theme.colors.primary} />
       </View>
+    );
+  }
+
+  /*
+   * La puerta, y por qué está aquí y no en una ruta.
+   *
+   * Sin animal dado de alta no se dibuja la aplicación: se dibuja el alta **en
+   * su lugar**. Una pantalla de registro que fuera una ruta más se saltaría
+   * escribiendo cualquier otra dirección, y entonces no sería una puerta sino
+   * un cartel. Aquí no hay nada detrás que alcanzar.
+   */
+  if (!registered) {
+    return (
+      <>
+        <StatusBar style={theme.isDark ? 'light' : 'dark'} />
+        <Registro />
+      </>
     );
   }
 

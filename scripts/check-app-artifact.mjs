@@ -90,7 +90,51 @@ if (!booted) problems.push('el aviso de carga sigue encima: React no llegó a pi
 
 const body = await page.locator('#root').innerText();
 if (/no encontr|unmatched|not found/i.test(body.slice(0, 400))) {
-  problems.push('arrancó en la pantalla de «no encontrado» en vez de en el feed');
+  problems.push('arrancó en la pantalla de «no encontrado» en vez de en el alta');
+}
+
+/*
+ * La puerta: sin animal dado de alta no hay aplicación.
+ *
+ * Se comprueba aquí y antes que nada porque es la primera pantalla y porque es
+ * una promesa fácil de romper sin enterarse: basta con que alguien deje una
+ * ruta accesible o que el estado inicial se dé por registrado. Y no se mira el
+ * texto solamente —un cartel se puede dejar puesto con la aplicación detrás—,
+ * sino que **no exista la barra de pestañas**: si hay pestañas, hay aplicación.
+ */
+if (!/Da de alta a tu perro/i.test(body)) {
+  problems.push('la aplicación no arrancó en el alta: la puerta no está puesta');
+}
+if (await page.getByRole('tab', { name: /Explorar/i }).count()) {
+  problems.push('hay barra de pestañas antes de dar de alta a ningún animal');
+}
+if (!(await page.getByRole('tab', { name: /Rescato/i }).count())) {
+  problems.push('falta la segunda puerta: quien rescata y no tiene animal propio');
+}
+
+/* El alta, rellenada como la rellenaría alguien. Es también la única forma de
+   llegar al resto de la auditoría, así que si esto se rompe se dice claro. */
+await page.getByLabel('Nombre de tu perro').fill('Toby');
+await page.getByLabel('Años', { exact: true }).fill('3');
+for (const label of ['Mediano', 'Explorador', 'Persecución', 'Hembra', 'L', 'X', 'V', 'Mañana']) {
+  const chip = page.getByRole('button', { name: label, exact: true }).first();
+  if (!(await chip.count())) {
+    problems.push(`el alta no ofrece «${label}»`);
+    continue;
+  }
+  await chip.click();
+}
+
+const enter = page.getByRole('button', { name: 'Entrar', exact: true }).first();
+if (!(await enter.count())) {
+  problems.push('el alta no tiene botón de entrar');
+} else {
+  await enter.click();
+  await page.waitForTimeout(1200);
+}
+
+if (!(await page.getByRole('tab', { name: /Explorar/i }).count())) {
+  problems.push('tras dar de alta al animal la aplicación no se abrió');
 }
 
 for (const tab of TABS) {
@@ -259,6 +303,87 @@ for (const tab of TABS) {
  * no es un estado vacío con buena letra, y que una fila abre su resumen con el
  * titular del tiempo puesto.
  */
+/*
+ * La escalera de acceso, comprobada donde se nota: en la pantalla.
+ *
+ * El núcleo ya tiene sus tests —qué abre cada peldaño— pero eso no dice nada
+ * sobre si la aplicación lo respeta al dibujar. Es justo el fallo que no se ve:
+ * la regla existe, la pantalla la ignora, y la lista de quién pasea y a qué
+ * hora sigue ahí para una cuenta recién hecha.
+ *
+ * Se comprueban los dos lados, que es lo que hace que la comprobación valga:
+ * primero que el radar **no** liste a nadie, y después —tras verificar el chip
+ * por el atajo de demostración— que sí. Sin el segundo, un radar roto pasaría
+ * por privado.
+ */
+{
+  const goRadar = async () => {
+    const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
+    if (!(await mapTab.count())) return false;
+    await mapTab.click();
+    await page.waitForTimeout(900);
+    const toRadar = page
+      .getByRole('link', { name: /Radar/i })
+      .or(page.getByRole('button', { name: /^Radar/i }))
+      .first();
+    if (!(await toRadar.count())) return false;
+    await toRadar.click();
+    await page.waitForTimeout(1200);
+    return true;
+  };
+
+  if (!(await goRadar())) {
+    problems.push('no se pudo llegar al radar para comprobar la escalera de acceso');
+  } else {
+    const closed = (await page.locator('#root').innerText()).trim();
+    if (!/chip verificado/i.test(closed)) {
+      problems.push('el radar no explica por qué no se ve quién está fuera');
+    }
+    if (/Le quedan \d+ min/.test(closed)) {
+      problems.push('el radar lista quién está paseando sin el chip verificado');
+    }
+
+    /* El atajo de demostración, por el camino real: perfil → menú → ajustes. */
+    await page.getByRole('tab', { name: /Perfil/i }).first().click();
+    await page.waitForTimeout(700);
+    const menu = page.getByRole('button', { name: /Menú del perfil/i }).first();
+    if (!(await menu.count())) {
+      problems.push('el perfil no tiene el menú de configuración');
+    } else {
+      await menu.click();
+      await page.waitForTimeout(500);
+      await page.getByRole('button', { name: /^Configuración$/ }).first().click();
+      await page.waitForTimeout(900);
+
+      const chipSwitch = page.getByRole('switch', { name: /Chip verificado/i }).first();
+      if (!(await chipSwitch.count())) {
+        problems.push('configuración no ofrece verificar el chip');
+      } else {
+        await chipSwitch.scrollIntoViewIfNeeded().catch(() => {});
+        await chipSwitch.click();
+        await page.waitForTimeout(600);
+
+        await page.getByRole('button', { name: /^Volver$/ }).first().click();
+        await page.waitForTimeout(700);
+
+        if (!(await goRadar())) {
+          problems.push('no se pudo volver al radar tras verificar el chip');
+        } else {
+          const open = (await page.locator('#root').innerText()).trim();
+          const shows = /Le quedan \d+ min/.test(open) || /no hay ning/i.test(open);
+          console.log(`radar tras verificar el chip: ${shows ? 'abre' : 'sigue cerrado'}`);
+          if (!shows) {
+            problems.push('con el chip verificado el radar sigue sin enseñar quién está fuera');
+          }
+          if (/chip verificado/i.test(open) && !shows) {
+            problems.push('la puerta del radar no se abrió al verificar el chip');
+          }
+        }
+      }
+    }
+  }
+}
+
 {
   const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
   if (!(await mapTab.count())) {

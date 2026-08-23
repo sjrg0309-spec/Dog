@@ -8,6 +8,7 @@ import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome'
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { ProfileMenu } from '@/components/profile-menu';
+import { ShelterCard } from '@/components/shelter-card';
 import { SceneView } from '@/components/scene';
 import { StoryRing } from '@/components/story-ring';
 import { buildScene } from '@/lib/artwork';
@@ -22,6 +23,7 @@ import {
   Row,
   Screen,
 } from '@/components/ui';
+import { useAccount } from '@/lib/account';
 import { useActivePet } from '@/lib/active-pet';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -76,6 +78,16 @@ import { HEALTH_FLAG_LABEL, type HealthFlag } from '@coincide/core';
  *     pueda leer qué medicación toma no ayuda a devolvértelo.
  */
 export default function ProfileScreen() {
+  const kind = useAccount().kind;
+  /* Una cuenta que entró por la puerta del rescate no tiene animal propio: el
+     perfil de perro no le corresponde y enseñarle uno vacío sería peor que no
+     enseñar nada. */
+  if (kind === 'rescuer') return <ShelterCard />;
+
+  return <PetProfile />;
+}
+
+function PetProfile() {
   const theme = useTheme();
   const { scrolled, onScroll } = useScrolled();
   const pet = useActivePet();

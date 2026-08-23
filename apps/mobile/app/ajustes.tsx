@@ -42,6 +42,7 @@ import {
   Accessibility,
   Ban,
   Bell,
+  BadgeCheck,
   Bookmark,
   ChevronRight,
   EyeOff,
@@ -58,6 +59,13 @@ import {
   X,
   type LucideIcon,
 } from '@/lib/icons';
+import {
+  setMicrochipVerified,
+  setShelterReviewed,
+  useAccount,
+  useCan,
+  useWhyNot,
+} from '@/lib/account';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { NEARBY_RADII_M, type NearbyRadius } from '@/lib/posts';
 import {
@@ -80,6 +88,8 @@ const ICONS: Record<string, LucideIcon> = {
   saved: Bookmark,
   walkmode: QrCode,
   activity: Bell,
+  chip: BadgeCheck,
+  shelter: Siren,
   account: Lock,
   push: Bell,
   blocks: Ban,
@@ -89,7 +99,8 @@ const ICONS: Record<string, LucideIcon> = {
 export default function SettingsScreen() {
   const theme = useTheme();
   const [query, setQuery] = useState('');
-  const groups = searchSettings(query);
+  const { kind } = useAccount();
+  const groups = searchSettings(query, kind);
 
   return (
     <Screen>
@@ -267,13 +278,57 @@ function SwitchRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
   const theme = useTheme();
   const settings = useSettings();
   const ghost = useGhostMode();
-  const on = row.id === 'ghost' ? ghost : settings.rescuer;
+  const account = useAccount();
+  /* El papel de rescatista no es un interruptor cualquiera: amplía a kilómetros
+     la lista de animales heridos, perdidos o sin dueño. Va detrás de la misma
+     puerta que el mapa de gente, y aquí se ve cerrado en vez de esconderse. */
+  const canRescue = useCan('rescue_alerts');
+  const locked = useWhyNot('rescue_alerts');
+  const allowed = row.id === 'rescuer' ? canRescue : true;
+
+  const on =
+    row.id === 'ghost'
+      ? ghost
+      : row.id === 'rescuer'
+        ? settings.rescuer
+        : row.id === 'chip'
+          ? account.microchipVerified
+          : account.shelterReviewed;
 
   const toggle = () => {
     haptics.commit();
     if (row.id === 'ghost') setGhostMode(!ghost);
-    else setSetting('rescuer', !settings.rescuer);
+    else if (row.id === 'rescuer') setSetting('rescuer', !settings.rescuer);
+    else if (row.id === 'chip') setMicrochipVerified(!account.microchipVerified);
+    else setShelterReviewed(!account.shelterReviewed);
   };
+
+  if (!allowed) {
+    return (
+      <Shell
+        row={row}
+        icon={icon}
+        muted
+        below={
+          <View
+            style={{
+              borderLeftWidth: 2,
+              borderLeftColor: theme.colors.border,
+              paddingLeft: theme.space[3],
+              marginTop: theme.space[1],
+            }}
+          >
+            <Caption>{locked}</Caption>
+          </View>
+        }
+        trailing={
+          <View style={{ paddingTop: 2 }}>
+            <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
+          </View>
+        }
+      />
+    );
+  }
 
   return (
     <Pressable
@@ -290,7 +345,17 @@ function SwitchRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
       <Shell
         row={row}
         icon={icon}
-        below={row.id === 'rescuer' && on ? <RescuerReach /> : null}
+        below={
+          row.id === 'rescuer' && on ? (
+            <RescuerReach />
+          ) : row.id === 'chip' || row.id === 'shelter' ? (
+            <Caption>
+              En esta versión es un atajo de demostración, para poder ver funcionando los dos lados
+              de la regla. La verificación de verdad pide la cartilla del veterinario; la revisión
+              de una protectora la hace una persona mirando el perfil.
+            </Caption>
+          ) : null
+        }
         trailing={
           <View
             style={{

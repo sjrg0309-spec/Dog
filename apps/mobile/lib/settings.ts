@@ -143,6 +143,14 @@ export type SettingRow = {
   href?: string;
   /** Solo en `missing`: por qué no está. Sin excusa no entra en la lista. */
   why?: string;
+  /**
+   * Para qué tipo de cuenta tiene sentido esta fila.
+   *
+   * Una protectora no tiene chip que verificar y un tutor no tiene revisión de
+   * perfil pendiente. Enseñar la fila del otro sería enseñar un ajuste que no
+   * se puede tocar, que es la versión educada del interruptor decorativo.
+   */
+  only?: 'tutor' | 'rescuer';
 };
 
 export type SettingGroup = {
@@ -170,6 +178,30 @@ export const SETTINGS: readonly SettingGroup[] = [
         hint: 'Te llegan los avisos desde mucho más lejos, y también los que no son peligro para tu paseo',
         keywords: ['rescate', 'protectora', 'voluntaria', 'maltrato', 'avisos'],
         kind: 'switch',
+        only: 'tutor',
+      },
+    ],
+  },
+  {
+    id: 'trust',
+    title: 'Lo que abre tu cuenta',
+    note: 'Quién pasea ahora y a qué hora sale cada uno no se ve por tener cuenta: se ve al dejar algo comprobable. Los sitios sí.',
+    rows: [
+      {
+        id: 'chip',
+        label: 'Chip verificado',
+        hint: 'Abre el mapa de gente, los horarios y escribir el primero',
+        keywords: ['microchip', 'verificar', 'cartilla', 'tutor verificado', 'identidad'],
+        kind: 'switch',
+        only: 'tutor',
+      },
+      {
+        id: 'shelter',
+        label: 'Revisión de la cuenta',
+        hint: 'Aprobada, abre los avisos de rescate a kilómetros',
+        keywords: ['protectora', 'albergue', 'perfil', 'revisión', 'aprobar'],
+        kind: 'switch',
+        only: 'rescuer',
       },
     ],
   },
@@ -303,14 +335,17 @@ function fold(text: string): string {
  * un resultado: «Soy rescatista» debajo de «Quién te ve» se entiende, y suelta
  * en una lista parece otra casilla más.
  */
-export function searchSettings(query: string): SettingGroup[] {
+export function searchSettings(query: string, kind: 'tutor' | 'rescuer' = 'tutor'): SettingGroup[] {
   const needle = fold(query.trim());
-  if (needle === '') return [...SETTINGS];
 
   return SETTINGS.map((group) => ({
     ...group,
-    rows: group.rows.filter((row) =>
-      fold([row.label, row.hint, ...row.keywords].join(' ')).includes(needle),
-    ),
+    rows: group.rows
+      .filter((row) => row.only === undefined || row.only === kind)
+      .filter(
+        (row) =>
+          needle === '' ||
+          fold([row.label, row.hint, ...row.keywords].join(' ')).includes(needle),
+      ),
   })).filter((group) => group.rows.length > 0);
 }
