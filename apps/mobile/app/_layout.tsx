@@ -1,25 +1,40 @@
 import { useFonts } from 'expo-font';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { useDeclaredConditions } from '@/lib/conditions';
 import { FONT_MAP, fonts } from '@/lib/fonts';
-import { CalendarDays, Compass, Fence, Radar, Users, type LucideIcon } from '@/lib/icons';
+import { haptics } from '@/lib/haptics';
+import {
+  Map,
+  Megaphone,
+  MessageCircleMore,
+  PawPrint,
+  UserRound,
+  type LucideIcon,
+} from '@/lib/icons';
+import { useCriticalCount } from '@/lib/safety';
 import { useTheme } from '@/lib/theme';
 
 /**
  * Navegación principal.
  *
- * Cinco pestañas y ninguna más. La primera es el descubrimiento, que es lo que
- * hace que la aplicación sirva de algo cuando el radar está vacío —es decir, la
- * mayor parte del tiempo al empezar en un barrio.
+ * Cinco destinos, y la lista sale de la especificación visual: feed, explorar y
+ * mapa, SOS, mensajes y grupos, perfil.
  *
- * La quinta, comunidad, es la que da sentido a la aplicación para la mitad del
- * catálogo de especies: un gato, un gecko o un betta no van a conocer a nadie,
- * pero sus tutores sí se buscan entre ellos y todos necesitan saber qué
- * veterinario está de guardia el domingo.
+ * Lo que **no** está en la barra dice tanto como lo que está. El radar, las
+ * quedadas, los espacios y publicar siguen existiendo con sus pantallas
+ * enteras, pero se entra a ellos desde donde tienen sentido: el radar y las
+ * quedadas desde el mapa, publicar desde el feed. Son acciones y momentos, no
+ * sitios a los que uno «va». Meterlos en la barra costaba nueve pestañas y
+ * rótulos partidos.
+ *
+ * SOS va en el centro por la misma razón por la que un extintor va a la altura
+ * de la mano: cuando hace falta, hace falta ya, y nadie va a buscarlo en un
+ * menú.
  */
 export default function RootLayout() {
   return (
@@ -33,6 +48,8 @@ function RootTabs() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [fontsLoaded] = useFonts(FONT_MAP);
+  const { location } = useDeclaredConditions();
+  const criticalNearby = useCriticalCount(location);
 
   // Se espera a las fuentes antes de pintar. Sin esto, la primera pasada sale
   // con la fuente del sistema y salta a la definitiva, y el salto de métricas se
@@ -56,6 +73,9 @@ function RootTabs() {
     <>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <Tabs
+        // Un toque seco al cambiar de pestaña. Es el gesto más repetido de la
+        // aplicación y el único sitio donde la háptica es constante.
+        screenListeners={{ tabPress: () => haptics.tap() }}
         screenOptions={{
           // Cada pantalla dibuja su propia barra de navegación, con título
           // grande y separación que solo aparece al desplazar. La cabecera del
@@ -80,52 +100,81 @@ function RootTabs() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Descubrir',
+            title: 'Feed',
             tabBarIcon: ({ color, focused }) => (
-              <TabIcon icon={Compass} color={color} focused={focused} />
+              <TabIcon icon={PawPrint} color={color} focused={focused} />
             ),
           }}
         />
         <Tabs.Screen
-          name="radar"
+          name="explorar"
           options={{
-            title: 'Radar',
+            title: 'Explorar',
             tabBarIcon: ({ color, focused }) => (
-              <TabIcon icon={Radar} color={color} focused={focused} />
+              <TabIcon icon={Map} color={color} focused={focused} />
             ),
           }}
         />
         <Tabs.Screen
-          name="quedadas"
+          name="sos"
           options={{
-            title: 'Quedadas',
+            title: 'SOS',
+            /**
+             * La única pestaña que cambia de color sola.
+             *
+             * Con una alerta crítica abierta cerca se pinta en rojo esté o no
+             * seleccionada, y lleva el número al lado. El color no va solo: la
+             * cuenta se anuncia en la etiqueta accesible, porque quien no
+             * distinga el rojo tiene que enterarse igual.
+             */
+            tabBarBadge: criticalNearby > 0 ? criticalNearby : undefined,
+            tabBarBadgeStyle: {
+              backgroundColor: theme.colors.destructive,
+              color: theme.colors.destructiveForeground,
+              fontFamily: fonts.bodyBold,
+              fontSize: 11,
+            },
+            tabBarAccessibilityLabel:
+              criticalNearby > 0
+                ? `SOS. ${criticalNearby} ${criticalNearby === 1 ? 'alerta crítica abierta cerca' : 'alertas críticas abiertas cerca'}`
+                : 'SOS. Sin alertas abiertas cerca',
             tabBarIcon: ({ color, focused }) => (
-              <TabIcon icon={CalendarDays} color={color} focused={focused} />
+              <TabIcon
+                icon={Megaphone}
+                color={criticalNearby > 0 ? theme.colors.destructive : color}
+                focused={focused || criticalNearby > 0}
+              />
             ),
           }}
         />
         <Tabs.Screen
-          name="espacios"
+          name="mensajes"
           options={{
-            title: 'Espacios',
+            title: 'Mensajes',
             tabBarIcon: ({ color, focused }) => (
-              <TabIcon icon={Fence} color={color} focused={focused} />
+              <TabIcon icon={MessageCircleMore} color={color} focused={focused} />
             ),
           }}
         />
         <Tabs.Screen
-          name="comunidad"
+          name="perfil"
           options={{
-            title: 'Comunidad',
+            title: 'Perfil',
             tabBarIcon: ({ color, focused }) => (
-              <TabIcon icon={Users} color={color} focused={focused} />
+              <TabIcon icon={UserRound} color={color} focused={focused} />
             ),
           }}
         />
-        {/* Publicar no es un destino permanente sino una acción, así que vive en
-            la barra de navegación del feed y no ocupa una sexta pestaña. Cinco
-            es el máximo que cabe sin que los rótulos empiecen a partirse. */}
+
+        {/* Pantallas enteras a las que se entra desde donde tienen sentido, no
+            desde una barra con nueve pestañas. */}
+        <Tabs.Screen name="radar" options={{ href: null }} />
+        <Tabs.Screen name="quedadas" options={{ href: null }} />
+        <Tabs.Screen name="espacios" options={{ href: null }} />
+        <Tabs.Screen name="comunidad" options={{ href: null }} />
         <Tabs.Screen name="publicar" options={{ href: null }} />
+        <Tabs.Screen name="citas" options={{ href: null }} />
+        <Tabs.Screen name="descubrir" options={{ href: null }} />
       </Tabs>
     </>
   );
@@ -137,17 +186,9 @@ function RootTabs() {
  * Van marcados como decorativos porque la etiqueta de texto de la pestaña ya
  * aporta el nombre: anunciarlos duplicaría la lectura del lector de pantalla.
  */
-function TabIcon({
-  icon,
-  color,
-  focused,
-}: {
-  icon: LucideIcon;
-  color: string;
-  focused: boolean;
-}) {
+function TabIcon({ icon, color, focused }: { icon: LucideIcon; color: string; focused: boolean }) {
   // La pestaña activa no se distingue solo por el color: también engorda el
-  // trazo. Quien no separe el verde del gris tiene que poder verlo igualmente,
+  // trazo. Quien no separe la salvia del gris tiene que poder verlo igualmente,
   // y el rótulo de texto sigue debajo de todas formas.
   return <Icon icon={icon} size="lg" color={color} strokeWidth={focused ? 2.5 : 1.75} decorative />;
 }

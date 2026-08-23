@@ -10,7 +10,7 @@ import { LargeTitle } from '@/components/chrome';
 import { useActivePet } from '@/lib/active-pet';
 import { fonts } from '@/lib/fonts';
 import { ImagePlus, MapPin } from '@/lib/icons';
-import { PLACES } from '@/lib/demo-data';
+import { PLACES, type DemoPlace } from '@/lib/demo-data';
 import { UPLOAD_NOTE, publish } from '@/lib/posts';
 import { useTheme } from '@/lib/theme';
 
@@ -40,7 +40,15 @@ export default function ComposeScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageAlt, setImageAlt] = useState('');
   const [caption, setCaption] = useState('');
-  const [placeName, setPlaceName] = useState<string | null>(null);
+  /**
+   * El lugar elegido, entero y no solo su nombre.
+   *
+   * Hace falta el punto: es lo que decide si la publicación sale en «Cerca de
+   * mí». Guardar solo el rótulo obligaría luego a adivinar dónde está el Parque
+   * Central buscándolo por nombre, que es como se acaban desincronizando dos
+   * fuentes de la misma cosa.
+   */
+  const [place, setPlace] = useState<DemoPlace | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
@@ -171,12 +179,15 @@ export default function ComposeScreen() {
               Dónde
             </Text>
             <Row gap={2}>
-              {[null, PLACES.central.name, PLACES.retiro.name, PLACES.berlin.name].map((name) => (
+              {[null, PLACES.central, PLACES.retiro, PLACES.berlin].map((option) => {
+                const name = option?.name ?? null;
+                const selected = place?.id === option?.id;
+                return (
                 <Pressable
                   key={name ?? 'ninguno'}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: placeName === name }}
-                  onPress={() => setPlaceName(name)}
+                  accessibilityState={{ selected }}
+                  onPress={() => setPlace(option)}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -185,8 +196,8 @@ export default function ComposeScreen() {
                     paddingHorizontal: theme.space[4],
                     borderRadius: theme.radius.full,
                     borderWidth: 1,
-                    borderColor: placeName === name ? theme.colors.primary : theme.colors.border,
-                    backgroundColor: placeName === name ? theme.colors.primary : 'transparent',
+                    borderColor: selected ? theme.colors.primary : theme.colors.border,
+                    backgroundColor: selected ? theme.colors.primary : 'transparent',
                   }}
                 >
                   {name ? (
@@ -194,27 +205,25 @@ export default function ComposeScreen() {
                       icon={MapPin}
                       size="sm"
                       color={
-                        placeName === name
-                          ? theme.colors.primaryForeground
-                          : theme.colors.mutedForeground
+                        selected ? theme.colors.primaryForeground : theme.colors.mutedForeground
                       }
                       decorative
                     />
                   ) : null}
                   <Text
                     style={{
-                      color:
-                        placeName === name
-                          ? theme.colors.primaryForeground
-                          : theme.colors.mutedForeground,
-                      fontFamily: placeName === name ? fonts.bodyBold : fonts.body,
+                      color: selected
+                        ? theme.colors.primaryForeground
+                        : theme.colors.mutedForeground,
+                      fontFamily: selected ? fonts.bodyBold : fonts.body,
                       fontSize: theme.fontSize.sm,
                     }}
                   >
                     {name ?? 'Sin lugar'}
                   </Text>
                 </Pressable>
-              ))}
+                );
+              })}
             </Row>
             <Caption>
               Solo zonas pet-friendly. Es la misma lista desde la que se puede encender el radar, y
@@ -239,7 +248,8 @@ export default function ComposeScreen() {
                 imageUri,
                 imageAlt,
                 caption,
-                placeName,
+                placeName: place?.name ?? null,
+                point: place ? { lat: place.lat, lng: place.lng } : null,
               });
               router.replace('/');
             }}

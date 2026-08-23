@@ -18,6 +18,7 @@ import {
 
 import { Icon } from './icon';
 import { fonts } from '@/lib/fonts';
+import { haptics } from '@/lib/haptics';
 import type { LucideIcon } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
@@ -311,6 +312,137 @@ export function Notice({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+    </View>
+  );
+}
+
+/**
+ * Control segmentado.
+ *
+ * Dos o tres opciones excluyentes, todas visibles a la vez. Se usa para el
+ * alternador del feed y para las capas del mapa, y en los dos sitios importa lo
+ * mismo: **poder ver la otra opción sin tocarla**. Un desplegable escondería que
+ * existe un feed de vecindario, que es justo lo que hace distinta a esta
+ * aplicación de una red social cualquiera.
+ *
+ * Se anuncia como una lista de pestañas y no como botones sueltos, para que un
+ * lector de pantalla diga «2 de 2» y no obligue a adivinar cuántas hay.
+ */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: ReadonlyArray<{ id: T; label: string; hint?: string }>;
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View
+      accessibilityRole="tablist"
+      style={{
+        flexDirection: 'row',
+        backgroundColor: theme.colors.surfaceSunken,
+        borderRadius: theme.radius.full,
+        padding: theme.space[0.5],
+        gap: theme.space[0.5],
+      }}
+    >
+      {options.map((option) => {
+        const selected = option.id === value;
+        return (
+          <Pressable
+            key={option.id}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            accessibilityLabel={option.label}
+            accessibilityHint={option.hint}
+            onPress={() => {
+              if (selected) return;
+              haptics.tap();
+              onChange(option.id);
+            }}
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: theme.touchTarget.min - 6,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: theme.radius.full,
+              backgroundColor: selected ? theme.colors.surface : 'transparent',
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text
+              numberOfLines={1}
+              style={{
+                color: selected ? theme.colors.foreground : theme.colors.mutedForeground,
+                fontFamily: selected ? fonts.displayBold : fonts.body,
+                fontSize: theme.fontSize.sm,
+              }}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * Fila de datos: rótulo a la izquierda, valor a la derecha.
+ *
+ * Existe porque la ficha médica y la del espacio la repetían con estilos
+ * ligeramente distintos cada una, y dos tablas que deberían leerse igual se
+ * leían distinto.
+ */
+export function DataRow({
+  label,
+  value,
+  icon,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  icon?: LucideIcon;
+  /** `alert` para lo que está vencido o falta. */
+  tone?: 'default' | 'alert';
+}) {
+  const theme = useTheme();
+  const color = tone === 'alert' ? theme.colors.destructive : theme.colors.foreground;
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[3],
+        minHeight: theme.touchTarget.min,
+      }}
+    >
+      {icon ? <Icon icon={icon} size="base" color={theme.colors.mutedForeground} decorative /> : null}
+      <Text
+        style={{
+          flex: 1,
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.sm,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        style={{
+          color,
+          fontFamily: tone === 'alert' ? fonts.bodyBold : fonts.body,
+          fontSize: theme.fontSize.sm,
+          textAlign: 'right',
+        }}
+      >
+        {value}
+      </Text>
     </View>
   );
 }

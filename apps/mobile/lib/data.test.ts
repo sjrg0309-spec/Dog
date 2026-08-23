@@ -16,6 +16,16 @@ import { describe, expect, it } from 'vitest';
 import { findSpecies } from '@coincide/core';
 
 import {
+  bark,
+  countOutsideRadius,
+  feedSnapshot,
+  react,
+  scopePosts,
+  SEED_POSTS,
+  totalReactions,
+} from './posts';
+
+import {
   allPlaydates,
   communitiesFor,
   discover,
@@ -285,5 +295,99 @@ describe('publicaciones', () => {
     expect(timeAgo(new Date('2026-08-23T09:00:00Z'), now)).toBe('hace 3 h');
     expect(timeAgo(new Date('2026-08-22T12:00:00Z'), now)).toBe('ayer');
     expect(timeAgo(new Date('2026-08-20T12:00:00Z'), now)).toBe('hace 3 días');
+  });
+});
+
+/**
+ * El feed de vecindario.
+ *
+ * Las dos pestañas tienen que ser distintas de verdad, no el mismo feed con dos
+ * rótulos, y el radio tiene que recortar. Si alguna de las dos cosas deja de
+ * cumplirse, la pantalla sigue funcionando y el producto deja de ser de barrio.
+ */
+describe('el alcance del feed', () => {
+  const HERE = { lat: 40.4098, lng: -3.6939 };
+
+  it('«siguiendo» solo trae a quien se sigue, y es menos que el total', () => {
+    const following = scopePosts(SEED_POSTS, 'following', HERE, 5000);
+    expect(following.length).toBeGreaterThan(0);
+    expect(following.length).toBeLessThan(SEED_POSTS.length);
+  });
+
+  it('«cerca de mí» trae a quien no se sigue si está en el radio', () => {
+    const nearby = scopePosts(SEED_POSTS, 'nearby', HERE, 5000);
+    const following = new Set(
+      scopePosts(SEED_POSTS, 'following', HERE, 5000).map((entry) => entry.post.id),
+    );
+    // Ese es el punto entero de la pestaña: enseñar el barrio, no la agenda.
+    expect(nearby.some((entry) => !following.has(entry.post.id))).toBe(true);
+  });
+
+  it('el radio recorta de verdad, y lo recortado se puede contar', () => {
+    const near = scopePosts(SEED_POSTS, 'nearby', HERE, 5000);
+    const wide = scopePosts(SEED_POSTS, 'nearby', HERE, 10000);
+    expect(wide.length).toBeGreaterThan(near.length);
+    // Y el número que la pantalla enseña cuadra con lo que falta.
+    expect(countOutsideRadius(SEED_POSTS, HERE, 5000)).toBe(
+      SEED_POSTS.filter((post) => post.point !== null).length - near.length,
+    );
+  });
+
+  it('«siguiendo» ignora el radio: se sigue a quien se sigue, esté donde esté', () => {
+    expect(scopePosts(SEED_POSTS, 'following', HERE, 1).length).toBe(
+      scopePosts(SEED_POSTS, 'following', HERE, 999_999).length,
+    );
+  });
+
+  it('una publicación sin lugar no entra en el feed de vecindario', () => {
+    const homeless = { ...SEED_POSTS[0]!, id: 'sin-lugar', point: null };
+    const scoped = scopePosts([homeless], 'nearby', HERE, 999_999);
+    // Sin coordenadas no se puede afirmar que esté cerca. Colarla con distancia
+    // cero sería inventarse el dato más importante de la pestaña.
+    expect(scoped).toHaveLength(0);
+  });
+});
+
+/**
+ * Las reacciones son excluyentes.
+ *
+ * Sin esta regla una foto podría acabar con «5 lamidos y 5 colas» de las mismas
+ * cinco personas, y el número dejaría de significar nada.
+ */
+describe('reacciones', () => {
+  it('poner una quita la anterior y los totales cuadran', () => {
+    const post = SEED_POSTS.find((candidate) => candidate.myReaction === null);
+    expect(post).toBeDefined();
+    const before = totalReactions(post!);
+
+    react(post!.id, 'lick');
+    const afterFirst = feedSnapshot().find((p) => p.id === post!.id)!;
+    expect(afterFirst.myReaction).toBe('lick');
+    expect(totalReactions(afterFirst)).toBe(before + 1);
+
+    react(post!.id, 'wag');
+    const afterSwap = feedSnapshot().find((p) => p.id === post!.id)!;
+    expect(afterSwap.myReaction).toBe('wag');
+    // Cambiar de reacción no suma otra: sigue siendo una persona.
+    expect(totalReactions(afterSwap)).toBe(before + 1);
+
+    react(post!.id, 'wag');
+    const afterRemove = feedSnapshot().find((p) => p.id === post!.id)!;
+    expect(afterRemove.myReaction).toBeNull();
+    expect(totalReactions(afterRemove)).toBe(before);
+  });
+
+  it('ladrar no se puede deshacer ni repetir', () => {
+    const target = feedSnapshot().find((post) => !post.barkedByMe)!;
+    const before = target.barkCount;
+
+    bark(target.id);
+    bark(target.id);
+
+    const after = feedSnapshot().find((post) => post.id === target.id)!;
+    // Compartir manda la publicación a gente que no la tenía. Retirarla del feed
+    // de otro no está en tu mano, así que el botón no puede fingir que sí.
+    expect(after.barkCount).toBe(before + 1);
+    expect(after.barkedByMe).toBe(true);
   });
 });

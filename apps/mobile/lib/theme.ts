@@ -43,12 +43,20 @@ export const space = {
   20: 80,
 } as const;
 
+/**
+ * Radios. Mismos pasos que el token de la web.
+ *
+ * `lg` y `xl` viven en la franja de 16 a 24 px que pide la especificación
+ * visual. Los controles pequeños se quedan por debajo: 20 px de radio en un chip
+ * de 32 px de alto lo convierte en una pastilla y borra la jerarquía.
+ */
 export const radius = {
   xs: 4,
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 20,
+  sm: 8,
+  md: 12,
+  lg: 18,
+  xl: 24,
+  '2xl': 32,
   full: 9999,
 } as const;
 
@@ -84,8 +92,14 @@ export const fontWeight = {
   extrabold: '800',
 } as const;
 
-/** Área táctil mínima. 44 es el suelo, no el objetivo. */
-export const touchTarget = { min: 44, comfortable: 48 } as const;
+/**
+ * Área táctil mínima. 44 es el suelo, no el objetivo.
+ *
+ * `floating` es el botón de acción flotante, y su tamaño tiene motivo: se pulsa
+ * con una mano mientras la otra lleva la correa, a veces con guantes y a veces
+ * andando.
+ */
+export const touchTarget = { min: 44, comfortable: 48, floating: 64 } as const;
 
 export type Theme = {
   colors: SemanticTokens;

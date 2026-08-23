@@ -14,32 +14,81 @@
  *     red social genérica no: el perro de la foto está identificado, así que se
  *     puede decir «el tuyo encaja con este al 92 %». Sin eso, el feed sería
  *     bonito y no serviría para nada.
+ *  4. **El doble toque tiene su botón.** Deja caer el rastro de huellas y pone
+ *     la reacción, pero no es la única forma de ponerla: un gesto oculto que sea
+ *     el único camino a una función deja fuera a quien navega con lector de
+ *     pantalla, que no puede descubrirlo. La barra de abajo hace lo mismo con
+ *     etiquetas.
  */
 
-import { useState } from 'react';
-import { Image, Pressable, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  Image,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  type GestureResponderEvent,
+} from 'react-native';
+
+import { Link } from 'expo-router';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';
+import { PawTrail } from './paw-trail';
 import { Badge, Row } from './ui';
 import { fonts } from '@/lib/fonts';
-import { Heart, ImageOff, MapPin, MessageCircle, Send } from '@/lib/icons';
-import { addComment, timeAgo, toggleLike, type Post } from '@/lib/posts';
+import { haptics } from '@/lib/haptics';
+import { Bone, ImageOff, MapPin, MessageCircle, PawPrint, Send, Share2 } from '@/lib/icons';
+import { addComment, bark, react, REACTIONS, timeAgo, type Post } from '@/lib/posts';
 import { useTheme } from '@/lib/theme';
+
+/** El icono de cada reacción. El nombre y el texto viven en `lib/posts`. */
+const REACTION_ICON = { lick: Bone, wag: PawPrint } as const;
 
 export function PostCard({
   post,
   viewerName,
   affinity,
+  distanceLabel = null,
 }: {
   post: Post;
   viewerName: string;
   /** Cómo encaja el perro del tutor con el de la foto, si aplica. */
   affinity?: { score: number; band: string; label: string } | null;
+  /** A qué distancia se publicó. Solo aparece en el feed de vecindario. */
+  distanceLabel?: string | null;
 }) {
   const theme = useTheme();
   const [draft, setDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
+
+  /**
+   * El doble toque.
+   *
+   * Se resuelve a mano y no con `Pressable`, porque lo que hace falta no es
+   * «pulsación doble» sino **dónde** cayó el segundo dedo: el rastro de huellas
+   * empieza ahí. Y no se implementa como pulsación larga ni desliza nada: es un
+   * gesto conocido que no compite con el desplazamiento de la lista.
+   */
+  const lastTap = useRef(0);
+  const [trail, setTrail] = useState<{ key: number; x: number; y: number } | null>(null);
+
+  const onImageTap = (event: GestureResponderEvent) => {
+    const now = Date.now();
+    const { locationX, locationY } = event.nativeEvent;
+
+    if (now - lastTap.current < 280) {
+      lastTap.current = 0;
+      setTrail({ key: now, x: locationX, y: locationY });
+      // El doble toque siempre pone la reacción, nunca la quita. Quitarla por
+      // accidente al tocar dos veces de más sería el peor resultado posible.
+      if (post.myReaction !== 'wag') react(post.id, 'wag');
+      haptics.commit();
+      return;
+    }
+    lastTap.current = now;
+  };
 
   return (
     <View
@@ -73,18 +122,43 @@ export function PostCard({
             {post.petName}
           </Text>
           {post.placeName ? (
-            <Row gap={1}>
-              <Icon icon={MapPin} size="sm" color={theme.colors.mutedForeground} decorative />
-              <Text
-                style={{
-                  color: theme.colors.mutedForeground,
-                  fontFamily: fonts.body,
-                  fontSize: theme.fontSize.sm,
-                }}
+            // El lugar se toca y lleva al mapa. Un rótulo de ubicación que no
+            // hace nada es decoración con forma de enlace, y engaña dos veces:
+            // al dedo y al lector de pantalla, que lo anuncia como texto.
+            <Link href="/explorar" asChild>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`Ver ${post.placeName} en el mapa`}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.space[1],
+                  opacity: pressed ? 0.5 : 1,
+                })}
               >
-                {post.placeName}
-              </Text>
-            </Row>
+                <Icon icon={MapPin} size="sm" color={theme.colors.primary} decorative />
+                <Text
+                  style={{
+                    color: theme.colors.primary,
+                    fontFamily: fonts.bodyBold,
+                    fontSize: theme.fontSize.sm,
+                  }}
+                >
+                  {post.placeName}
+                </Text>
+                {distanceLabel ? (
+                  <Text
+                    style={{
+                      color: theme.colors.mutedForeground,
+                      fontFamily: fonts.body,
+                      fontSize: theme.fontSize.sm,
+                    }}
+                  >
+                    · a {distanceLabel}
+                  </Text>
+                ) : null}
+              </Pressable>
+            </Link>
           ) : null}
         </View>
         {affinity ? (
@@ -94,54 +168,86 @@ export function PostCard({
         ) : null}
       </View>
 
-      {/* La foto. Cuadrada siempre, para que el feed no dé saltos. */}
-      <PostImage uri={post.imageUri} alt={post.imageAlt} />
+      {/* La foto. Doble toque para mover la cola, con el rastro cayendo desde
+          donde tocó el dedo. */}
+      <View>
+        <Pressable
+          onPress={onImageTap}
+          // El gesto no se anuncia como botón: el lector de pantalla ya tiene
+          // los botones de la barra de abajo, y aquí anunciaría dos veces lo
+          // mismo. Lo que sí necesita es la descripción de la imagen, que la
+          // pone `PostImage`.
+          accessible={false}
+        >
+          <PostImage uri={post.imageUri} alt={post.imageAlt} />
+        </Pressable>
+        {trail ? (
+          <PawTrail
+            key={trail.key}
+            origin={{ x: trail.x, y: trail.y }}
+            onDone={() => setTrail(null)}
+          />
+        ) : null}
+      </View>
 
       {/* Acciones */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: theme.space[1],
+          gap: theme.space[0.5],
           paddingHorizontal: theme.space[2],
         }}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ selected: post.likedByMe }}
-          accessibilityLabel={
-            post.likedByMe
-              ? `Quitar me gusta. ${post.likeCount} en total`
-              : `Me gusta. ${post.likeCount} en total`
-          }
-          onPress={() => toggleLike(post.id)}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.space[2],
-            minHeight: theme.touchTarget.min,
-            paddingHorizontal: theme.space[3],
-            opacity: pressed ? 0.5 : 1,
-          })}
-        >
-          <Icon
-            icon={Heart}
-            size="base"
-            color={post.likedByMe ? theme.colors.destructive : theme.colors.foreground}
-            strokeWidth={post.likedByMe ? 2.75 : 2}
-            decorative
-          />
-          <Text
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: post.likedByMe ? fonts.bodyBold : fonts.body,
-              fontSize: theme.fontSize.sm,
-              fontVariant: ['tabular-nums'],
-            }}
-          >
-            {post.likeCount}
-          </Text>
-        </Pressable>
+        {REACTIONS.map((reaction) => {
+          const mine = post.myReaction === reaction.id;
+          const count = post.reactions[reaction.id];
+          return (
+            <Pressable
+              key={reaction.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: mine }}
+              accessibilityLabel={
+                mine
+                  ? `Quitar «${reaction.label}». ${count} en total`
+                  : `${reaction.label}. ${count} en total`
+              }
+              accessibilityHint={reaction.hint}
+              onPress={() => {
+                haptics.tap();
+                react(post.id, reaction.id);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.space[1.5],
+                minHeight: theme.touchTarget.min,
+                paddingHorizontal: theme.space[3],
+                opacity: pressed ? 0.5 : 1,
+              })}
+            >
+              <Icon
+                icon={REACTION_ICON[reaction.id]}
+                size="base"
+                // Puesta se pinta en terracota, que es el acento de la marca. No
+                // en rojo: el rojo de esta aplicación significa perro perdido.
+                color={mine ? theme.colors.liveRing : theme.colors.foreground}
+                strokeWidth={mine ? 2.75 : 2}
+                decorative
+              />
+              <Text
+                style={{
+                  color: mine ? theme.colors.liveRing : theme.colors.foreground,
+                  fontFamily: mine ? fonts.bodyBold : fonts.body,
+                  fontSize: theme.fontSize.sm,
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {count}
+              </Text>
+            </Pressable>
+          );
+        })}
 
         <Pressable
           accessibilityRole="button"
@@ -151,7 +257,7 @@ export function PostCard({
           style={({ pressed }) => ({
             flexDirection: 'row',
             alignItems: 'center',
-            gap: theme.space[2],
+            gap: theme.space[1.5],
             minHeight: theme.touchTarget.min,
             paddingHorizontal: theme.space[3],
             opacity: pressed ? 0.5 : 1,
@@ -167,6 +273,54 @@ export function PostCard({
             }}
           >
             {post.comments.length}
+          </Text>
+        </Pressable>
+
+        {/* Ladrar es compartir, no reaccionar. Va separado del par de arriba a
+            propósito: manda la publicación a gente que no la tenía. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: post.barkedByMe, selected: post.barkedByMe }}
+          accessibilityLabel={
+            post.barkedByMe
+              ? `Ya has ladrado esta publicación. ${post.barkCount} en total`
+              : `Ladrar: compartirla. ${post.barkCount} en total`
+          }
+          accessibilityHint={
+            post.barkedByMe
+              ? undefined
+              : 'La verá gente que no sigue a este perro. No se puede deshacer.'
+          }
+          disabled={post.barkedByMe}
+          onPress={() => {
+            haptics.commit();
+            bark(post.id);
+          }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.space[1.5],
+            minHeight: theme.touchTarget.min,
+            paddingHorizontal: theme.space[3],
+            opacity: pressed ? 0.5 : 1,
+          })}
+        >
+          <Icon
+            icon={Share2}
+            size="base"
+            color={post.barkedByMe ? theme.colors.primary : theme.colors.foreground}
+            strokeWidth={post.barkedByMe ? 2.75 : 2}
+            decorative
+          />
+          <Text
+            style={{
+              color: post.barkedByMe ? theme.colors.primary : theme.colors.foreground,
+              fontFamily: post.barkedByMe ? fonts.bodyBold : fonts.body,
+              fontSize: theme.fontSize.sm,
+              fontVariant: ['tabular-nums'],
+            }}
+          >
+            {post.barkCount}
           </Text>
         </Pressable>
 

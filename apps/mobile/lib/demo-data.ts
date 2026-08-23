@@ -413,6 +413,9 @@ export type DemoService = {
   /** Vacío significa "sin declarar", no "ninguna". */
   speciesServed: string[];
   distanceLabel: string;
+  /** Dónde está. Sin esto no puede salir en el mapa, que es donde se busca. */
+  lat: number;
+  lng: number;
 };
 
 export const SERVICES: DemoService[] = [
@@ -424,6 +427,8 @@ export const SERVICES: DemoService[] = [
     isVerified: true,
     speciesServed: ['dog'],
     distanceLabel: '1,8 km',
+    lat: 40.4142,
+    lng: -3.7005,
   },
   {
     id: '90000000-0000-4000-8000-000000000002',
@@ -433,6 +438,8 @@ export const SERVICES: DemoService[] = [
     isVerified: true,
     speciesServed: ['dog'],
     distanceLabel: '2,4 km',
+    lat: 40.4021,
+    lng: -3.6981,
   },
   {
     id: '90000000-0000-4000-8000-000000000003',
@@ -442,6 +449,8 @@ export const SERVICES: DemoService[] = [
     isVerified: true,
     speciesServed: ['dog'],
     distanceLabel: '3,1 km',
+    lat: 40.4166,
+    lng: -3.6829,
   },
   {
     id: '90000000-0000-4000-8000-000000000004',
@@ -451,6 +460,49 @@ export const SERVICES: DemoService[] = [
     isVerified: false,
     speciesServed: ['dog'],
     distanceLabel: '900 m',
+    lat: 40.4067,
+    lng: -3.6906,
   },
 ];
 
+
+/**
+ * Fuentes de agua públicas.
+ *
+ * Son marcadores propios y no «lugares» ni «servicios», porque no son ninguna de
+ * las dos cosas: no se puede hacer check-in en una fuente ni tiene horario. Lo
+ * que sí tiene es una utilidad concreta a 35 grados, y es de las pocas capas del
+ * mapa que se usa a diario y no una vez al año.
+ */
+export type DemoWaterPoint = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  /** Si tiene el bebedero bajo, para perros. Una fuente alta no sirve. */
+  hasDogBowl: boolean;
+};
+
+export const WATER_POINTS: DemoWaterPoint[] = [
+  {
+    id: 'w1',
+    name: 'Fuente del paseo central',
+    lat: 40.4105,
+    lng: -3.6928,
+    hasDogBowl: true,
+  },
+  {
+    id: 'w2',
+    name: 'Fuente de la entrada sur',
+    lat: 40.4082,
+    lng: -3.6947,
+    hasDogBowl: false,
+  },
+  {
+    id: 'w3',
+    name: 'Bebedero del Retiro',
+    lat: 40.4149,
+    lng: -3.6858,
+    hasDogBowl: true,
+  },
+];

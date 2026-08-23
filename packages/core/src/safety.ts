@@ -51,7 +51,14 @@ export type SafetyScenario = {
    * perro asustado, no.
    */
   growthPerHourM: number;
-  /** Tope, para que una alerta vieja no acabe avisando a media ciudad. */
+  /**
+   * Tope, para que una alerta vieja no acabe avisando a media ciudad.
+   *
+   * En un escenario que no crece es igual al inicial, y no mayor. Un tope que
+   * no se puede alcanzar es un número que miente: se lee como «esto puede
+   * llegar a un kilómetro» cuando el aviso se queda en quinientos metros para
+   * siempre. Hay un test que lo comprueba.
+   */
   maxRadiusM: number;
   /** Qué hacer, en orden. Es lo único accionable cuando alguien está nervioso. */
   steps: readonly string[];
@@ -178,7 +185,7 @@ export const SAFETY_SCENARIOS: readonly SafetyScenario[] = [
     // aviso hasta que nadie lo mirase.
     initialRadiusM: 500,
     growthPerHourM: 0,
-    maxRadiusM: 1000,
+    maxRadiusM: 500,
     steps: [
       'Con correa corta al pasar por la zona y bozal si come del suelo.',
       'Si ha comido algo: al veterinario ya, sin esperar síntomas.',
@@ -194,7 +201,7 @@ export const SAFETY_SCENARIOS: readonly SafetyScenario[] = [
     severity: 'critical',
     initialRadiusM: 400,
     growthPerHourM: 0,
-    maxRadiusM: 800,
+    maxRadiusM: 400,
     steps: [
       'No pases bajo pinos con orugas en fila ni con bolsones en las ramas.',
       'Si la ha tocado: lavar la boca con agua abundante y al veterinario inmediatamente.',
@@ -210,7 +217,7 @@ export const SAFETY_SCENARIOS: readonly SafetyScenario[] = [
     severity: 'warning',
     initialRadiusM: 1000,
     growthPerHourM: 0,
-    maxRadiusM: 2000,
+    maxRadiusM: 1000,
     steps: [
       'Pon el dorso de la mano en el suelo cinco segundos: si no aguantas, él tampoco.',
       'Hierba, tierra o sombra, o a otra hora.',
@@ -239,7 +246,7 @@ export const SAFETY_SCENARIOS: readonly SafetyScenario[] = [
     severity: 'info',
     initialRadiusM: 300,
     growthPerHourM: 0,
-    maxRadiusM: 600,
+    maxRadiusM: 300,
     steps: ['Evita la zona.', 'Si ha pisado algo, revisa entre los dedos antes de que se lama.'],
   },
 
@@ -253,7 +260,7 @@ export const SAFETY_SCENARIOS: readonly SafetyScenario[] = [
     severity: 'critical',
     initialRadiusM: 1500,
     growthPerHourM: 0,
-    maxRadiusM: 3000,
+    maxRadiusM: 1500,
     steps: [
       'Si el tuyo no tiene la pauta terminada, no lo lleves a esa zona.',
       'Un animal con síntomas no va al parque, aunque parezca leve.',
