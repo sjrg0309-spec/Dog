@@ -1,4 +1,4 @@
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -228,13 +228,19 @@ export default function FeedScreen() {
         {/* La salida hacia el motor. El feed entretiene; esto es lo que hace que
             el paseo ocurra, así que no se puede quedar sin puerta. */}
         <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[8] }}>
-          <Link href="/descubrir" asChild>
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={`Ver con quién puede salir ${pet.name}`}
-              style={({ pressed }) => ({
+            {/* Sin `Link asChild`: en web el envoltorio se queda con el estilo
+                del `Pressable` y el `<a>` sale en columna, así que la fila de
+                icono y texto se convierte en renglones apilados. */}
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`Ver con quién puede salir ${pet.name}`}
+            onPress={() => {
+              haptics.tap();
+              router.push('/descubrir');
+            }}
+            style={({ pressed }) => ({
                 flexDirection: 'row',
-                alignItems: 'center',
+              alignItems: 'center',
                 gap: theme.space[3],
                 minHeight: theme.touchTarget.comfortable,
                 paddingHorizontal: theme.space[4],
@@ -245,29 +251,28 @@ export default function FeedScreen() {
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <Icon icon={Compass} size="lg" color={theme.colors.primary} decorative />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    color: theme.colors.foreground,
-                    fontFamily: fonts.displayBold,
-                    fontSize: theme.fontSize.base,
-                  }}
-                >
-                  Con quién puede salir {pet.name}
-                </Text>
-                <Text
-                  style={{
-                    color: theme.colors.mutedForeground,
-                    fontFamily: fonts.body,
-                    fontSize: theme.fontSize.sm,
-                  }}
-                >
-                  Temperamento, horarios y cercanía, por separado
-                </Text>
-              </View>
-            </Pressable>
-          </Link>
+            <Icon icon={Compass} size="lg" color={theme.colors.primary} decorative />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.displayBold,
+                  fontSize: theme.fontSize.base,
+                }}
+              >
+                Con quién puede salir {pet.name}
+              </Text>
+              <Text
+                style={{
+                  color: theme.colors.mutedForeground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.sm,
+                }}
+              >
+                Temperamento, horarios y cercanía, por separado
+              </Text>
+            </View>
+          </Pressable>
         </View>
       </ScrollView>
     </Screen>

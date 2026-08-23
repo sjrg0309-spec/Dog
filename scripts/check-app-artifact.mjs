@@ -82,6 +82,41 @@ for (const tab of TABS) {
   const text = (await page.locator('#root').innerText()).trim();
   console.log(`${tab.padEnd(10)} caracteres=${text.length}`);
   if (text.length < 80) problems.push(`${tab}: la pantalla quedó vacía`);
+
+  /*
+   * Filas de enlace que se han desmontado en columna.
+   *
+   * Es el fallo de `Link asChild` de expo-router en web: el `<a>` que genera se
+   * queda con el estilo del `Pressable` que envuelve —sobre todo si el estilo
+   * es una función de `pressed`— y sale con `flex-direction: column`. Una fila
+   * de icono, título y flecha se convierte en cuatro renglones apilados a todo
+   * lo ancho.
+   *
+   * No lo ve el tipado, no lo ve ningún test unitario y no se nota en una
+   * captura si la fila cae por debajo del pliegue, que es exactamente lo que
+   * pasó: llevaba puesto en el feed, en mensajes y en el mapa sin que nadie lo
+   * viera. La firma es inconfundible —un enlace en columna que contiene a la
+   * vez un icono y texto— y se puede buscar en el DOM, así que se busca.
+   */
+  const collapsed = await page.evaluate(() =>
+    [...document.querySelectorAll('a')]
+      .filter((link) => {
+        if (getComputedStyle(link).flexDirection !== 'column') return false;
+        const hasIcon = link.querySelector('svg') !== null;
+        const hasText = (link.innerText ?? '').trim().length > 0;
+        if (!hasIcon || !hasText) return false;
+        /* El ancho es lo que separa el fallo de lo correcto, y hubo que
+           añadirlo: la primera versión de esta regla marcó las cinco pestañas
+           de abajo, que son columnas **a propósito** —icono encima, rótulo
+           debajo— y miden setenta y ocho píxeles. Una fila que se ha
+           desmontado ocupa el ancho entero, porque venía de serlo. */
+        return link.getBoundingClientRect().width > 200;
+      })
+      .map((link) => (link.getAttribute('aria-label') ?? link.innerText).slice(0, 60)),
+  );
+  for (const label of collapsed) {
+    problems.push(`${tab}: la fila «${label}» se ha desmontado en columna`);
+  }
 }
 
 /*

@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { ConditionsControl } from '@/components/conditions-control';
@@ -32,6 +32,7 @@ import { useTheme } from '@/lib/theme';
  */
 export default function DiscoverScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
@@ -59,23 +60,24 @@ export default function DiscoverScreen() {
         title="Con quién salir"
         scrolled={scrolled}
         trailing={
+          // Sin `Link asChild`: en web el `<a>` que genera se queda con el
+          // estilo del `Pressable` y lo saca de su fila.
           social ? (
-            <Link href="/citas" asChild>
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel="Modo cita de juego"
-                accessibilityHint="Ver los perfiles compatibles de uno en uno"
-                style={({ pressed }) => ({
-                  width: theme.touchTarget.min,
-                  height: theme.touchTarget.min,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.5 : 1,
-                })}
-              >
-                <Icon icon={Sparkles} size="lg" decorative />
-              </Pressable>
-            </Link>
+            <Pressable
+              onPress={() => router.push('/citas')}
+              accessibilityRole="link"
+              accessibilityLabel="Modo cita de juego"
+              accessibilityHint="Ver los perfiles compatibles de uno en uno"
+              style={({ pressed }) => ({
+                width: theme.touchTarget.min,
+                height: theme.touchTarget.min,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.5 : 1,
+              })}
+            >
+              <Icon icon={Sparkles} size="lg" decorative />
+            </Pressable>
           ) : undefined
         }
       />

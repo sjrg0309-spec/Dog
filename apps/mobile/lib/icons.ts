@@ -101,6 +101,8 @@ export {
   CalendarPlus,
   Bookmark,
   Plus,
+  /** El «−» del control de alejar del mapa. Va en pareja con `Plus`. */
+  Minus,
   /** El cuadrado con el «+» de la cabecera del feed: publicar. */
   SquarePlus,
   Check,

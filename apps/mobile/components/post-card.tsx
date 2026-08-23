@@ -33,7 +33,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';
@@ -83,6 +83,7 @@ export function PostCard({
   distanceLabel?: string | null;
 }) {
   const theme = useTheme();
+  const router = useRouter();
   const [draft, setDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
@@ -162,23 +163,24 @@ export function PostCard({
             // perro: dos líneas del mismo peso, y la segunda encima pintada de
             // color. Ahora es la subordinada que siempre fue —doce, sin
             // negrita, sin icono—, y el color sigue diciendo que se toca.
-            <Link href="/explorar" asChild>
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel={`Ver ${post.placeName} en el mapa`}
-                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            // Sin `Link asChild`: en web el `<a>` que genera se queda con el
+            // estilo del `Pressable`, así que el gesto de pulsado se pierde.
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`Ver ${post.placeName} en el mapa`}
+              onPress={() => router.push('/explorar')}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            >
+              <Text
+                style={{
+                  color: theme.colors.primary,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.xs,
+                }}
               >
-                <Text
-                  style={{
-                    color: theme.colors.primary,
-                    fontFamily: fonts.body,
-                    fontSize: theme.fontSize.xs,
-                  }}
-                >
-                  {post.placeName}
-                </Text>
-              </Pressable>
-            </Link>
+                {post.placeName}
+              </Text>
+            </Pressable>
           ) : null}
         </View>
         {affinity ? (

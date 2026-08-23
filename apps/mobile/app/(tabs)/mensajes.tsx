@@ -1,4 +1,4 @@
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -228,23 +228,31 @@ export default function MessagesScreen() {
               alguien te interesa y todavía no hay hilo, la vía es apuntarse a lo mismo, no un
               botón de mensaje sobre su perfil.
             </Caption>
-            <Link href="/descubrir" asChild>
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel="Ver con quién coincides"
-                style={{ minHeight: theme.touchTarget.min, justifyContent: 'center' }}
+            {/* Sin `Link asChild`: en web el envoltorio se queda con el estilo
+                del `Pressable` que envuelve y el `<a>` sale en columna. */}
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Ver con quién coincides"
+              onPress={() => {
+                haptics.tap();
+                router.push('/descubrir');
+              }}
+              style={({ pressed }) => ({
+                minHeight: theme.touchTarget.min,
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  color: theme.colors.primary,
+                  fontFamily: fonts.bodyBold,
+                  fontSize: theme.fontSize.base,
+                }}
               >
-                <Text
-                  style={{
-                    color: theme.colors.primary,
-                    fontFamily: fonts.bodyBold,
-                    fontSize: theme.fontSize.base,
-                  }}
-                >
-                  Ver con quién coincides
-                </Text>
-              </Pressable>
-            </Link>
+                Ver con quién coincides
+              </Text>
+            </Pressable>
           </Notice>
         </View>
       </ScrollView>
