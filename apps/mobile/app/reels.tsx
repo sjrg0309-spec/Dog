@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { SceneView } from '@/components/scene';
+import { buildScene } from '@/lib/artwork';
 import { Icon } from '@/components/icon';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -19,6 +21,7 @@ import {
   Ellipsis,
   MapPin,
   MessageCircle,
+  Play,
   Share2,
   Thermometer,
   TriangleAlert,
@@ -30,7 +33,7 @@ import {
 import { SURFACE_LABEL } from '@/lib/conditions';
 import { barkReel, reactToReel, reelWarning, REPORT_REASONS, useReels, type Reel } from '@/lib/reels';
 import { timeAgo } from '@/lib/posts';
-import { darkColors, useTheme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 /**
  * El reproductor de reels.
@@ -148,6 +151,10 @@ function ReelPage({
   const theme = useTheme();
   const [reporting, setReporting] = useState(false);
   const warning = reelWarning(reel);
+  const scene = useMemo(
+    () => buildScene({ seed: reel.id, petId: reel.petId, at: reel.createdAt, width: 360, height: 640, pose: 'run' }),
+    [reel.id, reel.petId, reel.createdAt],
+  );
 
   return (
     <View style={{ width, height, backgroundColor: '#000' }}>
@@ -158,38 +165,31 @@ function ReelPage({
         accessible
         accessibilityRole="image"
         accessibilityLabel={reel.alt}
-        style={{
-          width,
-          height,
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: theme.space[8],
-          gap: theme.space[3],
-          backgroundColor: theme.colors.surfaceSunken,
-        }}
+        style={{ width, height }}
       >
-        <Icon icon={Video} size="xl" color={theme.colors.mutedForeground} decorative />
-        <Text
+        <SceneView scene={scene} width={width} height={height} />
+
+        {/* El sello de que es un dibujo, y la duración. Van juntos abajo a la
+            izquierda porque son la misma clase de dato: qué estás mirando. */}
+        <View
           style={{
-            color: theme.colors.mutedForeground,
-            fontFamily: fonts.body,
-            fontSize: theme.fontSize.base,
-            textAlign: 'center',
-            lineHeight: theme.fontSize.base * 1.5,
+            position: 'absolute',
+            left: theme.space[4],
+            bottom: height * 0.42,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.space[1],
+            paddingHorizontal: theme.space[2],
+            paddingVertical: 2,
+            borderRadius: theme.radius.xs,
+            backgroundColor: 'rgba(0,0,0,0.5)',
           }}
         >
-          {reel.alt}
-        </Text>
-        <Text
-          style={{
-            color: theme.colors.mutedForeground,
-            fontFamily: fonts.bodyBold,
-            fontSize: theme.fontSize.xs,
-          }}
-        >
-          {reel.durationS} s · sin vídeo en la demostración
-          {active ? '' : ' · en pausa'}
-        </Text>
+          <Icon icon={active ? Video : Play} size="sm" color="#fff" decorative />
+          <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+            {reel.durationS} s · ilustración generada{active ? '' : ' · en pausa'}
+          </Text>
+        </View>
       </View>
 
       {/* La etiqueta de condiciones, arriba y no escondida abajo. */}

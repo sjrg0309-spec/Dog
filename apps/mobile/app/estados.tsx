@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -11,15 +11,17 @@ import {
 } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { SceneView } from '@/components/scene';
+import { buildScene } from '@/lib/artwork';
 import { Icon } from '@/components/icon';
 import { useActivePet } from '@/lib/active-pet';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { Eye, ImageOff, MapPin, Send, Video, X } from '@/lib/icons';
+import { Eye, MapPin, Send, Sparkles, Video, X } from '@/lib/icons';
 import { useReducedMotion } from '@/lib/motion';
 import { timeAgo } from '@/lib/posts';
 import { expiresInLabel, markStoryViewed, useStoryGroups, type Story } from '@/lib/stories';
-import { darkColors, useTheme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 /**
  * El visor de estados.
@@ -418,6 +420,10 @@ export default function StoriesScreen() {
  */
 function StoryMedia({ story, width, height }: { story: Story; width: number; height: number }) {
   const theme = useTheme();
+  const scene = useMemo(
+    () => buildScene({ seed: story.id, petId: story.petId, at: story.createdAt, width: 360, height: 640 }),
+    [story.id, story.petId, story.createdAt],
+  );
 
   if (story.kind === 'text') {
     return (
@@ -449,48 +455,37 @@ function StoryMedia({ story, width, height }: { story: Story; width: number; hei
   }
 
   return (
-    <View
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel={story.alt}
-      style={{
-        width,
-        height,
-        // Oscuro siempre: el visor lleva su cromo en blanco encima, así que con
-        // el fondo del tema claro debajo no se leería nada.
-        backgroundColor: darkColors.surfaceSunken,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: theme.space[8],
-        gap: theme.space[3],
-      }}
-    >
-      <Icon
-        icon={story.kind === 'video' ? Video : ImageOff}
-        size="xl"
-        color={darkColors.mutedForeground}
-        decorative
-      />
-      <Text
+    <View accessible accessibilityRole="image" accessibilityLabel={story.alt} style={{ width, height }}>
+      <SceneView scene={scene} width={width} height={height} />
+
+      <View
         style={{
-          color: darkColors.mutedForeground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize.base,
-          textAlign: 'center',
-          lineHeight: theme.fontSize.base * 1.5,
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: height * 0.42,
+          paddingHorizontal: theme.space[8],
+          alignItems: 'center',
+          gap: theme.space[2],
         }}
       >
-        {story.alt}
-      </Text>
-      <Text
-        style={{
-          color: darkColors.mutedForeground,
-          fontFamily: fonts.bodyBold,
-          fontSize: theme.fontSize.xs,
-        }}
-      >
-        {story.kind === 'video' ? 'Sin vídeo en la demostración' : 'Sin foto en la demostración'}
-      </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.space[1],
+            paddingHorizontal: theme.space[2],
+            paddingVertical: 2,
+            borderRadius: theme.radius.xs,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}
+        >
+          <Icon icon={story.kind === 'video' ? Video : Sparkles} size="sm" color="#fff" decorative />
+          <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+            {story.kind === 'video' ? 'Vídeo · ilustración generada' : 'Ilustración generada'}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }

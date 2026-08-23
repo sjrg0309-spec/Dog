@@ -20,6 +20,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';
+import { Pulse } from './motion';
 import { StoryRing } from './story-ring';
 import type { DemoPet } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
@@ -192,9 +193,13 @@ function Bubble({
     >
       <View style={{ alignItems: 'center', gap: theme.space[1], width: 76 }}>
         <View>
-          <StoryRing size={62} state={ring}>
-            <Avatar id={id} name={name} size={62} />
-          </StoryRing>
+          {/* El pulso es el único movimiento continuo de la aplicación y solo
+              lo lleva quien está fuera **ahora**. Por eso significa algo. */}
+          <Pulse active={live === true}>
+            <StoryRing size={62} state={ring}>
+              <Avatar id={id} name={name} size={62} />
+            </StoryRing>
+          </Pulse>
 
           {showAdd ? (
             <View

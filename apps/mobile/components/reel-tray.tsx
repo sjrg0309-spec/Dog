@@ -14,11 +14,17 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Icon } from './icon';
+import { SceneView } from './scene';
+import { buildScene } from '@/lib/artwork';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import { ChevronRight, TriangleAlert, Video } from '@/lib/icons';
 import { reelWarning, useReels } from '@/lib/reels';
 import { useTheme } from '@/lib/theme';
+
+/** La misma escena que abre el reproductor: una sola fuente por reel. */
+const sceneFor = (id: string, petId: string, at: Date) =>
+  buildScene({ seed: id, petId, at, width: 360, height: 640, pose: 'run' });
 
 export function ReelTray({ onOpen }: { onOpen: (id: string) => void }) {
   const theme = useTheme();
@@ -105,26 +111,36 @@ export function ReelTray({ onOpen }: { onOpen: (id: string) => void }) {
                 backgroundColor: theme.colors.surfaceSunken,
                 borderWidth: 1,
                 borderColor: theme.colors.border,
-                padding: theme.space[2],
                 justifyContent: 'space-between',
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              {/* La miniatura es la misma escena del reproductor, no un dibujo
+                  aparte: si fueran dos, el vídeo que abres no sería el que has
+                  elegido. */}
+              <View style={{ position: 'absolute', left: 0, top: 0 }}>
+                <SceneView
+                  scene={sceneFor(reel.id, reel.petId, reel.createdAt)}
+                  width={132}
+                  height={(132 * 16) / 9}
+                />
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  padding: theme.space[2],
+                }}
+              >
                 <View
                   style={{
                     paddingHorizontal: theme.space[1.5],
                     borderRadius: theme.radius.xs,
-                    backgroundColor: theme.colors.foreground,
+                    backgroundColor: 'rgba(0,0,0,0.55)',
                   }}
                 >
-                  <Text
-                    style={{
-                      color: theme.colors.background,
-                      fontFamily: fonts.bodyBold,
-                      fontSize: 10,
-                    }}
-                  >
+                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 10 }}>
                     {reel.durationS}s
                   </Text>
                 </View>
@@ -140,21 +156,25 @@ export function ReelTray({ onOpen }: { onOpen: (id: string) => void }) {
                 ) : null}
               </View>
 
-              <View style={{ gap: 2 }}>
+              {/* Un velo oscuro solo debajo del texto: sobre una ilustración
+                  clara, el nombre en blanco desaparecería. */}
+              <View
+                style={{
+                  gap: 2,
+                  padding: theme.space[2],
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                }}
+              >
                 <Text
                   numberOfLines={1}
-                  style={{
-                    color: theme.colors.foreground,
-                    fontFamily: fonts.displayBold,
-                    fontSize: theme.fontSize.sm,
-                  }}
+                  style={{ color: '#fff', fontFamily: fonts.displayBold, fontSize: theme.fontSize.sm }}
                 >
                   {reel.petName}
                 </Text>
                 <Text
                   numberOfLines={2}
                   style={{
-                    color: theme.colors.mutedForeground,
+                    color: 'rgba(255,255,255,0.9)',
                     fontFamily: fonts.body,
                     fontSize: 11,
                     lineHeight: 14,

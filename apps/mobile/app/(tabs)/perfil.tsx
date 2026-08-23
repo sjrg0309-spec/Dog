@@ -6,7 +6,9 @@ import { Avatar } from '@/components/avatar';
 import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { SceneView } from '@/components/scene';
 import { StoryRing } from '@/components/story-ring';
+import { buildScene } from '@/lib/artwork';
 import {
   Badge,
   Body,
@@ -500,30 +502,21 @@ function PostGrid({
           style={{
             width: cell,
             height: cell,
+            overflow: 'hidden',
             backgroundColor: theme.colors.surfaceSunken,
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: theme.space[2],
           }}
         >
-          {post.imageUri ? null : (
-            <>
-              <Icon icon={ImageOff} size="base" color={theme.colors.mutedForeground} decorative />
-              <Text
-                numberOfLines={3}
-                style={{
-                  marginTop: theme.space[1],
-                  color: theme.colors.mutedForeground,
-                  fontFamily: fonts.body,
-                  fontSize: 10,
-                  textAlign: 'center',
-                  lineHeight: 13,
-                }}
-              >
-                {post.imageAlt}
-              </Text>
-            </>
-          )}
+          <SceneView
+            scene={buildScene({
+              seed: post.id,
+              petId: post.petId,
+              at: post.createdAt,
+              width: 400,
+              height: 400,
+            })}
+            width={cell}
+            height={cell}
+          />
         </View>
       ))}
     </View>

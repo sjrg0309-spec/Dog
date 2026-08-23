@@ -24,6 +24,7 @@ import {
   SEED_POSTS,
   totalReactions,
 } from './posts';
+import { buildPortrait, buildScene, sceneToSvg } from './artwork';
 import { REPORT_REASONS, reelWarning, reelsSnapshot } from './reels';
 import {
   groupStories,
@@ -509,5 +510,64 @@ describe('condiciones de un reel', () => {
   it('el primer motivo de denuncia recoge el daño propio de este formato', () => {
     // Un formulario que solo ofrece «spam» y «desnudos» no sirve aquí.
     expect(REPORT_REASONS[0]).toMatch(/reto/i);
+  });
+});
+
+/**
+ * La ilustración generada.
+ *
+ * Se comprueba lo que la hace servir de algo, no que dibuje bonito: que el
+ * mismo animal salga siempre igual, que dos vecinos salgan distintos, y que la
+ * hora mande en el cielo. Sin lo primero deja de servir para reconocer a nadie;
+ * sin lo segundo el feed vuelve a parecer una plantilla.
+ */
+describe('ilustración generada', () => {
+  const NINA = '20000000-0000-4000-8000-000000000001';
+  const TOBY = '20000000-0000-4000-8000-000000000002';
+  const at = new Date(2026, 7, 23, 18, 0, 0);
+
+  const build = (seed: string, petId: string, when = at) =>
+    buildScene({ seed, petId, at: when, width: 400, height: 400 });
+
+  it('el mismo animal y la misma publicación dan siempre el mismo dibujo', () => {
+    expect(sceneToSvg(build('post-1', NINA))).toBe(sceneToSvg(build('post-1', NINA)));
+  });
+
+  it('dos vecinos salen distintos', () => {
+    expect(sceneToSvg(build('post-1', NINA))).not.toBe(sceneToSvg(build('post-1', TOBY)));
+  });
+
+  it('dos publicaciones del mismo animal salen distintas', () => {
+    // Si no, el feed de un solo perro sería la misma imagen repetida.
+    expect(sceneToSvg(build('post-1', NINA))).not.toBe(sceneToSvg(build('post-2', NINA)));
+  });
+
+  it('la hora manda en el cielo', () => {
+    const hours: Array<[number, string]> = [
+      [6, 'dawn'],
+      [12, 'day'],
+      [18, 'golden'],
+      [23, 'night'],
+    ];
+    for (const [hour, expected] of hours) {
+      expect(build('post-1', NINA, new Date(2026, 7, 23, hour, 0, 0)).time).toBe(expected);
+    }
+  });
+
+  it('cada escena lleva su propio identificador de degradado', () => {
+    // Los `id` de un degradado SVG son globales al documento. Con dieciséis
+    // escenas en la misma pantalla —y el feed son justo eso— dos que
+    // compartieran `id` harían que la segunda heredara el cielo de la primera.
+    const uids = ['a', 'b', 'c', 'd'].map((seed) => build(seed, NINA).uid);
+    expect(new Set(uids).size).toBe(uids.length);
+    for (const uid of uids) {
+      expect(sceneToSvg(build('a', NINA)).includes('id="g-')).toBe(true);
+      expect(uid.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('el retrato del avatar es estable y propio de cada animal', () => {
+    expect(sceneToSvg(buildPortrait(NINA, 64))).toBe(sceneToSvg(buildPortrait(NINA, 64)));
+    expect(sceneToSvg(buildPortrait(NINA, 64))).not.toBe(sceneToSvg(buildPortrait(TOBY, 64)));
   });
 });

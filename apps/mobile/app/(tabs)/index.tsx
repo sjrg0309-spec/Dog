@@ -6,6 +6,7 @@ import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
 import { Fab, FAB_CLEARANCE } from '@/components/fab';
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { Appear } from '@/components/motion';
 import { PostCard } from '@/components/post-card';
 import { ReelTray } from '@/components/reel-tray';
 import { StoryRail } from '@/components/story-rail';
@@ -269,13 +270,10 @@ export default function FeedScreen() {
             <EmptyFeed scope={scope} radiusM={radiusM} outside={outside} onSwitch={setScope} />
           </View>
         ) : (
-          entries.map(({ post, distanceLabel }) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              viewerName={pet.ownerName}
-              distanceLabel={distanceLabel}
-            />
+          entries.map(({ post, distanceLabel }, index) => (
+            <Appear key={post.id} index={index}>
+              <PostCard post={post} viewerName={pet.ownerName} distanceLabel={distanceLabel} />
+            </Appear>
           ))
         )}
 

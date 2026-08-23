@@ -15,6 +15,8 @@
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { Icon } from './icon';
+import { SceneView } from './scene';
+import { buildScene } from '@/lib/artwork';
 import { Caption } from './ui';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -49,27 +51,50 @@ export function ReelGrid({ onOpen }: { onOpen: (id: string) => void }) {
                 borderRadius: theme.radius.md,
                 overflow: 'hidden',
                 backgroundColor: theme.colors.surfaceSunken,
-                borderWidth: 1,
+                borderWidth: 2,
                 borderColor: warning
                   ? warning.level === 'stop'
                     ? theme.colors.destructive
                     : theme.colors.warning
-                  : theme.colors.border,
-                padding: theme.space[3],
+                  : 'transparent',
                 justifyContent: 'space-between',
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[1] }}>
-                  <Icon icon={Video} size="sm" color={theme.colors.mutedForeground} decorative />
-                  <Text
-                    style={{
-                      color: theme.colors.mutedForeground,
-                      fontFamily: fonts.bodyBold,
-                      fontSize: 11,
-                    }}
-                  >
+              <View style={{ position: 'absolute', left: 0, top: 0 }}>
+                <SceneView
+                  scene={buildScene({
+                    seed: reel.id,
+                    petId: reel.petId,
+                    at: reel.createdAt,
+                    width: 360,
+                    height: 640,
+                    pose: 'run',
+                  })}
+                  width={cell}
+                  height={(cell * 16) / 9}
+                />
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  padding: theme.space[2],
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.space[1],
+                    paddingHorizontal: theme.space[1.5],
+                    borderRadius: theme.radius.xs,
+                    backgroundColor: 'rgba(0,0,0,0.55)',
+                  }}
+                >
+                  <Icon icon={Video} size="sm" color="#fff" decorative />
+                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
                     {reel.durationS}s
                   </Text>
                 </View>
@@ -85,42 +110,17 @@ export function ReelGrid({ onOpen }: { onOpen: (id: string) => void }) {
                 ) : null}
               </View>
 
-              <Text
-                numberOfLines={4}
-                style={{
-                  color: theme.colors.mutedForeground,
-                  fontFamily: fonts.body,
-                  fontSize: 11,
-                  lineHeight: 15,
-                }}
-              >
-                {reel.alt}
-              </Text>
-
-              <View style={{ gap: 2 }}>
+              <View style={{ gap: 2, padding: theme.space[2], backgroundColor: 'rgba(0,0,0,0.5)' }}>
                 <Text
                   numberOfLines={1}
-                  style={{
-                    color: theme.colors.foreground,
-                    fontFamily: fonts.displayBold,
-                    fontSize: theme.fontSize.sm,
-                  }}
+                  style={{ color: '#fff', fontFamily: fonts.displayBold, fontSize: theme.fontSize.sm }}
                 >
                   {reel.petName}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[1] }}>
-                  <Icon
-                    icon={Thermometer}
-                    size="sm"
-                    color={theme.colors.mutedForeground}
-                    decorative
-                  />
+                  <Icon icon={Thermometer} size="sm" color="#fff" decorative />
                   <Text
-                    style={{
-                      color: theme.colors.mutedForeground,
-                      fontFamily: fonts.body,
-                      fontSize: 11,
-                    }}
+                    style={{ color: 'rgba(255,255,255,0.9)', fontFamily: fonts.body, fontSize: 11 }}
                   >
                     {reel.recordedIn.temperatureC} °C
                   </Text>

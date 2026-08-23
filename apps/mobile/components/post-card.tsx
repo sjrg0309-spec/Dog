@@ -21,12 +21,13 @@
  *     etiquetas.
  */
 
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Image,
   Pressable,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   type GestureResponderEvent,
 } from 'react-native';
@@ -35,7 +36,10 @@ import { Link } from 'expo-router';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';
+import { Pop } from './motion';
 import { PawTrail } from './paw-trail';
+import { SceneView } from './scene';
+import { buildScene } from '@/lib/artwork';
 import { Badge, Row } from './ui';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -43,12 +47,12 @@ import {
   Bone,
   Bookmark,
   Ellipsis,
-  ImageOff,
   MapPin,
   MessageCircle,
   PawPrint,
   Send,
   Share2,
+  Sparkles,
 } from '@/lib/icons';
 import {
   addComment,
@@ -256,7 +260,13 @@ export function PostCard({
           // pone `PostImage`.
           accessible={false}
         >
-          <PostImage uri={post.imageUri} alt={post.imageAlt} />
+          <PostImage
+            uri={post.imageUri}
+            alt={post.imageAlt}
+            seed={post.id}
+            petId={post.petId}
+            at={post.createdAt}
+          />
         </Pressable>
         {trail ? (
           <PawTrail
@@ -303,20 +313,25 @@ export function PostCard({
                 opacity: pressed ? 0.5 : 1,
               })}
             >
-              <Icon
-                icon={REACTION_ICON[reaction.id]}
-                size="base"
-                // Puesta se pinta en terracota, que es el acento de la marca. No
-                // en rojo: el rojo de esta aplicación significa perro perdido.
-                color={mine ? theme.colors.liveRing : theme.colors.foreground}
-                // Y se rellena, además de cambiar de color. Es el gesto de
-                // Instagram y funciona por una razón que no es la moda: el
-                // relleno se ve en una captura en blanco y negro, y el cambio
-                // de color no.
-                fill={mine ? theme.colors.liveRing : 'none'}
-                strokeWidth={mine ? 2.75 : 2}
-                decorative
-              />
+              {/* El rebote es la confirmación de que el toque ha entrado, y
+                  llega antes de que cambie el número. */}
+              <Pop trigger={mine}>
+                <Icon
+                  icon={REACTION_ICON[reaction.id]}
+                  size="base"
+                  // Puesta se pinta en terracota, que es el acento de la marca.
+                  // No en rojo: el rojo de esta aplicación significa perro
+                  // perdido.
+                  color={mine ? theme.colors.liveRing : theme.colors.foreground}
+                  // Y se rellena, además de cambiar de color. Es el gesto de
+                  // Instagram y funciona por una razón que no es la moda: el
+                  // relleno se ve en una captura en blanco y negro, y el cambio
+                  // de color no.
+                  fill={mine ? theme.colors.liveRing : 'none'}
+                  strokeWidth={mine ? 2.75 : 2}
+                  decorative
+                />
+              </Pop>
               <Text
                 style={{
                   color: mine ? theme.colors.liveRing : theme.colors.foreground,
@@ -595,15 +610,37 @@ export function PostCard({
 }
 
 /**
- * El hueco de la foto.
+ * La imagen de la publicación.
  *
- * Cuando hay imagen se enseña; cuando no, se enseña **su descripción**, no un
- * icono genérico de foto rota. Las publicaciones de la semilla no traen fotos a
- * propósito: meter imágenes de archivo de perros que no son de nadie hace que
- * todo se vea como una maqueta, y además esas fotos tienen dueño.
+ * Cuando el tutor ha subido una foto, se enseña. Cuando no —que es el caso de
+ * toda la semilla— se dibuja una escena generada del propio animal a la hora en
+ * que se publicó, y **se dice que es un dibujo**. Es la diferencia entre una
+ * demostración que se puede leer y un rectángulo gris con una línea de texto
+ * dentro, que es lo que había antes y por lo que el feed se veía muerto.
+ *
+ * Lo que la ilustración **no** hace es sustituir al texto alternativo: sigue
+ * siendo obligatorio y sigue describiendo lo que el tutor dice que hay en la
+ * imagen, no lo que este generador ha dibujado.
  */
-function PostImage({ uri, alt }: { uri: string | null; alt: string }) {
+function PostImage({
+  uri,
+  alt,
+  seed,
+  petId,
+  at,
+}: {
+  uri: string | null;
+  alt: string;
+  seed: string;
+  petId: string;
+  at: Date;
+}) {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const scene = useMemo(
+    () => buildScene({ seed, petId, at, width: 400, height: 400 }),
+    [seed, petId, at],
+  );
 
   if (uri) {
     return (
@@ -617,52 +654,28 @@ function PostImage({ uri, alt }: { uri: string | null; alt: string }) {
     );
   }
 
-  // Sin imagen, el marco se ajusta a su texto.
-  //
-  // El cuadrado de la versión anterior existía para reservar el hueco mientras
-  // carga una foto y que el feed no diera saltos. Cuando no hay foto que cargar
-  // no hay nada que reservar, y un cuadrado vacío de 390 px con una línea de
-  // texto en medio se come la pantalla entera para no decir casi nada.
   return (
-    <View
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel={alt}
-      style={{
-        width: '100%',
-        backgroundColor: theme.colors.surfaceSunken,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: theme.colors.border,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: theme.space[6],
-        paddingHorizontal: theme.space[6],
-        gap: theme.space[2],
-      }}
-    >
-      <Icon icon={ImageOff} size="lg" color={theme.colors.mutedForeground} decorative />
-      <Text
+    <View accessible accessibilityRole="image" accessibilityLabel={alt} style={{ width: '100%' }}>
+      <SceneView scene={scene} width={width} height={width} />
+      <View
         style={{
-          color: theme.colors.mutedForeground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize.sm,
-          lineHeight: theme.fontSize.sm * 1.5,
-          textAlign: 'center',
+          position: 'absolute',
+          left: theme.space[3],
+          bottom: theme.space[3],
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.space[1],
+          paddingHorizontal: theme.space[2],
+          paddingVertical: 2,
+          borderRadius: theme.radius.xs,
+          backgroundColor: 'rgba(0,0,0,0.55)',
         }}
       >
-        {alt}
-      </Text>
-      <Text
-        style={{
-          color: theme.colors.mutedForeground,
-          fontFamily: fonts.bodyBold,
-          fontSize: theme.fontSize.xs,
-          textAlign: 'center',
-        }}
-      >
-        Sin foto en la demostración
-      </Text>
+        <Icon icon={Sparkles} size="sm" color="#fff" decorative />
+        <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+          Ilustración generada
+        </Text>
+      </View>
     </View>
   );
 }
