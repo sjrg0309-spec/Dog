@@ -17,6 +17,7 @@ import {
   Droplets,
   Fence,
   Layers,
+  Footprints,
   Radar,
   Siren,
   Stethoscope,
@@ -385,6 +386,13 @@ export default function ExploreScreen() {
           />
           <Separator inset={theme.space[16]} />
           <Destination
+            href="/encuentros"
+            icon={Footprints}
+            title="Puntos de encuentro"
+            detail="Tu rutina cruzada con la del barrio, con el sitio ya elegido"
+          />
+          <Separator inset={theme.space[16]} />
+          <Destination
             href="/quedadas"
             icon={CalendarDays}
             title="Quedadas"
@@ -417,7 +425,7 @@ function Destination({
   title,
   detail,
 }: {
-  href: '/radar' | '/quedadas' | '/espacios' | '/comunidad';
+  href: '/radar' | '/encuentros' | '/quedadas' | '/espacios' | '/comunidad';
   icon: LucideIcon;
   title: string;
   detail: string;

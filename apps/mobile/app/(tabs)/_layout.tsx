@@ -144,6 +144,7 @@ export default function TabsLayout() {
       {/* Pantallas enteras a las que se entra desde donde tienen sentido, no
             desde una barra con nueve pestañas. */}
       <Tabs.Screen name="radar" options={{ href: null }} />
+      <Tabs.Screen name="encuentros" options={{ href: null }} />
       <Tabs.Screen name="quedadas" options={{ href: null }} />
       <Tabs.Screen name="espacios" options={{ href: null }} />
       <Tabs.Screen name="comunidad" options={{ href: null }} />

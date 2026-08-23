@@ -141,6 +141,34 @@ describe('lectura de la respuesta', () => {
   });
 });
 
+describe('buscar la hora en curso dentro de la serie', () => {
+  /**
+   * Se compara por prefijo de hora y no convirtiendo a `Date`. Las marcas
+   * vienen sin zona —`2026-08-23T14:00`— así que un `new Date()` las
+   * interpretaría como locales del dispositivo, que puede estar en otro huso
+   * que el sitio consultado. En verano en España eso son dos horas de error,
+   * suficiente para coger la radiación de media tarde a media mañana.
+   */
+  const times = ['2026-08-23T13:00', '2026-08-23T14:00', '2026-08-23T15:00'];
+
+  it('coge el valor de su hora aunque los minutos no cuadren', () => {
+    expect(radiationAt('2026-08-23T14:37', times, [1, 2, 3])).toBe(2);
+  });
+
+  it('devuelve null si esa hora no está', () => {
+    expect(radiationAt('2026-08-24T14:00', times, [1, 2, 3])).toBeNull();
+  });
+
+  it('devuelve null si la serie no es una lista', () => {
+    expect(radiationAt('2026-08-23T14:00', null, [1, 2, 3])).toBeNull();
+    expect(radiationAt('2026-08-23T14:00', times, 'muchos')).toBeNull();
+  });
+
+  it('devuelve null si el valor de esa hora no es un número', () => {
+    expect(radiationAt('2026-08-23T14:00', times, [1, null, 3])).toBeNull();
+  });
+});
+
 describe('respuestas que no sirven', () => {
   /**
    * El caso que justifica validar campo a campo.

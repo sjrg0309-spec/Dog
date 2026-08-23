@@ -38,6 +38,7 @@ import {
   allPlaydates,
   communitiesFor,
   discover,
+  meetupsFor,
   petById,
   petHasMeetups,
   playdatesFor,
@@ -632,5 +633,66 @@ describe('sin saber qué tiempo hace', () => {
     const result = discover(nina, null);
     expect(result.safetyVetoed).toBe(0);
     expect(result.restingNearby).toBe(0);
+  });
+});
+
+describe('puntos de encuentro', () => {
+  /**
+   * El caso que pidió el usuario, con los datos de la semilla: Marta corre a
+   * las seis y quiere saber con quién de su barrio puede quedar.
+   */
+  it('propone quedar a las seis con quienes también corren', () => {
+    const meetups = meetupsFor(nina);
+    const run = meetups.find((meetup) => meetup.pace === 'run');
+
+    expect(run).toBeDefined();
+    expect(run?.startMinute).toBe(6 * 60);
+    expect(run?.others.length).toBeGreaterThan(0);
+    expect(run?.placeName.length).toBeGreaterThan(0);
+  });
+
+  it('solo enseña los planes en los que estás tú', () => {
+    // Un directorio de las rutinas del barrio sería publicar los horarios de
+    // gente que no los ha compartido contigo.
+    for (const meetup of meetupsFor(nina)) {
+      expect(meetup.attendees).toContain(nina.id);
+    }
+  });
+
+  /**
+   * Este test encontró una fuga de verdad.
+   *
+   * `others` devolvía el `DemoPet` entero, y con él la casa de cada vecino y su
+   * horario completo. El algoritmo del núcleo tiene su propia comprobación de
+   * que no filtra coordenadas; esta capa la había perdido al envolverlo, que es
+   * exactamente donde se pierden estas cosas.
+   */
+  it('dice tu caminata y no dónde vive nadie más', () => {
+    const meetup = meetupsFor(nina)[0];
+    expect(meetup?.myWalkMeters).toBeGreaterThan(0);
+
+    const serialised = JSON.stringify(meetup);
+    for (const companion of OTHER_PETS) {
+      expect(serialised).not.toContain(String(companion.home.lat));
+      expect(serialised).not.toContain(String(companion.home.lng));
+    }
+  });
+
+  it('tampoco publica el horario de los demás', () => {
+    // Publicar el calendario de alguien es publicar su rutina diaria. Lo que se
+    // comparte es la coincidencia, nunca la agenda.
+    const serialised = JSON.stringify(meetupsFor(nina));
+    expect(serialised).not.toContain('startTime');
+  });
+
+  it('a Kira no se le propone una carrera aunque su tutora corra', () => {
+    // Misma casa, misma tutora, mismo barrio. Lo que cambia es el bulldog al
+    // otro extremo de la correa.
+    expect(meetupsFor(kira).some((meetup) => meetup.pace === 'run')).toBe(false);
+  });
+
+  it('una especie sin encuentros no recibe puntos de encuentro', () => {
+    const solitary = { ...nina, speciesId: 'cat' };
+    expect(meetupsFor(solitary)).toEqual([]);
   });
 });

@@ -26,12 +26,19 @@ import {
   type DiscoveryMatch,
   type EmptyStateReason,
   type SpeciesProfile,
+  distanceMeters,
+  groupByRoutine,
+  proposeMeetupPoints,
+  type MeetupParticipant,
+  type MeetupPlace,
+  type RecurringMeetup,
   type WelfareVerdict,
 } from '@coincide/core';
 
 import {
   COMMUNITIES,
   MY_PETS,
+  PLACES,
   OTHER_PETS,
   PLAYDATES,
   SERVICES,
@@ -261,4 +268,97 @@ export function servicesFor(speciesId: string) {
 
 export function petById(id: string): DemoPet | null {
   return [...MY_PETS, ...OTHER_PETS].find((pet) => pet.id === id) ?? null;
+}
+
+/**
+ * Puntos de encuentro para el animal activo.
+ *
+ * Cruza la rutina del tutor con la de sus vecinos y devuelve dónde y cuándo
+ * quedar. La casa de cada uno entra aquí y no sale: lo que se devuelve lleva el
+ * lugar, la hora y quiénes, más **la caminata del propio tutor**, que es el
+ * único trayecto que se le puede enseñar a alguien sin contarle dónde vive otro.
+ */
+/**
+ * Lo que se sabe de los demás en un punto de encuentro.
+ *
+ * Es deliberadamente estrecho. La primera versión devolvía el `DemoPet` entero
+ * y con él se colaban dos cosas que el resto del proyecto se cuida de no
+ * publicar: **la casa** de cada vecino y **su horario completo**. Ninguna de
+ * las dos hace falta para pintar la tarjeta, y las dos juntas son la rutina
+ * diaria de una persona y dónde vive.
+ *
+ * Lo encontró un test, no una revisión: el algoritmo del núcleo tenía su
+ * comprobación de que no filtra coordenadas, y esta capa la había perdido al
+ * envolverlo. Por eso la comprobación se repite aquí.
+ */
+export type MeetupCompanion = {
+  id: string;
+  name: string;
+  ownerName: string;
+  speciesId: string;
+  breeds: string[];
+};
+
+export type MeetupSuggestion = RecurringMeetup & {
+  placeName: string;
+  /** Lo que le toca andar a quien mira la pantalla, y solo a él. */
+  myWalkMeters: number;
+  others: MeetupCompanion[];
+};
+
+export function meetupsFor(viewerPet: DemoPet): MeetupSuggestion[] {
+  if (!petHasMeetups(viewerPet)) return [];
+
+  const neighbours = [viewerPet, ...OTHER_PETS.filter((pet) => pet.speciesId === viewerPet.speciesId)];
+
+  const participants: MeetupParticipant[] = neighbours.map((pet) => ({
+    petId: pet.id,
+    pet,
+    home: pet.home,
+    routine: pet.availability,
+  }));
+
+  const places: MeetupPlace[] = Object.values(PLACES).map((place) => ({
+    id: place.id,
+    name: place.name,
+    point: { lat: place.lat, lng: place.lng },
+  }));
+
+  const byId = new Map(neighbours.map((pet) => [pet.id, pet]));
+  const placeById = new Map(places.map((place) => [place.id, place]));
+
+  return groupByRoutine(proposeMeetupPoints(participants, places, { limit: 20 }))
+    /* Solo los planes en los que estás tú: la pantalla es «con quién puedes
+       quedar», no un directorio de los grupos del barrio. Enseñar los ajenos
+       sería además publicar la rutina de gente que no la ha compartido contigo. */
+    .filter((meetup) => meetup.attendees.includes(viewerPet.id))
+    .flatMap((meetup) => {
+      const place = placeById.get(meetup.placeId);
+      if (!place) return [];
+      return [
+        {
+          ...meetup,
+          placeName: place.name,
+          myWalkMeters: Math.round(distanceMeters(viewerPet.home, place.point)),
+          others: meetup.attendees
+            .filter((petId) => petId !== viewerPet.id)
+            .flatMap((petId): MeetupCompanion[] => {
+              const pet = byId.get(petId);
+              /* Campo a campo y no con un `delete`: así, el día que `DemoPet`
+                 gane un dato sensible, no se cuela solo. */
+              return pet
+                ? [
+                    {
+                      id: pet.id,
+                      name: pet.name,
+                      ownerName: pet.ownerName,
+                      speciesId: pet.speciesId,
+                      breeds: pet.breeds,
+                    },
+                  ]
+                : [];
+            }),
+        },
+      ];
+    });
 }

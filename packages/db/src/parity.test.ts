@@ -160,8 +160,12 @@ describe('consultas geoespaciales', () => {
     );
 
     // Toby está en Parque Central; Kira, a seis kilómetros en Parque Berlín.
+    //
+    // Aquí decía `A.canela`, que no existe en la semilla: era `undefined`, y
+    // `not.toContain(undefined)` se cumple siempre. El test pasaba sin
+    // comprobar la mitad que le da sentido —que el radio deja fuera a alguien—.
     expect(near.map((row) => row.pet_id)).toContain(A.toby);
-    expect(near.map((row) => row.pet_id)).not.toContain(A.canela);
+    expect(near.map((row) => row.pet_id)).not.toContain(A.kira);
   });
 
   it('una presencia caducada desaparece del radar en el acto', async () => {

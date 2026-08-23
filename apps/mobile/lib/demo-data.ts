@@ -22,7 +22,7 @@
  * bienestar, y es mucho más frecuente que el de dos especies distintas.
  */
 
-import type { Availability, MatchablePet } from '@coincide/core';
+import type { MatchablePet, RoutineWindow } from '@coincide/core';
 
 export type DemoPet = MatchablePet & {
   name: string;
@@ -31,7 +31,16 @@ export type DemoPet = MatchablePet & {
   breeds: string[];
   bio: string;
   isMicrochipVerified: boolean;
-  availability: Availability[];
+  availability: RoutineWindow[];
+  /**
+   * Dónde vive el tutor.
+   *
+   * Es distinto de `location`, que es dónde está paseando ahora. Se separan
+   * porque sirven a cosas opuestas: la de paseo se enseña —es el radar— y esta
+   * **no sale nunca de los cálculos**. Es la que decide dónde se puede quedar,
+   * y publicarla sería publicar el portal de alguien.
+   */
+  home: { lat: number; lng: number };
   location: { lat: number; lng: number };
   /** Presencia en vivo: minutos que le quedan de check-in, o null. */
   walkingUntilMinutes: number | null;
@@ -82,7 +91,23 @@ export const PLACES = {
 
 export type DemoPlace = (typeof PLACES)[keyof typeof PLACES];
 
-const weekdayMorning = (placeId: string): Availability[] =>
+/**
+ * «Salgo a correr a las seis, de lunes a viernes.»
+ *
+ * Sin `placeId` a propósito: quien corre no sale a un parque concreto, sale a
+ * la calle. Es justo el caso en el que la coincidencia de horarios por sí sola
+ * no basta —no hay parque habitual que compartir— y hace falta **elegir** un
+ * punto de encuentro.
+ */
+const weekdayRun = (): RoutineWindow[] =>
+  [1, 2, 3, 4, 5].map((weekday) => ({
+    weekday,
+    startTime: '06:00',
+    endTime: '07:00',
+    pace: 'run' as const,
+  }));
+
+const weekdayMorning = (placeId: string): RoutineWindow[] =>
   [1, 2, 3, 4, 5].map((weekday) => ({
     weekday,
     startTime: '07:00',
@@ -91,7 +116,7 @@ const weekdayMorning = (placeId: string): Availability[] =>
   }));
 
 /** Tarde de fin de semana, en casa o en una sala: no todos los encuentros son en un parque. */
-const weekendAfternoon = (): Availability[] =>
+const weekendAfternoon = (): RoutineWindow[] =>
   [0, 6].map((weekday) => ({
     weekday,
     startTime: '17:00',
@@ -124,7 +149,8 @@ export const MY_PETS: DemoPet[] = [
     sex: 'female',
     ageMonths: 64,
     isMicrochipVerified: true,
-    availability: weekdayMorning(PLACES.central.id),
+    availability: [...weekdayRun(), ...weekdayMorning(PLACES.central.id)],
+    home: { lat: 40.4112, lng: -3.6951 },
     location: { lat: 40.4098, lng: -3.6939 },
     walkingUntilMinutes: null,
     placeName: null,
@@ -147,6 +173,7 @@ export const MY_PETS: DemoPet[] = [
     ageMonths: 55,
     isMicrochipVerified: true,
     availability: weekdayMorning(PLACES.central.id),
+    home: { lat: 40.4112, lng: -3.6951 },
     location: { lat: 40.4104, lng: -3.6944 },
     walkingUntilMinutes: null,
     placeName: null,
@@ -170,7 +197,8 @@ export const OTHER_PETS: DemoPet[] = [
     sex: 'male',
     ageMonths: 71,
     isMicrochipVerified: true,
-    availability: weekdayMorning(PLACES.central.id),
+    availability: [...weekdayRun(), ...weekdayMorning(PLACES.central.id)],
+    home: { lat: 40.4085, lng: -3.6922 },
     location: { lat: 40.4101, lng: -3.6935 },
     // Está paseando ahora: es lo que hace que el radar tenga algo que enseñar.
     walkingUntilMinutes: 75,
@@ -195,6 +223,7 @@ export const OTHER_PETS: DemoPet[] = [
     ageMonths: 90,
     isMicrochipVerified: false,
     availability: [
+      ...weekdayRun(),
       ...weekdayMorning(PLACES.central.id),
       // El paseo que empieza antes de medianoche y termina después: el caso que
       // obliga a que el solapamiento horario no se calcule restando horas.
@@ -205,6 +234,7 @@ export const OTHER_PETS: DemoPet[] = [
         placeId: PLACES.berlin.id,
       })),
     ],
+    home: { lat: 40.4079, lng: -3.696 },
     location: { lat: 40.4089, lng: -3.6952 },
     walkingUntilMinutes: 40,
     placeName: PLACES.berlin.name,
@@ -233,6 +263,7 @@ export const OTHER_PETS: DemoPet[] = [
       endTime: '00:10',
       placeId: PLACES.berlin.id,
     })),
+    home: { lat: 40.4155, lng: -3.684 },
     location: { lat: 40.4148, lng: -3.6851 },
     walkingUntilMinutes: null,
     placeName: null,

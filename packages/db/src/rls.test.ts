@@ -134,16 +134,43 @@ describe('separación entre tutores', () => {
     expect(updated).toBe(0);
   });
 
+  /**
+   * Era `E.gigantes`, que no existe en la semilla: la quedada iba como
+   * `undefined`, así que el insert fallaba por la restricción de no nulo en
+   * vez de por la política. Un test de seguridad que pasa por el motivo
+   * equivocado es peor que uno que falta: afirma que algo está protegido sin
+   * haberlo comprobado nunca.
+   *
+   * Con identificadores reales lo rechazan **dos capas**: la política exige
+   * `owns_pet(pet_id)`, y antes de llegar a ella el disparador de especie ya
+   * no encuentra al animal, porque la RLS de `pets` se lo esconde a Pablo. Por
+   * eso lo que se comprueba es la garantía —la fila no existe— y no un mensaje
+   * concreto: atar el test a un texto lo haría fallar el día que se reordenen
+   * las capas, sin que nada se hubiera roto de verdad.
+   */
   it('un tutor no puede apuntar a la quedada un animal que no es suyo', async () => {
     await expect(
       asUser(db, P.pablo, async (client) =>
         client.query(
           `insert into public.playdate_rsvps (playdate_id, pet_id, profile_id)
            values ($1, $2, $3)`,
-          [E.gigantes, A.nina, P.pablo],
+          // `nocturna` y no `manana`: a esa Nina ya está apuntada por la
+          // semilla, así que la comprobación de abajo habría encontrado la
+          // fila legítima y habría fallado sin que nada estuviera mal.
+          [E.nocturna, A.nina, P.pablo],
         ),
       ),
     ).rejects.toThrow();
+
+    const rows = await asService(db, async (client) =>
+      (
+        await client.query(
+          'select 1 from public.playdate_rsvps where playdate_id = $1 and pet_id = $2',
+          [E.nocturna, A.nina],
+        )
+      ).rows,
+    );
+    expect(rows).toEqual([]);
   });
 });
 

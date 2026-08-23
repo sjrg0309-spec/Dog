@@ -1,0 +1,19 @@
+/*
+ * Los tests también se typechequean.
+ *
+ * `tsconfig.json` los excluye a propósito, porque no se empaquetan. El efecto
+ * secundario era que nadie los comprobaba: un test podía construir un objeto
+ * con un valor que el tipo no admite, pasar en verde, y estar comprobando algo
+ * que en la aplicación real no ocurre nunca. Pasó de verdad —una tabla de
+ * ritmos escrita con niveles de energía inventados, con la que la función
+ * devolvía false para todos los perros existentes y no proponía nada, en
+ * silencio, mientras veintiséis tests decían que sí—.
+ *
+ * Así que `build` sigue excluyéndolos y `typecheck` usa este.
+ */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}
