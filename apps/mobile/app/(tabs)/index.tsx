@@ -7,6 +7,7 @@ import { Fab, FAB_CLEARANCE } from '@/components/fab';
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { PostCard } from '@/components/post-card';
+import { ReelTray } from '@/components/reel-tray';
 import { StoryRail } from '@/components/story-rail';
 import { Avatar } from '@/components/avatar';
 import { Body, Caption, Notice, Screen, Segmented } from '@/components/ui';
@@ -24,8 +25,10 @@ import {
   type FeedScope,
   type NearbyRadius,
 } from '@/lib/posts';
+import { useUnreadActivity } from '@/lib/activity';
 import { totalUnread, useThreads } from '@/lib/messages';
 import { useLiveAlerts } from '@/lib/safety';
+import { useStoriesOf, useStoryGroups } from '@/lib/stories';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -67,12 +70,21 @@ export default function FeedScreen() {
   const outNow = social ? walkingNow(pet.speciesId) : [];
   const stopped = social && welfare.level === 'stop';
 
+  // Los estados y la presencia son dos cosas distintas que comparten la fila:
+  // el anillo dice si has visto algo, la etiqueta EN VIVO dice si está fuera.
+  const storyGroups = useStoryGroups();
+  const myStories = useStoriesOf(pet.id);
+  const liveIds = new Set(outNow.map((other) => other.id));
+
   // Una alerta abierta cerca se enseña **dentro del feed**, no solo en su
   // pestaña. Quien está mirando fotos no va a ir a mirar la pestaña de SOS por
   // si acaso, y ese es justo el momento en que sirve de algo enterarse.
   const alerts = useLiveAlerts(location);
   const topAlert = alerts[0];
   const unread = totalUnread(useThreads());
+  // Un punto, no un número: la actividad no se «responde», así que contarla
+  // solo añade una cifra que nadie va a bajar a cero a propósito.
+  const newActivity = useUnreadActivity();
 
   return (
     <Screen>
@@ -86,10 +98,15 @@ export default function FeedScreen() {
                 actividad es lo que te ha pasado a ti y los mensajes lo que
                 alguien te está diciendo. Lo segundo espera; lo primero, no. */}
             <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Actividad"
-              accessibilityHint="Reacciones y comentarios en tus publicaciones"
-              onPress={() => haptics.tap()}
+              accessibilityRole="link"
+              accessibilityLabel={
+                newActivity > 0 ? `Actividad, ${newActivity} sin ver` : 'Actividad'
+              }
+              accessibilityHint="Reacciones, comentarios y lo que pide algo de ti"
+              onPress={() => {
+                haptics.tap();
+                router.push('/actividad');
+              }}
               style={({ pressed }) => ({
                 width: theme.touchTarget.min,
                 height: theme.touchTarget.min,
@@ -98,7 +115,26 @@ export default function FeedScreen() {
                 opacity: pressed ? 0.5 : 1,
               })}
             >
-              <Icon icon={Heart} size="lg" decorative />
+              <View
+                style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Icon icon={Heart} size="lg" decorative />
+                {newActivity > 0 ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      right: -6,
+                      top: -5,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: theme.colors.liveRing,
+                      borderWidth: 2,
+                      borderColor: theme.colors.background,
+                    }}
+                  />
+                ) : null}
+              </View>
             </Pressable>
 
             {/* Sin `Link asChild`: en web ese envoltorio se llevaba el botón
@@ -203,7 +239,11 @@ export default function FeedScreen() {
           <View style={{ paddingTop: theme.space[4] }}>
             <StoryRail
               me={pet}
-              others={outNow}
+              groups={storyGroups}
+              liveIds={liveIds}
+              myStoryCount={myStories.length}
+              onCreate={() => router.push('/publicar?modo=estado')}
+              onOpen={(petId) => router.push(`/estados?pet=${petId}`)}
               checkedIn={checkedIn}
               onCheckIn={() => setCheckedIn((value) => !value)}
               disabled={stopped}
@@ -215,6 +255,12 @@ export default function FeedScreen() {
             />
           </View>
         ) : null}
+
+        {/* Los reels, entre los estados y las publicaciones. Es donde
+            Instagram los puso cuando dejaron de tener pestaña propia, y aquí
+            además resuelve que la barra de abajo tenga cinco destinos y uno sea
+            SOS, que no se toca. */}
+        {social ? <ReelTray onOpen={(id) => router.push(`/reels?id=${id}`)} /> : null}
 
         <View style={{ height: theme.space[4] }} />
 

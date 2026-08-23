@@ -83,6 +83,15 @@ export type Post = {
   /** Ladridos: veces que se ha compartido. */
   barkCount: number;
   barkedByMe: boolean;
+  /**
+   * Guardada.
+   *
+   * Es la única acción de la tarjeta que **no ve nadie más**: las otras
+   * publican algo. Por eso no lleva contador —cuánta gente ha guardado tu foto
+   * es un dato que no le corresponde a nadie— y por eso vive en el perfil,
+   * detrás de su propia pestaña.
+   */
+  savedByMe: boolean;
   comments: PostComment[];
 };
 
@@ -131,6 +140,7 @@ export const SEED_POSTS: Post[] = [
     myReaction: null,
     barkCount: 1,
     barkedByMe: false,
+    savedByMe: false,
     comments: [
       {
         id: 'c1',
@@ -162,6 +172,7 @@ export const SEED_POSTS: Post[] = [
     myReaction: 'lick',
     barkCount: 0,
     barkedByMe: false,
+    savedByMe: false,
     comments: [],
   },
   {
@@ -181,6 +192,7 @@ export const SEED_POSTS: Post[] = [
     myReaction: null,
     barkCount: 0,
     barkedByMe: false,
+    savedByMe: false,
     comments: [
       {
         id: 'c3',
@@ -207,6 +219,7 @@ export const SEED_POSTS: Post[] = [
     myReaction: 'wag',
     barkCount: 2,
     barkedByMe: false,
+    savedByMe: false,
     comments: [],
   },
   {
@@ -227,6 +240,7 @@ export const SEED_POSTS: Post[] = [
     myReaction: null,
     barkCount: 0,
     barkedByMe: false,
+    savedByMe: false,
     comments: [],
   },
 ];
@@ -345,6 +359,10 @@ export function usePostsOf(petId: string): Post[] {
   return useFeed().filter((post) => post.petId === petId);
 }
 
+export function useSavedPosts(): Post[] {
+  return useFeed().filter((post) => post.savedByMe);
+}
+
 /**
  * Reaccionar.
  *
@@ -381,6 +399,14 @@ export function bark(postId: string): void {
     post.id === postId && !post.barkedByMe
       ? { ...post, barkedByMe: true, barkCount: post.barkCount + 1 }
       : post,
+  );
+  emit();
+}
+
+/** Guardar y dejar de guardar. Sin contador: no es de nadie más. */
+export function toggleSaved(postId: string): void {
+  posts = posts.map((post) =>
+    post.id === postId ? { ...post, savedByMe: !post.savedByMe } : post,
   );
   emit();
 }
@@ -443,6 +469,7 @@ export function publish(draft: NewPost): void {
       myReaction: null,
       barkCount: 0,
       barkedByMe: false,
+      savedByMe: false,
       comments: [],
     },
     ...posts,

@@ -56,6 +56,7 @@ import {
   react,
   REACTIONS,
   timeAgo,
+  toggleSaved,
   totalReactions,
   type Post,
 } from '@/lib/posts';
@@ -81,7 +82,7 @@ export function PostCard({
   const [draft, setDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const saved = post.savedByMe;
 
   /**
    * El doble toque.
@@ -418,7 +419,7 @@ export function PostCard({
           accessibilityHint={saved ? undefined : 'Solo la ves tú'}
           onPress={() => {
             haptics.tap();
-            setSaved((value) => !value);
+            toggleSaved(post.id);
           }}
           style={({ pressed }) => ({
             minHeight: theme.touchTarget.min,

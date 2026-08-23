@@ -63,6 +63,9 @@ export {
   UserPlus,
   Image as ImageIcon,
   Video,
+  Volume2,
+  VolumeOff,
+  Play,
   // Seguridad
   Siren,
   ShieldAlert,

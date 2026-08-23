@@ -24,6 +24,13 @@ const OUT = new URL('../artifacts/screenshots/', import.meta.url).pathname;
  */
 const ROUTES = [
   { path: '/', name: 'app-feed' },
+  // Los estados y los reels a pantalla completa, que es donde viven.
+  { path: '/estados', name: 'app-estados' },
+  { path: '/reels', name: 'app-reels' },
+  { path: '/actividad', name: 'app-actividad' },
+  // El compositor en sus tres modos.
+  { path: '/publicar', name: 'app-publicar-estado', tap: 'Estado' },
+  { path: '/publicar', name: 'app-publicar-reel', tap: 'Reel' },
   // La otra cara del feed. Sin esta captura, «Siguiendo» y «Cerca de mí»
   // parecen el mismo feed con dos rótulos, que es justo lo que no son.
   { path: '/', name: 'app-feed-siguiendo', scope: 'Siguiendo' },
@@ -31,8 +38,10 @@ const ROUTES = [
   // El botón de pánico abierto: el catálogo de escenarios con su radio delante.
   { path: '/sos', name: 'app-sos-escenarios', tap: 'Dar la alarma' },
   { path: '/explorar', name: 'app-explorar' },
+  { path: '/explorar', name: 'app-explorar-reels', tap: 'Reels' },
   { path: '/perfil', name: 'app-perfil' },
   { path: '/perfil', name: 'app-perfil-ficha', tap: 'Ficha médica' },
+  { path: '/perfil', name: 'app-perfil-guardados', tap: 'Guardados' },
   // Modo Paseo encendido: el código y lo que enseña, que es la mitad de la
   // decisión de privacidad de esa pantalla.
   { path: '/perfil', name: 'app-perfil-modo-paseo', tap: 'Modo Paseo' },
@@ -95,7 +104,7 @@ for (const theme of THEMES) {
     await page.goto(`${BASE}${route.path}`, { waitUntil: 'networkidle' });
     // La aplicación es una SPA: hay que esperar a que React pinte algo.
     await page.waitForSelector(
-      'text=/Coincide|SOS|Explorar|Mensajes|Radar|Quedadas|Espacios|Con quién|Cita de juego/i',
+      'text=/Coincide|SOS|Explorar|Mensajes|Radar|Quedadas|Espacios|Con quién|Cita de juego|Reels|Actividad|Publicar|Caduca|estado/i',
       { timeout: 15_000 },
     );
 
@@ -124,8 +133,9 @@ for (const theme of THEMES) {
     // Lo último: un interruptor o un botón que abre lo que hay que enseñar. Va
     // después del selector de mascota para que se abra sobre la correcta.
     if (route.tap) {
+      const TABS = ['Ficha médica', 'Guardados', 'Fotos', 'Reels', 'Mapa', 'Estado', 'Reel', 'Publicación'];
       const role =
-        route.tap === 'Modo Paseo' ? 'switch' : route.tap === 'Ficha médica' ? 'tab' : 'button';
+        route.tap === 'Modo Paseo' ? 'switch' : TABS.includes(route.tap) ? 'tab' : 'button';
       await page.getByRole(role, { name: route.tap }).first().click();
       await page.waitForTimeout(400);
     }

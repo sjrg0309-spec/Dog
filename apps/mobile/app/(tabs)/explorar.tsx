@@ -5,7 +5,8 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { MiniMap, radiusOverflows, type MapMarker } from '@/components/mini-map';
-import { Badge, Body, Caption, Card, Notice, Row, Screen } from '@/components/ui';
+import { ReelGrid } from '@/components/reel-grid';
+import { Badge, Body, Caption, Card, Notice, Row, Screen, Segmented } from '@/components/ui';
 import { useDeclaredConditions } from '@/lib/conditions';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
@@ -60,6 +61,7 @@ export default function ExploreScreen() {
   const { scrolled, onScroll } = useScrolled();
   const alerts = useLiveAlerts(location);
 
+  const [view, setView] = useState<'map' | 'reels'>('map');
   const [active, setActive] = useState<Set<LayerId>>(new Set(['places']));
   const [spanIndex, setSpanIndex] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -156,10 +158,34 @@ export default function ExploreScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[16] }}
       >
-        <LargeTitle subtitle="Dónde está lo que hace falta, y dónde no conviene pasar hoy.">
+        <LargeTitle
+          subtitle={
+            view === 'map'
+              ? 'Dónde está lo que hace falta, y dónde no conviene pasar hoy.'
+              : 'Vídeo corto de perros de tu zona. Cada uno dice en qué condiciones se grabó.'
+          }
+        >
           Explorar
         </LargeTitle>
 
+        {/* Mapa y reels son las dos formas de descubrir que tiene esta
+            aplicación: una geográfica y otra de contenido. Instagram tiene la
+            segunda en su Explorar; aquí la primera es la que carga el peso,
+            así que va por defecto. */}
+        <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
+          <Segmented
+            options={[
+              { id: 'map' as const, label: 'Mapa', hint: 'Lugares, agua, veterinarios y alertas' },
+              { id: 'reels' as const, label: 'Reels', hint: 'Vídeo corto de tu zona' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+        </View>
+
+        {view === 'reels' ? (
+          <ReelGrid onOpen={(id) => router.push(`/reels?id=${id}`)} />
+        ) : (
         <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[3] }}>
           <MiniMap
             center={location}
@@ -346,8 +372,9 @@ export default function ExploreScreen() {
             </Notice>
           )}
         </View>
+        )}
 
-        {/* Las tres pantallas que se piensan mirando el mapa. */}
+        {/* Las pantallas que se piensan mirando el mapa. */}
         <View style={{ paddingTop: theme.space[8] }}>
           <Separator />
           <Destination

@@ -1,22 +1,19 @@
 /**
- * La fila de historias — los «snacks».
+ * La fila de estados.
  *
- * Es la mecánica de las historias de Instagram, y no por parecerse: el radar de
- * Coincide ya era exactamente esto —presencia en vivo, circular, que caduca
- * sola—. Ponerlo arriba y en horizontal es reconocer que el patrón ya estaba
- * inventado y que la gente sabe leerlo sin que nadie se lo explique.
+ * Es el carrete de historias de Instagram, y aquí carga dos cosas que en otras
+ * aplicaciones van separadas:
  *
- * Del idioma de Instagram se toman tres cosas concretas:
+ *  1. **Los estados**, que caducan a las 24 horas. El anillo en degradado es lo
+ *     que no has visto; el aro apagado, lo visto. Sin esa diferencia una fila de
+ *     historias es decoración.
+ *  2. **Quién está fuera ahora**, con una etiqueta EN VIVO bajo el retrato. Es
+ *     la mecánica del radar, que existía en este proyecto antes que los
+ *     estados, y va como insignia y no como otro anillo: dos anillos distintos
+ *     en el mismo círculo no se distinguen, y uno de los dos deja de leerse.
  *
- *  1. **La primera posición es la propia, y es la acción.** Con la insignia de
- *     «+» encima cuando no estás fuera.
- *  2. **Anillo en degradado para lo que no has visto, aro apagado para lo
- *     visto.** Sin esa diferencia una fila de historias es decoración.
- *  3. **Rótulo corto debajo de cada burbuja**, no dentro.
- *
- * Lo que **no** se toma es el degradado de nadie: son dos paradas de esta
- * paleta. Y lo que se enseña de los demás sigue siendo el lugar, nunca la
- * persona.
+ * La primera posición es la propia y es la acción. Lo que se enseña de los
+ * demás sigue siendo el lugar, nunca la persona.
  */
 
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -24,28 +21,40 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Avatar } from './avatar';
 import { Icon } from './icon';
 import { StoryRing } from './story-ring';
-import { fonts } from '@/lib/fonts';
-import { Plus } from '@/lib/icons';
-import { useTheme } from '@/lib/theme';
 import type { DemoPet } from '@/lib/data';
+import { fonts } from '@/lib/fonts';
+import { haptics } from '@/lib/haptics';
+import { Plus } from '@/lib/icons';
+import type { StoryGroup } from '@/lib/stories';
+import { useTheme } from '@/lib/theme';
 
 export function StoryRail({
   me,
-  others,
+  groups,
+  /** Quién está paseando ahora mismo, por identificador. */
+  liveIds,
+  myStoryCount,
+  onCreate,
+  onOpen,
   checkedIn,
   onCheckIn,
   disabled = false,
   disabledReason,
 }: {
   me: DemoPet;
-  others: DemoPet[];
+  groups: StoryGroup[];
+  liveIds: Set<string>;
+  myStoryCount: number;
+  onCreate: () => void;
+  onOpen: (petId: string) => void;
   checkedIn: boolean;
   onCheckIn: () => void;
-  /** Hoy no le conviene salir: el atajo no se ofrece. */
+  /** Hoy no le conviene salir: el atajo de salir no se ofrece. */
   disabled?: boolean;
   disabledReason?: string;
 }) {
   const theme = useTheme();
+  const others = groups.filter((group) => group.petId !== me.id);
 
   return (
     <View style={{ gap: theme.space[2] }}>
@@ -58,38 +67,64 @@ export function StoryRail({
           paddingVertical: theme.space[1],
         }}
       >
-        {/* La acción propia. Cuando el bienestar dice que no, no está: un botón
-            en gris invita a buscar cómo activarlo. */}
+        {/* Tu estado. Con el «+» cuando no hay ninguno, y con anillo cuando sí:
+            es la única burbuja que hace dos cosas distintas según lo que haya. */}
+        <Bubble
+          id={me.id}
+          name={me.name}
+          label={myStoryCount > 0 ? 'Tu estado' : 'Añadir estado'}
+          hint={
+            myStoryCount > 0
+              ? `Ver tus ${myStoryCount === 1 ? 'estado' : `${myStoryCount} estados`}, y quién los ha visto`
+              : 'Publicar algo que caduca a las 24 horas'
+          }
+          ring={myStoryCount > 0 ? 'seen' : 'none'}
+          live={checkedIn}
+          showAdd={myStoryCount === 0}
+          onPress={() => {
+            haptics.tap();
+            if (myStoryCount > 0) onOpen(me.id);
+            else onCreate();
+          }}
+        />
+
+        {/* El atajo de salir, cuando el bienestar lo permite. Va aparte del
+            estado porque no es contenido: es presencia, y caduca sola. */}
         {disabled ? null : (
           <Bubble
-            id={me.id}
+            id={`${me.id}-radar`}
             name={me.name}
-            live={checkedIn}
             label={checkedIn ? 'Estás fuera' : 'Salir ahora'}
             hint={
               checkedIn
                 ? 'Dejar de estar visible'
                 : `Hacer visible a ${me.name} durante un rato; se apaga solo`
             }
-            onPress={onCheckIn}
-            showAdd={!checkedIn}
             ring={checkedIn ? 'unseen' : 'none'}
+            live={checkedIn}
+            onPress={() => {
+              haptics.tap();
+              onCheckIn();
+            }}
           />
         )}
 
-        {others.map((pet, index) => (
+        {others.map((group) => (
           <Bubble
-            key={pet.id}
-            id={pet.id}
-            name={pet.name}
-            live
-            label={pet.name}
-            hint={`${pet.name} está en ${pet.placeName ?? 'la calle'}, le quedan ${pet.walkingUntilMinutes} minutos`}
-            // El primero se marca como ya visto para que la fila enseñe los dos
-            // estados. En la aplicación real sale de qué historias ha abierto
-            // el tutor; aquí no hay ese registro todavía y fingirlo con todo en
-            // «sin ver» escondería la mitad del patrón.
-            ring={index === 0 ? 'seen' : 'unseen'}
+            key={group.petId}
+            id={group.petId}
+            name={group.petName}
+            label={group.petName}
+            hint={
+              `${group.stories.length === 1 ? '1 estado' : `${group.stories.length} estados`} de ${group.petName}` +
+              (liveIds.has(group.petId) ? ', y está fuera ahora' : '')
+            }
+            ring={group.hasUnseen ? 'unseen' : 'seen'}
+            live={liveIds.has(group.petId)}
+            onPress={() => {
+              haptics.tap();
+              onOpen(group.petId);
+            }}
           />
         ))}
       </ScrollView>
@@ -114,7 +149,8 @@ export function StoryRail({
             fontSize: theme.fontSize.sm,
           }}
         >
-          Ahora mismo no hay nadie de su especie fuera. Es lo normal fuera de las horas punta.
+          Nadie de tu zona tiene un estado abierto. Caducan a las 24 horas, así que la fila se vacía
+          sola.
         </Text>
       ) : null}
     </View>
@@ -124,82 +160,104 @@ export function StoryRail({
 function Bubble({
   id,
   name,
-  live,
   label,
   hint,
   onPress,
   showAdd,
-  ring = 'unseen',
+  ring,
+  live,
 }: {
   id: string;
   name: string;
-  live: boolean;
   label: string;
   hint: string;
-  onPress?: () => void;
-  /** Insignia de «añadir»: solo en la burbuja propia y cuando no está fuera. */
+  onPress: () => void;
+  /** Insignia de «añadir»: solo en la burbuja propia y cuando no hay estado. */
   showAdd?: boolean;
-  ring?: 'unseen' | 'seen' | 'none';
+  ring: 'unseen' | 'seen' | 'none';
+  /** Está fuera ahora mismo: lleva la etiqueta EN VIVO. */
+  live?: boolean;
 }) {
   const theme = useTheme();
-  const content = (
-    <View style={{ alignItems: 'center', gap: theme.space[1], width: 76 }}>
-      <View>
-        <StoryRing size={62} state={ring}>
-          <Avatar id={id} name={name} size={62} />
-        </StoryRing>
-        {showAdd ? (
-          <View
-            style={{
-              position: 'absolute',
-              right: 0,
-              bottom: 0,
-              width: 24,
-              height: 24,
-              borderRadius: 12,
-              backgroundColor: theme.colors.primary,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 2,
-              borderColor: theme.colors.background,
-            }}
-          >
-            <Icon icon={Plus} size="sm" color={theme.colors.primaryForeground} decorative />
-          </View>
-        ) : null}
-      </View>
-      <Text
-        numberOfLines={1}
-        style={{
-          color: live ? theme.colors.foreground : theme.colors.mutedForeground,
-          fontFamily: live ? fonts.bodyBold : fonts.body,
-          fontSize: theme.fontSize.xs,
-        }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-
-  if (!onPress) {
-    // Sin acción no es un botón: se anuncia como un dato, con su texto completo.
-    return (
-      <View accessible accessibilityLabel={hint}>
-        {content}
-      </View>
-    );
-  }
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityHint={hint}
       onPress={onPress}
       // El área táctil real es la burbuja entera más su rótulo: 76 × 92, por
       // encima del mínimo de 44 que pide la guía.
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
-      {content}
+      <View style={{ alignItems: 'center', gap: theme.space[1], width: 76 }}>
+        <View>
+          <StoryRing size={62} state={ring}>
+            <Avatar id={id} name={name} size={62} />
+          </StoryRing>
+
+          {showAdd ? (
+            <View
+              style={{
+                position: 'absolute',
+                right: 0,
+                bottom: 0,
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                backgroundColor: theme.colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 2,
+                borderColor: theme.colors.background,
+              }}
+            >
+              <Icon icon={Plus} size="sm" color={theme.colors.primaryForeground} decorative />
+            </View>
+          ) : null}
+
+          {/* EN VIVO va debajo y encima del retrato, como en Instagram. Lleva la
+              palabra escrita: el color solo no dice nada a quien no lo separa. */}
+          {live ? (
+            <View
+              style={{
+                position: 'absolute',
+                bottom: -6,
+                alignSelf: 'center',
+                paddingHorizontal: theme.space[2],
+                paddingVertical: 1,
+                borderRadius: theme.radius.xs,
+                backgroundColor: theme.colors.liveRing,
+                borderWidth: 2,
+                borderColor: theme.colors.background,
+              }}
+            >
+              <Text
+                style={{
+                  color: theme.colors.background,
+                  fontFamily: fonts.bodyBold,
+                  fontSize: 9,
+                  letterSpacing: 0.4,
+                }}
+              >
+                EN VIVO
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        <Text
+          numberOfLines={1}
+          style={{
+            marginTop: live ? theme.space[1] : 0,
+            color: ring === 'unseen' ? theme.colors.foreground : theme.colors.mutedForeground,
+            fontFamily: ring === 'unseen' ? fonts.bodyBold : fonts.body,
+            fontSize: theme.fontSize.xs,
+          }}
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }

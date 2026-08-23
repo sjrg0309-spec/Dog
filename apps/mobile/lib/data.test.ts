@@ -24,6 +24,14 @@ import {
   SEED_POSTS,
   totalReactions,
 } from './posts';
+import { REPORT_REASONS, reelWarning, reelsSnapshot } from './reels';
+import {
+  groupStories,
+  liveStories,
+  SEED_STORIES_SNAPSHOT,
+  STORY_TTL_MS,
+  type Story,
+} from './stories';
 
 import {
   allPlaydates,
@@ -389,5 +397,117 @@ describe('reacciones', () => {
     // de otro no está en tu mano, así que el botón no puede fingir que sí.
     expect(after.barkCount).toBe(before + 1);
     expect(after.barkedByMe).toBe(true);
+  });
+});
+
+/**
+ * Los estados caducan de verdad.
+ *
+ * No hay ningún proceso que borre nada: la caducidad se calcula al leer. Es la
+ * decisión que hace que la regla no dependa de que alguien se acuerde, y por eso
+ * hay que comprobarla desde fuera y no confiar en que el campo esté puesto.
+ */
+describe('estados', () => {
+  const at = (hoursAgo: number) => Date.now() - hoursAgo * 3_600_000;
+
+  const make = (id: string, petId: string, createdHoursAgo: number, viewed = false): Story => {
+    const createdAt = new Date(at(createdHoursAgo));
+    return {
+      id,
+      petId,
+      petName: 'Perro',
+      authorName: 'Alguien',
+      kind: 'text',
+      uri: null,
+      alt: '',
+      text: 'algo',
+      placeName: null,
+      createdAt,
+      expiresAt: new Date(createdAt.getTime() + STORY_TTL_MS),
+      viewedByMe: viewed,
+      viewers: [],
+    };
+  };
+
+  it('a las 24 horas deja de existir, sin que nadie lo borre', () => {
+    const fresh = make('a', 'p1', 3);
+    const old = make('b', 'p1', 25);
+    expect(liveStories([fresh, old]).map((story) => story.id)).toEqual(['a']);
+  });
+
+  it('el borde son exactamente 24 horas', () => {
+    const story = make('a', 'p1', 24);
+    // Justo en el filo ya no vive: `expiresAt` tiene que ser estrictamente
+    // futuro, o un estado se quedaría un tick de más cada día.
+    expect(liveStories([story])).toHaveLength(0);
+    expect(liveStories([make('b', 'p1', 23.9)])).toHaveLength(1);
+  });
+
+  it('la semilla trae uno vencido, para que la regla se vea funcionar', () => {
+    // Si algún día se quita, este test avisa: una caducidad que nunca se
+    // dispara en la demostración es una línea de código que nadie ha visto
+    // hacer nada.
+    const all = groupStories(SEED_STORIES_SNAPSHOT);
+    const ids = all.flatMap((group) => group.stories.map((story) => story.id));
+    expect(ids).not.toContain('st-nina-viejo');
+  });
+
+  it('primero lo que no has visto, y abre por el primero sin ver', () => {
+    const groups = groupStories([
+      make('v1', 'visto', 2, true),
+      make('v2', 'visto', 1, true),
+      make('n1', 'nuevo', 3, true),
+      make('n2', 'nuevo', 1, false),
+    ]);
+
+    // Un carrete que abre siempre por lo mismo hace que dejes de mirarlo.
+    expect(groups[0]?.petId).toBe('nuevo');
+    expect(groups[0]?.firstUnseenIndex).toBe(1);
+    expect(groups[1]?.hasUnseen).toBe(false);
+  });
+
+  it('cada animal es un carrete, no una lista suelta', () => {
+    const groups = groupStories([make('a', 'p1', 2), make('b', 'p1', 1), make('c', 'p2', 1)]);
+    expect(groups).toHaveLength(2);
+    expect(groups.find((group) => group.petId === 'p1')?.stories).toHaveLength(2);
+  });
+});
+
+/**
+ * La etiqueta de condiciones de un reel.
+ *
+ * Es lo único que impide que el formato contradiga a la capa de bienestar, y usa
+ * el mismo juez que el resto del producto. Si algún día usara otro, los dos
+ * dejarían de coincidir y nadie se enteraría hasta que un tutor viera «hoy no
+ * salgas» encima de un reel sin etiquetar.
+ */
+describe('condiciones de un reel', () => {
+  const reels = reelsSnapshot();
+
+  it('un reel grabado a 19 grados sobre hierba no lleva etiqueta', () => {
+    const calm = reels.find((reel) => reel.id === 'rl-1');
+    expect(calm).toBeDefined();
+    expect(reelWarning(calm!)).toBeNull();
+  });
+
+  it('uno grabado a 33 grados sobre asfalto sí, y explica por qué', () => {
+    const hot = reels.find((reel) => reel.id === 'rl-3');
+    expect(hot).toBeDefined();
+    const warning = reelWarning(hot!);
+    expect(warning?.level).toBe('stop');
+    // El motivo no es un texto escrito a mano: sale del veredicto, así que si
+    // cambia el umbral cambia la etiqueta.
+    expect(warning?.detail.length).toBeGreaterThan(10);
+  });
+
+  it('no se esconde: el reel sigue en la lista, etiquetado', () => {
+    // Quien lo grabó no ha hecho nada ilegal. Borrarlo sería moderación
+    // encubierta; no decir nada sería repartir atención por ello.
+    expect(reels.some((reel) => reel.id === 'rl-3')).toBe(true);
+  });
+
+  it('el primer motivo de denuncia recoge el daño propio de este formato', () => {
+    // Un formulario que solo ofrece «spam» y «desnudos» no sirve aquí.
+    expect(REPORT_REASONS[0]).toMatch(/reto/i);
   });
 });

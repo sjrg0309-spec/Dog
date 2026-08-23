@@ -23,6 +23,7 @@ import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
   BadgeCheck,
+  Bookmark,
   Cake,
   Check,
   FileText,
@@ -39,7 +40,7 @@ import {
   X,
 } from '@/lib/icons';
 import { speciesName } from '@/lib/labels';
-import { usePostsOf, type Post } from '@/lib/posts';
+import { usePostsOf, useSavedPosts, type Post } from '@/lib/posts';
 import {
   dueLabel,
   isOverdue,
@@ -75,8 +76,9 @@ export default function ProfileScreen() {
   const pet = useActivePet();
   const record = useMedicalRecord(pet.id);
   const posts = usePostsOf(pet.id);
+  const saved = useSavedPosts();
   const [walkMode, setWalkMode] = useState(false);
-  const [tab, setTab] = useState<'grid' | 'record'>('grid');
+  const [tab, setTab] = useState<'grid' | 'saved' | 'record'>('grid');
 
   // Días distintos de la semana con paseo declarado. Es la cifra que de verdad
   // dice cuánto se mueve un perro, y la que hace que la coincidencia horaria
@@ -267,6 +269,7 @@ export default function ProfileScreen() {
           {(
             [
               { id: 'grid' as const, icon: Grid3x3, label: 'Fotos' },
+              { id: 'saved' as const, icon: Bookmark, label: 'Guardados' },
               { id: 'record' as const, icon: Lock, label: 'Ficha médica' },
             ]
           ).map((option) => {
@@ -286,7 +289,7 @@ export default function ProfileScreen() {
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: theme.space[2],
+                  gap: theme.space[1.5],
                   minHeight: theme.touchTarget.comfortable,
                   borderBottomWidth: 2,
                   borderBottomColor: active ? theme.colors.foreground : 'transparent',
@@ -300,10 +303,11 @@ export default function ProfileScreen() {
                   decorative
                 />
                 <Text
+                  numberOfLines={1}
                   style={{
                     color: active ? theme.colors.foreground : theme.colors.mutedForeground,
                     fontFamily: active ? fonts.bodyBold : fonts.body,
-                    fontSize: theme.fontSize.sm,
+                    fontSize: theme.fontSize.xs,
                   }}
                 >
                   {option.label}
@@ -315,6 +319,21 @@ export default function ProfileScreen() {
         <Separator />
 
         {tab === 'grid' ? <PostGrid posts={posts} name={pet.name} /> : null}
+
+        {/* Guardados. Es la única colección privada del perfil, y lo dice:
+            guardar es la única acción de una publicación que no ve nadie más,
+            así que la pantalla tiene que confirmarlo en lugar de dejar la duda. */}
+        {tab === 'saved' ? (
+          <View style={{ gap: theme.space[3] }}>
+            <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[4] }}>
+              <Caption>
+                Solo tú ves esto. Guardar no avisa a quien publicó, y no hay contador de cuánta
+                gente ha guardado una foto: no le corresponde a nadie.
+              </Caption>
+            </View>
+            <PostGrid posts={saved} name={pet.name} empty="Todavía no has guardado nada." />
+          </View>
+        ) : null}
 
         {/* Ficha médica */}
         <View
@@ -448,7 +467,15 @@ function Stat({ value, label }: { value: number; label: string }) {
  * fotos —que es el caso de esta demostración— tiene que decirlo en lugar de
  * enseñar tres filas de cuadrados grises.
  */
-function PostGrid({ posts, name }: { posts: Post[]; name: string }) {
+function PostGrid({
+  posts,
+  name,
+  empty,
+}: {
+  posts: Post[];
+  name: string;
+  empty?: string;
+}) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const cell = (width - 4) / 3;
@@ -457,7 +484,7 @@ function PostGrid({ posts, name }: { posts: Post[]; name: string }) {
     return (
       <View style={{ padding: theme.space[8], alignItems: 'center', gap: theme.space[2] }}>
         <Icon icon={ImageOff} size="xl" color={theme.colors.mutedForeground} decorative />
-        <Caption>{name} todavía no tiene fotos publicadas.</Caption>
+        <Caption>{empty ?? `${name} todavía no tiene fotos publicadas.`}</Caption>
       </View>
     );
   }
