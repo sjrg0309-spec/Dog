@@ -16,6 +16,7 @@ import {
   parseOklch,
   themeToHex,
 } from './contrast.js';
+import { ACCENT_IDS, applyAccent } from './accent.js';
 import { dark, light, type SemanticTokens } from './semantic.js';
 import { amber, blue, bone, ink, red, sage, terracotta } from './primitives.js';
 
@@ -333,6 +334,90 @@ describe('significados que no pueden confundirse', () => {
       expect(oklabDistance(theme[a], theme[b])).toBeGreaterThanOrEqual(MIN_DISTANCE);
     });
   }
+});
+
+/**
+ * Los acentos por mascota.
+ *
+ * La aplicación se pinta del color del perro que se esté mirando, y eso
+ * multiplica por cuatro la superficie donde puede fallar el contraste: cada
+ * acento tiene que cumplir **exactamente lo mismo** que cumplía el único color
+ * de marca que había antes. Escribirlo como un bucle sobre la lista no es
+ * pereza: es lo que hace que añadir un acento nuevo lo obligue a pasar por aquí
+ * sin que nadie se acuerde de venir.
+ *
+ * Y hay una segunda familia de comprobaciones que el contraste no ve. El rojo
+ * de extraviados y el terracota de «en vivo» significan una cosa cada uno, y un
+ * acento que se les parezca los vacía: si el botón de acción de un perro
+ * canela es del color del aviso de perro perdido, el aviso deja de avisar. El
+ * ratio WCAG mide luminancia y daría por buenos dos matices opuestos con la
+ * misma claridad, así que esto se mide con `oklabDistance`, que sí ve el matiz.
+ * Es la misma trampa que en esta paleta ya se coló una vez, con marca y aviso
+ * separados por **un grado**.
+ */
+describe('los acentos por mascota', () => {
+  const cases = ACCENT_IDS.flatMap((accent) =>
+    ([['claro', light, 'light'], ['oscuro', dark, 'dark']] as const).map(
+      ([name, base, mode]) =>
+        [`${accent} en tema ${name}`, applyAccent(base as SemanticTokens, accent, mode)] as const,
+    ),
+  );
+
+  it.each(cases)('%s: el botón es legible en reposo, hover y pulsado', (_name, theme) => {
+    expect(contrastRatio(theme.primaryForeground, theme.primary)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrastRatio(theme.primaryForeground, theme.primaryHover)).toBeGreaterThanOrEqual(
+      AA_TEXT,
+    );
+    expect(contrastRatio(theme.primaryForeground, theme.primaryActive)).toBeGreaterThanOrEqual(
+      AA_TEXT,
+    );
+  });
+
+  it.each(cases)('%s: el acento se lee como texto sobre el fondo y la superficie', (_name, theme) => {
+    /* Listón de **cuerpo** y no de componente, y esto se corrigió mirando las
+       capturas: el acento no se usa solo en anillos y rellenos, se usa como
+       texto en sitios que se leen —«5 km» en el feed, el nombre del parque bajo
+       cada publicación, el rótulo de la pestaña activa—. Pedirle 3:1 habría
+       dado por bueno un acento que se ve y no se lee cómodo, que es exactamente
+       el fallo que este repositorio ya cazó una vez con el terracota. */
+    expect(contrastRatio(theme.primary, theme.background)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrastRatio(theme.primary, theme.surface)).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  it.each(cases)('%s: el anillo de foco se ve', (_name, theme) => {
+    expect(contrastRatio(theme.focusRing, theme.background)).toBeGreaterThanOrEqual(AA_UI);
+  });
+
+  it.each(cases)('%s: no se confunde con el aviso de extraviado', (_name, theme) => {
+    expect(oklabDistance(theme.primary, theme.destructive)).toBeGreaterThanOrEqual(0.1);
+  });
+
+  it.each(cases)('%s: no se confunde con el estado en vivo', (_name, theme) => {
+    expect(oklabDistance(theme.primary, theme.liveRing)).toBeGreaterThanOrEqual(0.1);
+  });
+
+  it('los cuatro se distinguen entre sí, o no serían cuatro', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const base = (mode === 'light' ? light : dark) as SemanticTokens;
+      for (let i = 0; i < ACCENT_IDS.length; i += 1) {
+        for (let j = i + 1; j < ACCENT_IDS.length; j += 1) {
+          const a = applyAccent(base, ACCENT_IDS[i]!, mode).primary;
+          const b = applyAccent(base, ACCENT_IDS[j]!, mode).primary;
+          expect(
+            oklabDistance(a, b),
+            `${ACCENT_IDS[i]} y ${ACCENT_IDS[j]} se parecen demasiado en ${mode}`,
+          ).toBeGreaterThanOrEqual(0.1);
+        }
+      }
+    }
+  });
+
+  it('el rojo de extraviados no es un acento disponible', () => {
+    /* No es que quede feo: es que ya significa que un animal se ha perdido.
+       Este test existe para que añadirlo tenga que ser una decisión y no un
+       descuido de quien amplíe la lista. */
+    expect(ACCENT_IDS).not.toContain('red');
+  });
 });
 
 /**

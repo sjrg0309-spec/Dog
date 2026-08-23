@@ -113,8 +113,16 @@ export const amber = {
   200: 'oklch(91.5% 0.058 80)',
   /** Ancla PAWNET: `#F2CC8F`. */
   300: 'oklch(86.4% 0.089 79)',
+  /* Los tres escalones que faltaban. La rampa se escribió con los que hacía
+     falta entonces —relleno de aviso y poco más—, y al convertirse en un
+     acento de la interfaz pasó a necesitar la escalera entera: un botón tiene
+     reposo, hover y pulsado, y saltárselos obliga a repetir un paso, que se
+     ve como un botón que no responde al tocarlo. */
+  400: 'oklch(80.0% 0.112 78)',
   500: 'oklch(74.0% 0.130 78)',
+  600: 'oklch(63.0% 0.122 76)',
   700: 'oklch(52.0% 0.105 74)',
+  800: 'oklch(41.0% 0.086 74)',
   900: 'oklch(31.0% 0.064 74)',
 } as const;
 
@@ -140,10 +148,15 @@ export const red = {
 /** Azul informativo. Se distingue de la salvia primaria en deuteranopía. */
 export const blue = {
   100: 'oklch(93.5% 0.032 250)',
+  /* Mismo motivo que en ámbar: la rampa nació para un estado informativo y
+     ahora también es el acento de los perros de pelaje claro. */
+  200: 'oklch(86.5% 0.066 250)',
   300: 'oklch(78.5% 0.100 250)',
+  400: 'oklch(67.5% 0.125 251)',
   500: 'oklch(57.0% 0.140 252)',
   600: 'oklch(48.5% 0.140 254)',
   700: 'oklch(40.0% 0.120 254)',
+  800: 'oklch(32.0% 0.095 254)',
   900: 'oklch(24.5% 0.070 254)',
 } as const;
 

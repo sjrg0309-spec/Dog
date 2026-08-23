@@ -11,11 +11,17 @@
 import { useColorScheme } from 'react-native';
 
 import {
+  ACCENT_IDS,
+  applyAccent,
   dark as darkTokens,
   light as lightTokens,
   themeToHex,
+  type AccentId,
   type SemanticTokens,
 } from '@coincide/tokens';
+
+import { useActivePet } from './active-pet';
+import { accentOf } from './artwork';
 
 export const lightColors = themeToHex(lightTokens as unknown as Record<string, string>) as unknown as SemanticTokens;
 export const darkColors = themeToHex(darkTokens as unknown as Record<string, string>) as unknown as SemanticTokens;
@@ -128,12 +134,56 @@ export type Theme = {
  * `useColorScheme` puede devolver `null` mientras el sistema no ha resuelto la
  * preferencia; se cae a claro en lugar de parpadear.
  */
+/**
+ * Los seis juegos de color: tres acentos × dos temas.
+ *
+ * Se calculan **una vez al cargar el módulo** y no en cada render. Convertir
+ * OKLCH a hexadecimal es barato una vez y caro sesenta veces por segundo, y
+ * además un objeto de colores recién creado en cada render invalidaría todos
+ * los memos que lo tengan de dependencia —incluido el de las teselas del mapa,
+ * que ya costó un bucle de mil peticiones—.
+ */
+const PALETTES = Object.fromEntries(
+  ACCENT_IDS.map((accent) => [
+    accent,
+    {
+      light: themeToHex(
+        applyAccent(lightTokens as unknown as SemanticTokens, accent, 'light') as unknown as Record<
+          string,
+          string
+        >,
+      ) as unknown as SemanticTokens,
+      dark: themeToHex(
+        applyAccent(darkTokens as unknown as SemanticTokens, accent, 'dark') as unknown as Record<
+          string,
+          string
+        >,
+      ) as unknown as SemanticTokens,
+    },
+  ]),
+) as Record<AccentId, { light: SemanticTokens; dark: SemanticTokens }>;
+
+/**
+ * El tema, teñido del animal que se está mirando.
+ *
+ * Es un `useTheme` y no un proveedor con un color dentro porque el acento no es
+ * una preferencia del usuario: **se deduce de qué mascota está activa**, que ya
+ * vive en su propio almacén. Cambiar de Nina a Kira repinta la aplicación sin
+ * que nadie tenga que acordarse de propagar nada.
+ *
+ * Lo que se tiñe son los cinco tokens de la acción primaria y el foco. El rojo
+ * de extraviados y el terracota de «en vivo» **no**: si el color del peligro
+ * dependiera de qué perro tienes seleccionado, el peligro dejaría de tener
+ * color.
+ */
 export function useTheme(): Theme {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
+  const pet = useActivePet();
+  const accent = accentOf(pet.id);
 
   return {
-    colors: isDark ? darkColors : lightColors,
+    colors: PALETTES[accent][isDark ? 'dark' : 'light'],
     isDark,
     space,
     radius,

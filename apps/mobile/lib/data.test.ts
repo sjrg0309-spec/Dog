@@ -24,7 +24,9 @@ import {
   SEED_POSTS,
   totalReactions,
 } from './posts';
-import { buildPortrait, buildScene, sceneToSvg, timeOfDay } from './artwork';
+import { ACCENT_IDS } from '@coincide/tokens';
+
+import { accentOf, buildPortrait, buildScene, sceneToSvg, timeOfDay } from './artwork';
 import { REPORT_REASONS, reelWarning, reelsSnapshot } from './reels';
 import {
   groupStories,
@@ -650,6 +652,55 @@ describe('sin saber qué tiempo hace', () => {
  * parque en el que no hay nadie no vuelve a fiarse de la pantalla, y el fallo
  * que lo causó se lee perfectamente en el código.
  */
+/**
+ * El acento de cada animal.
+ *
+ * La aplicación se pinta del color del perro activo, así que este mapeo decide
+ * de qué color se ve media pantalla. Lo que hay que sostener es poco y es
+ * exigente:
+ *
+ *  · **Determinista.** El mismo animal da siempre el mismo color. Si cambiara
+ *    entre arranques, la aplicación parecería estropeada, no personalizada.
+ *  · **Válido.** Sale de la lista cerrada de acentos, que es la que ya pasó
+ *    contraste y separación de significados en `@coincide/tokens`. Un acento
+ *    inventado aquí se saltaría todas esas comprobaciones de golpe.
+ *  · **Visible.** Los dos perros de la misma tutora tienen colores distintos.
+ *    Si el conmutador de mascota no repintara nada, la función no existiría.
+ */
+describe('el acento de cada mascota', () => {
+  const dogs = [...MY_PETS, ...OTHER_PETS].filter((pet) => pet.speciesId === 'dog');
+
+  it('sale de la lista cerrada de acentos', () => {
+    for (const pet of dogs) {
+      expect(ACCENT_IDS, `${pet.name} tiene un acento que no existe`).toContain(accentOf(pet.id));
+    }
+  });
+
+  it('el mismo animal da siempre el mismo color', () => {
+    for (const pet of dogs) {
+      expect(accentOf(pet.id)).toBe(accentOf(pet.id));
+    }
+  });
+
+  it('las dos mascotas de la misma tutora se pintan distinto', () => {
+    /* Es lo que hace visible la función: Nina y Kira comparten tutora, y
+       cambiar de una a otra tiene que repintar la aplicación. Con el mismo
+       acento para las dos, el conmutador de mascota no enseñaría nada. */
+    const [nina, kira] = MY_PETS;
+    expect(accentOf(nina!.id)).not.toBe(accentOf(kira!.id));
+  });
+
+  it('nunca es el rojo de extraviados ni el terracota de en vivo', () => {
+    /* Los dos están fuera de la lista de acentos por decisión, y esto lo
+       comprueba desde este lado por si alguien la amplía sin mirar: un botón de
+       acción del color del aviso de perro perdido vacía el aviso. */
+    for (const pet of dogs) {
+      expect(accentOf(pet.id)).not.toBe('red');
+      expect(accentOf(pet.id)).not.toBe('terracotta');
+    }
+  });
+});
+
 describe('quién está fuera y dónde', () => {
   const places = Object.values(PLACES);
 

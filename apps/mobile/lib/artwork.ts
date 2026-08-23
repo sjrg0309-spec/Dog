@@ -28,6 +28,7 @@
  * no lo que este generador ha dibujado.
  */
 
+import type { AccentId } from '@coincide/tokens';
 import {
   amber,
   blue,
@@ -102,8 +103,17 @@ const GROUNDS: Record<TimeOfDay, { near: string; far: string; hill: string }> = 
 /**
  * Pelajes. Salen de las rampas cálidas: el dibujo y la interfaz comparten color.
  *
- * Cada uno lleva su **fondo de retrato** elegido a mano y no derivado del propio
- * pelaje. Derivarlo fue lo primero que probé y se veía en la captura: un perro
+ * Cada uno lleva **su acento**, que es el color con el que se pinta la
+ * aplicación entera cuando ese animal está seleccionado. Se elige a mano y no
+ * se deriva del cuerpo por dos motivos: hay pelajes neutros —el negro y el
+ * hueso— que no dan ningún color, y la banda cálida de esta paleta está
+ * reservada al aviso de extraviado y al estado en vivo. Lo que sí lo determina
+ * es el **collar**, que es la mancha de color con la que se reconoce a un perro
+ * en su retrato; donde el collar es neutro se toma el vecino legible de la
+ * familia del pelaje.
+ *
+ * Cada uno lleva además su **fondo de retrato** elegido a mano y no derivado del
+ * propio pelaje. Derivarlo fue lo primero que probé y se veía en la captura: un perro
  * claro sobre un degradado de su propio color desaparecía dentro del círculo.
  * El fondo tiene que contrastar con el animal, no acompañarlo.
  */
@@ -112,36 +122,44 @@ const COATS = [
     body: hex(terracotta[600]),
     belly: hex(terracotta[300]),
     collar: hex(sage[600]),
+    accent: 'sage' as const,
     backdrop: [hex(sage[200]), hex(sage[400])] as const,
   },
   {
     body: hex(ink[800]),
     belly: hex(bone[200]),
     collar: hex(terracotta[500]),
+  // Collar terracota, acento ámbar: el terracota ya es «en vivo».
+    accent: 'amber' as const,
     backdrop: [hex(amber[200]), hex(amber[300])] as const,
   },
   {
     body: hex(bone[300]),
     belly: hex(bone[100]),
     collar: hex(blue[500]),
+    accent: 'blue' as const,
     backdrop: [hex(blue[300]), hex(blue[500])] as const,
   },
   {
     body: hex(terracotta[800]),
     belly: hex(terracotta[400]),
     collar: hex(amber[300]),
+    accent: 'amber' as const,
     backdrop: [hex(bone[100]), hex(bone[300])] as const,
   },
   {
     body: hex(amber[500]),
     belly: hex(amber[200]),
     collar: hex(ink[700]),
+  // Collar de carbón, que no es un color: manda el pelaje, que es ámbar.
+    accent: 'amber' as const,
     backdrop: [hex(sage[400]), hex(sage[600])] as const,
   },
   {
     body: hex(ink[600]),
     belly: hex(ink[300]),
     collar: hex(sage[400]),
+    accent: 'sage' as const,
     backdrop: [hex(terracotta[200]), hex(terracotta[400])] as const,
   },
 ];
@@ -375,6 +393,21 @@ function tree(x: number, groundY: number, height: number, pine: boolean, colors:
     { kind: 'ellipse', cx: x, cy: groundY - height * 0.62, rx: height * 0.34, ry: height * 0.3, fill: colors.far },
     { kind: 'ellipse', cx: x - height * 0.16, cy: groundY - height * 0.5, rx: height * 0.24, ry: height * 0.22, fill: colors.near },
   ];
+}
+
+/**
+ * El color de la aplicación cuando este animal está seleccionado.
+ *
+ * Sale del **mismo sorteo** que su pelaje, y esa es toda la gracia: no es un
+ * color asignado aparte que además pega, es literalmente el color de su
+ * retrato. Si mañana cambiara la forma de repartir pelajes, el acento cambiaría
+ * con él y seguirían casando, porque es la misma línea de código la que decide
+ * las dos cosas.
+ */
+export function accentOf(petId: string): AccentId {
+  const petRandom = rng(hashOf(petId));
+  const coat = COATS[Math.floor(petRandom() * COATS.length)] ?? COATS[0]!;
+  return coat.accent;
 }
 
 /**
