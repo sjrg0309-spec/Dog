@@ -1,0 +1,44 @@
+{
+  "name": "@doggymeet/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "web": "expo start --web --port 8081",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build:web": "expo export --platform web",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'lint via typecheck'",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@babel/runtime": "^8.0.0",
+    "@doggymeet/core": "workspace:*",
+    "@doggymeet/tokens": "workspace:*",
+    "@doggymeet/trackers": "workspace:*",
+    "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
+    "@expo/metro-runtime": "^4.0.1",
+    "@react-navigation/native": "^7.3.17",
+    "debug": "^4.4.3",
+    "expo": "^52.0.0",
+    "expo-constants": "~17.0.0",
+    "expo-font": "^57.0.1",
+    "expo-linking": "~7.0.0",
+    "expo-router": "~4.0.0",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.76.5",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0",
+    "react-native-web": "~0.19.13"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.12",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { contrastRatio, isInSrgbGamut, parseOklch } from './contrast.js';
+import { contrastRatio, isInSrgbGamut, oklchToHex, parseOklch, themeToHex } from './contrast.js';
 import { dark, light, type SemanticTokens } from './semantic.js';
 import { amber, blue, green, live, neutral, red } from './primitives.js';
 
@@ -130,5 +130,43 @@ describe('las rampas primitivas caben en sRGB', () => {
     for (const [step, value] of Object.entries(ramp)) {
       expect(isInSrgbGamut(value), `${name}[${step}] = ${value} está fuera de gama`).toBe(true);
     }
+  });
+});
+
+describe('conversión a hexadecimal para React Native', () => {
+  it('el blanco y el negro salen exactos', () => {
+    expect(oklchToHex('oklch(100% 0 0)')).toBe('#ffffff');
+    expect(oklchToHex('oklch(0% 0 0)')).toBe('#000000');
+  });
+
+  it('produce hexadecimales de seis dígitos válidos', () => {
+    for (const value of Object.values(light)) {
+      if (typeof value !== 'string' || !value.startsWith('oklch(')) continue;
+      if (parseOklch(value).alpha < 1) continue;
+      expect(oklchToHex(value)).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+
+  it('conserva la transparencia con un cuarto par de dígitos', () => {
+    expect(oklchToHex('oklch(21% 0.014 72 / 0.55)')).toMatch(/^#[0-9a-f]{8}$/);
+  });
+
+  it('el tema convertido conserva las mismas claves', () => {
+    const hex = themeToHex(dark as unknown as Record<string, string>);
+    expect(Object.keys(hex).sort()).toEqual(Object.keys(dark).sort());
+    // `colorScheme` no es un color y debe pasar tal cual.
+    expect(hex.colorScheme).toBe('dark');
+  });
+
+  it('la conversión conserva el orden de claridad, que es lo que sostiene el contraste', () => {
+    // Si el hexadecimal invirtiera la relación entre dos tonos, el contraste
+    // verificado sobre OKLCH dejaría de valer para la aplicación móvil.
+    const luminance = (hex: string) => {
+      const value = parseInt(hex.slice(1, 7), 16);
+      return ((value >> 16) & 255) * 0.2126 + ((value >> 8) & 255) * 0.7152 + (value & 255) * 0.0722;
+    };
+
+    expect(luminance(oklchToHex(neutral[50]))).toBeGreaterThan(luminance(oklchToHex(neutral[500])));
+    expect(luminance(oklchToHex(neutral[500]))).toBeGreaterThan(luminance(oklchToHex(neutral[950])));
   });
 });

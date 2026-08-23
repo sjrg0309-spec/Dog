@@ -13,7 +13,10 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "db:reset": "./scripts/db-reset.sh",
+    "db:seed": "node packages/db/dist/seed-cli.js",
+    "screenshots": "node scripts/screenshots.mjs && node scripts/mobile-screenshots.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -31,6 +34,9 @@
       "sharp",
       "@tailwindcss/oxide",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "expo-font": "~13.0.4"
+    }
   }
 }

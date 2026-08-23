@@ -71,3 +71,47 @@ export function isInSrgbGamut(value: string, tolerance = 0.001): boolean {
   const { r, g, b } = oklchToLinearRgb(value);
   return [r, g, b].every((channel) => channel >= -tolerance && channel <= 1 + tolerance);
 }
+
+/** Codificación gamma sRGB: de lineal a los valores que entiende una pantalla. */
+function encodeGamma(channel: number): number {
+  const clamped = clamp01(channel);
+  return clamped <= 0.0031308
+    ? 12.92 * clamped
+    : 1.055 * Math.pow(clamped, 1 / 2.4) - 0.055;
+}
+
+/**
+ * OKLCH → hexadecimal.
+ *
+ * React Native no sabe interpretar `oklch()`: su analizador de color solo
+ * entiende hex, `rgb()`, `hsl()` y los nombres. En lugar de mantener una
+ * segunda paleta escrita a mano para la aplicación móvil —que se desincronizaría
+ * con la web a la primera— se deriva el hexadecimal de los mismos tokens.
+ *
+ * El color fuera de gama se recorta al convertir. Los tokens del proyecto están
+ * dentro de sRGB y hay un test que lo comprueba, así que aquí no se pierde nada.
+ */
+export function oklchToHex(value: string): string {
+  const { alpha } = parseOklch(value);
+  const linear = oklchToLinearRgb(value);
+
+  const toHex = (channel: number) =>
+    Math.round(encodeGamma(channel) * 255)
+      .toString(16)
+      .padStart(2, '0');
+
+  const hex = `#${toHex(linear.r)}${toHex(linear.g)}${toHex(linear.b)}`;
+  if (alpha >= 1) return hex;
+
+  const alphaHex = Math.round(alpha * 255).toString(16).padStart(2, '0');
+  return `${hex}${alphaHex}`;
+}
+
+/** Convierte un tema semántico entero a hexadecimales, para React Native. */
+export function themeToHex<T extends Record<string, string>>(theme: T): T {
+  const converted: Record<string, string> = {};
+  for (const [key, value] of Object.entries(theme)) {
+    converted[key] = value.startsWith('oklch(') ? oklchToHex(value) : value;
+  }
+  return converted as T;
+}
