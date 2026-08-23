@@ -158,6 +158,19 @@ export function registerPet(
     endTime: string;
     /** Opcional: hay animales adoptados hace años y sin chip. */
     microchipCode?: string | null;
+    /** Cómo se llama su raza, ya escrita: «Mestizo de labrador y pastor». */
+    breedLabel?: string;
+    /**
+     * Lo que trae de serie y cambia lo que puede hacer hoy.
+     *
+     * Sale del catálogo de razas y no de un formulario médico: el hocico chato
+     * de un carlino no es una enfermedad que haya que declarar, es un hecho de
+     * la raza que baja cuatro grados el techo de calor. Que llegue desde el
+     * alta es la diferencia entre que la capa de bienestar funcione desde el
+     * primer día o solo para quien se acuerde de rellenar la ficha.
+     */
+    healthFlags?: readonly string[];
+    trustCircle?: readonly string[];
   },
 ): void {
   const pet: DemoPet = {
@@ -166,15 +179,18 @@ export function registerPet(
     ownerName: 'Tú',
     ownerId: 'me',
     speciesId: draft.speciesId,
-    breeds: [],
+    breeds: draft.breedLabel ? [draft.breedLabel] : [],
     bio: '',
     size: (draft.size ?? 'medium') as DemoPet['size'],
     energyLevel: (draft.energy ?? 'medium') as DemoPet['energyLevel'],
     playStyles: draft.playStyles as DemoPet['playStyles'],
-    trustCircle: ['loves_everyone'],
+    trustCircle: (draft.trustCircle && draft.trustCircle.length > 0
+      ? draft.trustCircle
+      : ['loves_everyone']) as DemoPet['trustCircle'],
     sex: draft.sex,
     ageMonths: draft.ageMonths ?? 12,
     isMicrochipVerified: false,
+    healthFlags: (draft.healthFlags ?? []) as DemoPet['healthFlags'],
     availability: draft.days.map((weekday) => ({
       weekday,
       startTime: draft.startTime,

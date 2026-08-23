@@ -111,17 +111,10 @@ export default function SettingsScreen() {
         contentContainerStyle={{ paddingBottom: theme.space[16] }}
       >
         <View style={{ padding: theme.space[4] }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.space[2],
-              paddingLeft: theme.space[4],
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.colors.input,
-            }}
-          >
-            <Icon icon={Search} size="base" color={theme.colors.inputPlaceholder} decorative />
+          {/* El campo es la píldora, con el icono y el aspa encima: así el
+              anillo de foco del navegador rodea lo que se ve y no el campo de
+              dentro. */}
+          <View>
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -130,13 +123,28 @@ export default function SettingsScreen() {
               accessibilityLabel="Buscar un ajuste"
               returnKeyType="search"
               style={{
-                flex: 1,
                 minHeight: theme.touchTarget.min,
+                paddingLeft: theme.space[12],
+                paddingRight: theme.space[12],
+                borderRadius: theme.radius.full,
+                backgroundColor: theme.colors.input,
                 color: theme.colors.inputForeground,
                 fontFamily: fonts.body,
                 fontSize: theme.fontSize.base,
               }}
             />
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: theme.space[4],
+                top: 0,
+                bottom: 0,
+                justifyContent: 'center',
+              }}
+            >
+              <Icon icon={Search} size="base" color={theme.colors.inputPlaceholder} decorative />
+            </View>
             {query !== '' ? (
               <Pressable
                 accessibilityRole="button"
@@ -146,8 +154,11 @@ export default function SettingsScreen() {
                   setQuery('');
                 }}
                 style={({ pressed }) => ({
+                  position: 'absolute',
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
                   width: theme.touchTarget.min,
-                  height: theme.touchTarget.min,
                   alignItems: 'center',
                   justifyContent: 'center',
                   opacity: pressed ? 0.6 : 1,
@@ -155,9 +166,7 @@ export default function SettingsScreen() {
               >
                 <Icon icon={X} size="base" color={theme.colors.mutedForeground} decorative />
               </Pressable>
-            ) : (
-              <View style={{ width: theme.space[4] }} />
-            )}
+            ) : null}
           </View>
         </View>
 

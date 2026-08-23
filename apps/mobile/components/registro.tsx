@@ -50,14 +50,23 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import {
   GATE_NOTE,
   CHIP_NOTE,
+  HEALTH_FLAG_LABEL,
   HONESTY_NOTE,
+  MAX_BREEDS,
+  MIXED_BREED_ID,
   SHELTER_ACTIVITIES,
   SHELTER_GATE_NOTE,
   SHELTER_REVIEW_NOTE,
   SHELTER_SCOPE_NOTE,
+  UNKNOWN_BREED_ID,
+  breedDefaults,
+  describeBreeds,
+  findBreed,
   missingShelterFields,
   missingSteps,
+  searchBreeds,
   validateShelterProfile,
+  type HealthFlag,
   type PetDraft,
 } from '@coincide/core';
 import { formatMicrochip, validateMicrochip } from '@coincide/trackers';
@@ -75,7 +84,9 @@ import {
   CircleAlert,
   Lock,
   PawPrint,
+  Search,
   Siren,
+  X,
 } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
@@ -111,11 +122,58 @@ const DAYS = [
   { id: 0, label: 'D' },
 ] as const;
 
+/**
+ * Las franjas.
+ *
+ * Seis y no cuatro, y las dos que se han añadido son las que más falta hacían:
+ * quien saca al perro a las seis de la mañana antes de trabajar y quien lo saca
+ * a las doce de la noche. Son justo los horarios en los que se pasea solo —el
+ * caso que esta aplicación existe para resolver— y no tenerlos obligaba a
+ * mentir eligiendo la franja de al lado.
+ */
 const SLOTS = [
+  { id: 'dawn', label: 'Al amanecer', start: '06:00', end: '07:00' },
   { id: 'morning', label: 'Mañana', start: '07:00', end: '08:00' },
   { id: 'midday', label: 'Mediodía', start: '13:00', end: '14:00' },
+  { id: 'afternoon', label: 'Media tarde', start: '16:00', end: '17:00' },
   { id: 'evening', label: 'Tarde', start: '18:00', end: '19:00' },
   { id: 'night', label: 'Noche', start: '22:00', end: '23:00' },
+] as const;
+
+/**
+ * La edad, en un toque.
+ *
+ * Escribir «3» en una caja y luego «0» en otra son dos gestos y un teclado que
+ * tapa media pantalla. Casi todo el mundo sabe la edad de su perro en años, así
+ * que se elige, y quien la sepa al mes exacto tiene el paso siguiente para
+ * afinarla. Los cachorros van aparte porque **por debajo del año la aplicación
+ * decide distinto**: un cachorro entra en el veto de «no cachorros revoltosos».
+ */
+const AGES = [
+  { id: '6', label: 'Menos de 1 año', months: 6 },
+  { id: '12', label: '1 año', months: 12 },
+  { id: '24', label: '2 años', months: 24 },
+  { id: '36', label: '3 años', months: 36 },
+  { id: '60', label: '4 a 6', months: 60 },
+  { id: '96', label: '7 a 9', months: 96 },
+  { id: '132', label: '10 o más', months: 132 },
+] as const;
+
+/**
+ * Con quién se lleva bien, que el algoritmo usa para **vetar**, no para ordenar.
+ *
+ * Hasta ahora el alta ponía «se lleva con todos» sin preguntarlo, y eso no era
+ * un valor por defecto: era una respuesta inventada en nombre del tutor, justo
+ * en el campo que impide que a un perro tímido le propongan un velocista bruto.
+ * Es opcional —quien no lo sepa lo deja— pero preguntado.
+ */
+const TRUST = [
+  { id: 'loves_everyone', label: 'Con todos', hint: 'Se acerca a cualquiera' },
+  { id: 'same_size_only', label: 'De su tamaño', hint: 'Veta dos escalones de diferencia' },
+  { id: 'shy_at_first', label: 'Tímido al principio', hint: 'Necesita un rato' },
+  { id: 'no_hyper_juveniles', label: 'Cachorros no', hint: 'Los muy revoltosos le agobian' },
+  { id: 'prefers_females', label: 'Mejor con hembras', hint: '' },
+  { id: 'prefers_males', label: 'Mejor con machos', hint: '' },
 ] as const;
 
 /** Un paso del alta: una pregunta, su motivo y cuándo se puede seguir. */
@@ -127,6 +185,10 @@ type Step = {
   ready: boolean;
   /** Los pasos opcionales enseñan «Omitir» en vez de obligar. */
   skippable?: boolean;
+  /** Aviso pequeño encima del control: «puesto por la raza», y poco más. */
+  hint?: string;
+  /** Efecto al salir del paso, como rellenar lo que la raza ya dice. */
+  onLeave?: () => void;
   /** El último no dice «Siguiente». */
   cta?: string;
 };
@@ -214,31 +276,58 @@ function Bienvenida({ onPick }: { onPick: (door: 'tutor' | 'rescuer') => void })
   );
 }
 
-/** El alta de un tutor, paso a paso. */
+/**
+ * El alta de un tutor, paso a paso y lo más corta que se puede.
+ *
+ * Tres cosas la hacen rápida, y ninguna es quitar preguntas:
+ *
+ *  1. **La raza contesta los dos pasos siguientes.** Al elegir «Bulldog
+ *     francés» ya se sabe la talla, la energía probable y que tiene el hocico
+ *     chato. Esos pasos aparecen rellenados y solo hay que confirmarlos.
+ *  2. **Autoavance.** En los pasos de una sola respuesta —edad, sexo, talla,
+ *     energía— tocar la respuesta pasa al siguiente. Tocar y luego buscar el
+ *     botón de abajo son dos gestos para una decisión.
+ *  3. **Lo opcional se puede omitir de verdad**, con un botón que lo dice.
+ */
 function AltaTutor({ onBack }: { onBack: () => void }) {
   const theme = useTheme();
 
   const [index, setIndex] = useState(0);
+  const [breeds, setBreeds] = useState<string[]>([]);
   const [name, setName] = useState('');
+  const [ageMonths, setAgeMonths] = useState<number | null>(null);
+  const [exactAge, setExactAge] = useState(false);
   const [years, setYears] = useState('');
   const [months, setMonths] = useState('');
   const [sex, setSex] = useState<'male' | 'female' | null>(null);
   const [size, setSize] = useState<string | null>(null);
+  const [sizeFromBreed, setSizeFromBreed] = useState(false);
   const [energy, setEnergy] = useState<string | null>(null);
+  const [energyFromBreed, setEnergyFromBreed] = useState(false);
   const [play, setPlay] = useState<string[]>([]);
+  const [trust, setTrust] = useState<string[]>([]);
+  const [flags, setFlags] = useState<HealthFlag[]>([]);
   const [days, setDays] = useState<number[]>([]);
   const [slot, setSlot] = useState<string | null>(null);
   const [chip, setChip] = useState('');
 
-  const ageMonths =
+  /* Avanzar solo, un poco después de tocar. El retraso no es estético: sin él
+     la ficha elegida no llega a verse marcada y el paso cambia como si se
+     hubiera tocado otra cosa. */
+  const bump = () => {
+    setTimeout(() => setIndex((current) => current + 1), 220);
+  };
+
+  const exact =
     years.trim() === '' && months.trim() === ''
       ? null
       : Number(years || 0) * 12 + Number(months || 0);
+  const finalAge = exactAge ? exact : ageMonths;
 
   const draft: PetDraft = {
     name,
     speciesId: 'dog',
-    ageMonths: Number.isFinite(ageMonths) ? ageMonths : null,
+    ageMonths: finalAge !== null && Number.isFinite(finalAge) ? finalAge : null,
     size,
     energy,
     playStyles: play,
@@ -249,7 +338,35 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   const chipCheck = chip.trim() === '' ? null : validateMicrochip(chip);
   const complete = missingSteps(draft).length === 0;
 
+  /**
+   * Salir del paso de la raza: rellenar lo que ya se sabe.
+   *
+   * Se aplica **al salir** y no mientras se elige, para no reescribir debajo de
+   * los dedos de quien vuelve atrás a cambiar la raza después de haber ajustado
+   * la talla a mano.
+   */
+  const applyBreeds = () => {
+    const defaults = breedDefaults(breeds);
+    if (defaults.size !== null && (size === null || sizeFromBreed)) {
+      setSize(defaults.size);
+      setSizeFromBreed(true);
+    }
+    if (defaults.energy !== null && (energy === null || energyFromBreed)) {
+      setEnergy(defaults.energy);
+      setEnergyFromBreed(true);
+    }
+    setFlags(defaults.flags);
+  };
+
   const steps: Step[] = [
+    {
+      id: 'breed',
+      title: 'De qué raza es',
+      why: 'Mestizo cuenta, y es la respuesta más común. La raza no es para presumir: de ella salen la talla, la energía y —si es de hocico chato— cuatro grados menos de techo de calor.',
+      ready: breeds.length > 0,
+      onLeave: applyBreeds,
+      content: <BreedPicker selected={breeds} onChange={setBreeds} />,
+    },
     {
       id: 'name',
       title: 'Cómo se llama',
@@ -269,11 +386,28 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       id: 'age',
       title: 'Qué edad tiene',
       why: 'Por debajo del año es un cachorro, y hay tutores que piden no cruzarse con cachorros muy revoltosos. El algoritmo lo respeta.',
-      ready: ageMonths !== null && Number.isFinite(ageMonths) && ageMonths >= 0,
+      ready: draft.ageMonths !== null,
       content: (
-        <View style={{ flexDirection: 'row', gap: theme.space[3] }}>
-          <NumberBox value={years} onChange={setYears} label="Años" />
-          <NumberBox value={months} onChange={setMonths} label="Meses" />
+        <View style={{ gap: theme.space[3] }}>
+          {exactAge ? (
+            <View style={{ flexDirection: 'row', gap: theme.space[3] }}>
+              <NumberBox value={years} onChange={setYears} label="Años" />
+              <NumberBox value={months} onChange={setMonths} label="Meses" />
+            </View>
+          ) : (
+            <Chips
+              options={AGES.map((age) => ({ id: age.id, label: age.label }))}
+              selected={ageMonths === null ? [] : [String(ageMonths)]}
+              onPress={(id) => {
+                setAgeMonths(Number(id));
+                bump();
+              }}
+            />
+          )}
+          <TextLink
+            label={exactAge ? 'Elegirla de la lista' : 'Sé la edad exacta'}
+            onPress={() => setExactAge(!exactAge)}
+          />
         </View>
       ),
     },
@@ -289,7 +423,10 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
             { id: 'male', label: 'Macho' },
           ]}
           selected={sex ? [sex] : []}
-          onPress={(id) => setSex(id as 'male' | 'female')}
+          onPress={(id) => {
+            setSex(id as 'male' | 'female');
+            bump();
+          }}
         />
       ),
     },
@@ -298,14 +435,36 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       title: 'Cuánto ocupa',
       why: 'Tres escalones de diferencia es un veto duro: no es cuestión de carácter, es riesgo de lesión.',
       ready: size !== null,
-      content: <Chips options={SIZES} selected={size ? [size] : []} onPress={setSize} />,
+      hint: sizeFromBreed ? 'Puesto por la raza. Cámbialo si no encaja.' : undefined,
+      content: (
+        <Chips
+          options={SIZES}
+          selected={size ? [size] : []}
+          onPress={(id) => {
+            setSize(id);
+            setSizeFromBreed(false);
+            bump();
+          }}
+        />
+      ),
     },
     {
       id: 'energy',
       title: 'Cuánta cuerda tiene',
       why: 'Es el peso más grande de la afinidad: un perro de sofá con un velocista es la causa número uno de un mal encuentro.',
       ready: energy !== null,
-      content: <Chips options={ENERGY} selected={energy ? [energy] : []} onPress={setEnergy} />,
+      hint: energyFromBreed ? 'Puesto por la raza. Cámbialo si no encaja.' : undefined,
+      content: (
+        <Chips
+          options={ENERGY}
+          selected={energy ? [energy] : []}
+          onPress={(id) => {
+            setEnergy(id);
+            setEnergyFromBreed(false);
+            bump();
+          }}
+        />
+      ),
     },
     {
       id: 'play',
@@ -318,6 +477,24 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
           selected={play}
           onPress={(id) =>
             setPlay((current) =>
+              current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
+            )
+          }
+        />
+      ),
+    },
+    {
+      id: 'trust',
+      title: 'Con quién se lleva',
+      why: 'Esto no ordena la lista: veta. «De su tamaño» quita de en medio a los que le sacan dos escalones, y «cachorros no» impide que le propongan un cachorro que no para.',
+      ready: trust.length > 0,
+      skippable: true,
+      content: (
+        <Chips
+          options={TRUST}
+          selected={trust}
+          onPress={(id) =>
+            setTrust((current) =>
               current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
             )
           }
@@ -407,10 +584,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
             }}
           >
             <Summary label="Nombre" value={name.trim()} />
-            <Summary
-              label="Edad"
-              value={`${Number(years || 0)} años${Number(months || 0) > 0 ? ` y ${Number(months)} meses` : ''}`}
-            />
+            <Summary label="Raza" value={describeBreeds(breeds)} />
+            <Summary label="Edad" value={ageLabel(draft.ageMonths)} />
             <Summary
               label="Tamaño"
               value={SIZES.find((option) => option.id === size)?.label ?? '—'}
@@ -423,6 +598,17 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
               ]
                 .filter(Boolean)
                 .join(' · ')}
+            />
+            <Summary
+              label="Con quién"
+              value={
+                trust.length === 0
+                  ? 'Sin decir'
+                  : trust
+                      .map((id) => TRUST.find((option) => option.id === id)?.label)
+                      .filter(Boolean)
+                      .join(' · ')
+              }
             />
             <Summary
               label="Paseo"
@@ -438,9 +624,39 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
             />
           </View>
 
-          {/* Lo que se abre y lo que no, **antes** de entrar y no al chocar con
-              la primera puerta cerrada: una traba que se explica cuando ya
-              estás dentro se lee como un cobro. */}
+          {/* Lo que la raza ha marcado, y se puede quitar aquí mismo.
+              Sale marcado porque el hocico chato no depende del carácter del
+              animal, y se puede quitar porque en un mestizo puede que no lo
+              haya heredado. Equivocarse hacia el lado prudente cuesta un paseo
+              más corto; al revés cuesta un golpe de calor. */}
+          {flags.length > 0 ? (
+            <View style={{ gap: theme.space[2] }}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.displayBold,
+                  fontSize: theme.fontSize.base,
+                }}
+              >
+                Lo que la raza trae puesto
+              </Text>
+              <Caption>
+                Baja el techo de temperatura a partir del cual no se propone salir y acorta el rato
+                que se sugiere. Quítalo si no es su caso.
+              </Caption>
+              <Chips
+                options={flags.map((flag) => ({
+                  id: flag,
+                  label: HEALTH_FLAG_LABEL[flag] ?? flag,
+                }))}
+                selected={flags}
+                onPress={(id) =>
+                  setFlags((current) => current.filter((flag) => flag !== (id as HealthFlag)))
+                }
+              />
+            </View>
+          ) : null}
+
           <View
             style={{
               gap: theme.space[2],
@@ -484,6 +700,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       step={step}
       onBack={() => (index === 0 ? onBack() : setIndex(index - 1))}
       onNext={() => {
+        step.onLeave?.();
         if (!last) {
           setIndex(index + 1);
           return;
@@ -497,10 +714,235 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
           startTime: chosenSlot.start,
           endTime: chosenSlot.end,
           microchipCode: chipCheck?.valid ? chipCheck.normalized : null,
+          breedLabel: describeBreeds(breeds),
+          healthFlags: flags,
+          trustCircle: trust,
         });
       }}
-      onSkip={() => setIndex(index + 1)}
+      onSkip={() => {
+        step.onLeave?.();
+        setIndex(index + 1);
+      }}
     />
+  );
+}
+
+/** «3 años», «8 meses». La edad en meses no se le enseña a nadie. */
+function ageLabel(months: number | null): string {
+  if (months === null) return '—';
+  if (months < 12) return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  return `${years} ${years === 1 ? 'año' : 'años'}${rest > 0 ? ` y ${rest} ${rest === 1 ? 'mes' : 'meses'}` : ''}`;
+}
+
+/**
+ * Elegir la raza.
+ *
+ * Un buscador y una lista, y la lista **abre con mestizo arriba**: es la
+ * respuesta más frecuente y tenerla que buscar sería hacer trabajar a la
+ * mayoría. Se puede elegir mestizo a secas o decir de qué es mezcla, hasta tres
+ * apellidos: tres ya es una conjetura y cinco es un formulario.
+ *
+ * Y se puede no saberlo. Quien adopta un adulto en la calle muchas veces no lo
+ * sabe, y obligarle a inventarse una raza mete un dato falso justo donde se
+ * decide si su perro sale a treinta grados.
+ */
+function BreedPicker({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const theme = useTheme();
+  const [query, setQuery] = useState('');
+  const results = searchBreeds(query).slice(0, 8);
+  const mixed = selected.includes(MIXED_BREED_ID);
+  const extras = selected.filter((id) => id !== MIXED_BREED_ID).length;
+
+  const toggle = (id: string) => {
+    haptics.tap();
+    if (selected.includes(id)) {
+      onChange(selected.filter((value) => value !== id));
+      return;
+    }
+    /* «No lo sé» no se mezcla con nada: decir que no lo sabes y a la vez que es
+       medio labrador es decir dos cosas distintas. */
+    if (id === UNKNOWN_BREED_ID) {
+      onChange([id]);
+      return;
+    }
+    const clean = selected.filter((value) => value !== UNKNOWN_BREED_ID);
+    if (id !== MIXED_BREED_ID && clean.filter((value) => value !== MIXED_BREED_ID).length >= MAX_BREEDS) {
+      return;
+    }
+    onChange([...clean, id]);
+  };
+
+  return (
+    <View style={{ gap: theme.space[3] }}>
+      {/*
+        El campo **es** la píldora, con el icono encima.
+
+        Antes eran dos cosas —una píldora con un campo dentro— y el navegador
+        dibujaba el anillo de foco pegado al campo, así que salía un rectángulo
+        a medio camino que parecía un fallo de maquetación. Con el fondo y el
+        radio en el propio campo, el foco rodea lo que se ve.
+      */}
+      <View>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Buscar raza"
+          placeholderTextColor={theme.colors.inputPlaceholder}
+          accessibilityLabel="Buscar una raza"
+          autoCapitalize="none"
+          style={{
+            minHeight: theme.touchTarget.comfortable,
+            paddingLeft: theme.space[12],
+            paddingRight: theme.space[4],
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.colors.input,
+            color: theme.colors.inputForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize.base,
+          }}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: theme.space[4],
+            top: 0,
+            bottom: 0,
+            justifyContent: 'center',
+          }}
+        >
+          <Icon icon={Search} size="base" color={theme.colors.inputPlaceholder} decorative />
+        </View>
+      </View>
+
+      {selected.length > 0 ? (
+        <View style={{ gap: theme.space[1] }}>
+          {/* Cómo va a quedar escrito, y solo cuando aporta: con una sola raza
+              elegida repetiría literalmente lo que dice la ficha de al lado. */}
+          {selected.length > 1 ? <Caption>{describeBreeds(selected)}</Caption> : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
+            {selected.map((id) => (
+              <Pressable
+                key={id}
+                accessibilityRole="button"
+                accessibilityLabel={`Quitar ${findBreed(id)?.name ?? id}`}
+                onPress={() => toggle(id)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.space[1],
+                  minHeight: theme.touchTarget.min,
+                  paddingHorizontal: theme.space[4],
+                  borderRadius: theme.radius.full,
+                  backgroundColor: theme.colors.primary,
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.primaryForeground,
+                    fontFamily: fonts.bodyBold,
+                    fontSize: theme.fontSize.sm,
+                  }}
+                >
+                  {findBreed(id)?.name ?? id}
+                </Text>
+                <Icon icon={X} size="sm" color={theme.colors.primaryForeground} decorative />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={{ gap: theme.space[2] }}>
+        {results.length === 0 ? (
+          <Caption>
+            Ninguna raza se llama así. Si no la encuentras, «Mestizo» o «No lo sé» valen: es mejor
+            que apuntar una que no es.
+          </Caption>
+        ) : null}
+        {results
+          .filter((breed) => !selected.includes(breed.id))
+          .map((breed) => (
+            <Pressable
+              key={breed.id}
+              accessibilityRole="button"
+              accessibilityLabel={breed.name}
+              onPress={() => toggle(breed.id)}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.space[3],
+                minHeight: theme.touchTarget.comfortable,
+                paddingHorizontal: theme.space[4],
+                borderRadius: theme.radius.lg,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                backgroundColor: pressed ? theme.colors.surfaceSunken : theme.colors.surface,
+              })}
+            >
+              <Text
+                style={{
+                  flex: 1,
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.base,
+                }}
+              >
+                {breed.name}
+              </Text>
+              {breed.flags && breed.flags.length > 0 ? (
+                <Caption>{HEALTH_FLAG_LABEL[breed.flags[0]!] ?? ''}</Caption>
+              ) : null}
+            </Pressable>
+          ))}
+      </View>
+
+      {mixed && extras < MAX_BREEDS ? (
+        <Caption>
+          Puedes añadir de qué es mezcla, si lo sabes. Hasta {MAX_BREEDS}, y no hace falta ninguna.
+        </Caption>
+      ) : null}
+    </View>
+  );
+}
+
+/** Un enlace de texto, para lo que no es la acción principal del paso. */
+function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={() => {
+        haptics.tap();
+        onPress();
+      }}
+      style={({ pressed }) => ({
+        minHeight: theme.touchTarget.min,
+        justifyContent: 'center',
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text
+        style={{
+          color: theme.colors.primary,
+          fontFamily: fonts.bodyBold,
+          fontSize: theme.fontSize.sm,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -766,6 +1208,21 @@ function Wizard({
             >
               {step.why}
             </Text>
+            {step.hint ? (
+              /* «Puesto por la raza». Va pegado al control y no en el motivo de
+                 arriba: explica **este** valor, no la pregunta. */
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.space[2],
+                  paddingTop: theme.space[1],
+                }}
+              >
+                <Icon icon={Check} size="sm" color={theme.colors.success} decorative />
+                <Caption>{step.hint}</Caption>
+              </View>
+            ) : null}
             <View style={{ paddingTop: theme.space[2] }}>{step.content}</View>
           </View>
         </Appear>

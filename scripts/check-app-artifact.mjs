@@ -151,21 +151,47 @@ const blocked = await page
   .first()
   .getAttribute('aria-disabled');
 if (blocked !== 'true') {
-  problems.push('el primer paso del alta deja seguir con el nombre vacío');
+  problems.push('el primer paso del alta deja seguir sin elegir raza');
 }
+
+/*
+ * La raza, que es el paso que hace corto el resto.
+ *
+ * Se elige un bulldog francés a propósito: es la raza con la que se puede
+ * comprobar lo único que hace que preguntar la raza no sea decorativo —que
+ * rellena la talla y marca el hocico chato, que le baja cuatro grados el techo
+ * de calor—. Con un mestizo a secas no habría nada que verificar.
+ */
+await page.getByLabel('Buscar una raza').fill('bulldog fran');
+await page.waitForTimeout(400);
+await chip('Bulldog francés');
+await next();
 
 await page.getByLabel('Nombre de tu perro').fill('Toby');
 await next();
-await page.getByLabel('Años', { exact: true }).fill('3');
-await next();
+
+/* De aquí en adelante los pasos de una sola respuesta avanzan solos: tocar la
+   respuesta pasa al siguiente. Si dejaran de hacerlo, los `chip()` de abajo se
+   quedarían buscando fichas que ya no están en pantalla y la auditoría lo
+   diría con «el alta no ofrece …». */
+await chip('3 años');
+await page.waitForTimeout(450);
 await chip('Hembra');
+await page.waitForTimeout(450);
+
+const prefilled = (await page.locator('#root').innerText()).trim();
+if (!/Puesto por la raza/i.test(prefilled)) {
+  problems.push('la raza no rellenó la talla: el alta no se acorta con ella');
+}
 await next();
-await chip('Mediano');
+await page.waitForTimeout(450);
 await next();
-await chip('Explorador');
-await next();
+
 await chip('Persecución');
 await next();
+/* «Con quién se lleva» es opcional y se omite, que es el camino más corto. */
+await next('Omitir');
+
 for (const day of ['L', 'X', 'V']) await chip(day);
 await chip('Mañana');
 await next();
@@ -175,8 +201,14 @@ await next();
 await next('Omitir');
 
 const summary = (await page.locator('#root').innerText()).trim();
-if (!/Toby/.test(summary) || !/Mediano/i.test(summary)) {
+if (!/Toby/.test(summary) || !/Bulldog franc/i.test(summary)) {
   problems.push('el resumen del alta no enseña lo que se acaba de rellenar');
+}
+if (!/Hocico chato/i.test(summary)) {
+  /* Lo que de verdad hace la raza. Sin esta señal, la capa de bienestar trata a
+     un bulldog francés como a un labrador pequeño y le propone salir a treinta
+     grados. */
+  problems.push('la raza de hocico chato no llegó a marcar la señal de salud');
 }
 await next('Entrar');
 await page.waitForTimeout(900);
