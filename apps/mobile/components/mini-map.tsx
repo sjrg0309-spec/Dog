@@ -1,41 +1,42 @@
 /**
  * El mapa.
  *
- * **Es un esquema, no cartografía, y la pantalla lo dice.** No hay proveedor de
- * teselas conectado: el proxy de salida de este entorno no deja llegar a ninguno,
- * y dibujar un mapa falso con calles inventadas sería peor que no dibujarlo. Lo
- * que sí es real es la geometría —las posiciones relativas, las distancias y los
- * radios salen de las coordenadas de verdad, proyectadas sobre el cuadro—, así
- * que «esto está al norte y a 400 metros» es información correcta.
+ * **Ahora son teselas de verdad.** OpenStreetMap, el mismo esquema XYZ que usan
+ * Google Maps y Waze, con calles, manzanas, parques con su forma y ríos, y con
+ * cobertura de **todos los países** sin listas de ciudades soportadas. Lo que
+ * antes había aquí era un esquema dibujado a mano porque no había proveedor
+ * conectado; ahora el esquema es el **respaldo**, no el producto.
  *
- * La proyección es equirectangular con corrección de coseno en la longitud. A
- * escala de barrio el error es despreciable, y sin la corrección Madrid saldría
- * estirada un 23 % en horizontal.
+ * Y sigue haciendo falta, por dos motivos distintos:
+ *
+ *  1. **Sin red no hay imágenes**, y un mapa de paseo se usa justo donde la red
+ *     falla —dentro del parque, en un pueblo, con los datos agotados—. El
+ *     esquema no necesita red y sigue diciendo la verdad: dónde está cada cosa,
+ *     a qué distancia y en qué dirección.
+ *  2. **En este contenedor no llegan.** El proxy de salida bloquea los cinco
+ *     proveedores que se probaron, igual que bloquea a Open-Meteo, así que las
+ *     capturas de aquí enseñan el respaldo. Lo que sí se comprueba de punta a
+ *     punta es qué pide la aplicación, contra un servidor de teselas de mentira.
+ *
+ * La proyección es **Web Mercator**, la de las teselas. Antes era
+ * equirectangular, y mezclar las dos no es un detalle estético: los marcadores
+ * caerían fuera de su calle, y cuanto más al norte, peor —en Madrid más de
+ * doscientos metros; en Oslo, más de un kilómetro—.
  *
  * Los radios de las alertas se dibujan a escala. Es lo que hace entender de un
  * vistazo por qué un cebo envenenado avisa a media manzana y un perro huido por
  * petardos avisa a medio distrito.
- *
- * **Qué ha cambiado y por qué.** Antes era un cuadrado de trescientos píxeles
- * flotando en mitad de una página que se desplazaba, y con una retícula de
- * líneas al 60 % de opacidad encima. Dos problemas distintos: uno, que ningún
- * mapa que la gente use es una tarjeta dentro de un documento —el mapa **es** la
- * pantalla, y los controles van encima—; y dos, que una retícula tan marcada
- * sobre un fondo liso no se lee como terreno, se lee como papel milimetrado.
- * Ahora ocupa lo que le den, la retícula es un pelo tenue con un cuadro cada
- * cuarto de kilómetro, y los lugares se dibujan como **manchas verdes a escala**
- * antes que como puntos: un parque de doscientos cincuenta metros de radio es
- * una superficie, y enseñarlo como un alfiler pierde justo lo que hace que sea
- * un sitio al que ir.
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Icon } from './icon';
+import { TileLayer } from './tile-layer';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import type { LucideIcon } from '@/lib/icons';
+import { metersPerPixel, project, spanMeters } from '@/lib/tiles';
 import { useTheme } from '@/lib/theme';
 
 export type MapMarker = {
@@ -58,9 +59,7 @@ export type MapMarker = {
   radiusM?: number;
 };
 
-const METERS_PER_DEGREE_LAT = 111_320;
-
-/** Cada cuánto cae una línea de la retícula, en metros. */
+/** Cada cuánto cae una línea de la retícula del respaldo, en metros. */
 const GRID_STEP_M = 250;
 
 /** ¿Hay algún alcance que no cabe en el cuadro? La pantalla tiene que decirlo. */
@@ -71,7 +70,7 @@ export function radiusOverflows(markers: MapMarker[], spanM: number): MapMarker[
 export function MiniMap({
   center,
   markers,
-  spanM,
+  zoom,
   selectedId,
   onSelect,
   width,
@@ -80,8 +79,8 @@ export function MiniMap({
 }: {
   center: { lat: number; lng: number };
   markers: MapMarker[];
-  /** Cuánto abarca el cuadro **de lado a lado**, en metros. */
-  spanM: number;
+  /** Nivel de acercamiento del esquema XYZ: 17 es manzana, 11 es ciudad. */
+  zoom: number;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   width: number;
@@ -98,23 +97,31 @@ export function MiniMap({
   bottomInset?: number;
 }) {
   const theme = useTheme();
+  const [tilesDown, setTilesDown] = useState(false);
+  const onUnavailable = useCallback((value: boolean) => setTilesDown(value), []);
 
-  const project = useMemo(() => {
-    const metersPerDegreeLng = METERS_PER_DEGREE_LAT * Math.cos((center.lat * Math.PI) / 180);
-    // La escala la fija el ancho: `spanM` es lo que se abarca en horizontal, y
-    // el alto sale de ahí. Si se escalaran los dos ejes por separado, un mapa
-    // apaisado deformaría las distancias y un círculo saldría elipse.
-    const pxPerMeter = width / spanM;
+  const spanM = spanMeters(center.lat, zoom, width);
 
+  /* La misma proyección que las teselas, y por eso se importa en vez de
+     escribirse aquí: dos Mercator escritos dos veces son dos oportunidades de
+     que uno se desvíe, y el síntoma sería que los marcadores se despegan de sus
+     calles sin que nada falle. */
+  const projectPoint = useMemo(() => {
+    const middle = project({ lat: center.lat, lng: center.lng }, zoom);
     return (point: { lat: number; lng: number }) => {
-      const dxM = (point.lng - center.lng) * metersPerDegreeLng;
-      // La latitud crece hacia el norte y la Y de la pantalla hacia abajo.
-      const dyM = -(point.lat - center.lat) * METERS_PER_DEGREE_LAT;
-      return { x: width / 2 + dxM * pxPerMeter, y: height / 2 + dyM * pxPerMeter, pxPerMeter };
+      const pixel = project(point, zoom);
+      return { x: width / 2 + (pixel.x - middle.x), y: height / 2 + (pixel.y - middle.y) };
     };
-  }, [center.lat, center.lng, spanM, width, height]);
+    // Las dependencias son las coordenadas y no el objeto, por lo mismo que en
+    // la capa de teselas: con el objeto, cualquier render de arriba invalidaría
+    // el memo aunque no se haya movido nada, y con él el corro de marcadores
+    // solapados, que se recalcula entero.
+  }, [center.lat, center.lng, zoom, width, height]);
 
-  const pxPerMeter = width / spanM;
+  /* Metros por píxel **en el centro del cuadro**. Mercator estira con la
+     latitud, así que a escala de barrio esto es exacto y a escala de continente
+     sería una aproximación; el mapa no llega a esa escala. */
+  const pxPerMeter = 1 / metersPerPixel(center.lat, zoom);
 
   const toneColor = (tone: MapMarker['tone']) =>
     tone === 'alert'
@@ -180,7 +187,7 @@ export function MiniMap({
     const clusters: Array<Array<{ id: string; x: number; y: number }>> = [];
 
     for (const marker of ordered) {
-      const { x, y } = project(marker);
+      const { x, y } = projectPoint(marker);
       const near = clusters.find((cluster) =>
         cluster.some((member) => Math.hypot(member.x - x, member.y - y) < TOUCH),
       );
@@ -206,7 +213,7 @@ export function MiniMap({
       });
     }
     return result;
-  }, [ordered, project]);
+  }, [ordered, projectPoint]);
 
   return (
     <View
@@ -218,10 +225,23 @@ export function MiniMap({
         overflow: 'hidden',
       }}
     >
-      {/* Retícula: da escala sin fingir que son calles. A un pelo de grosor y
-          muy tenue — marcada era papel milimetrado, y el papel milimetrado se
-          mira en vez de mirarse a través. */}
-      {Array.from({ length: rows }, (_, index) => (
+      {/* Las teselas, debajo de todo. Si no llegan, avisan y en su lugar queda
+          la retícula, que no necesita red. */}
+      <TileLayer
+        centerLat={center.lat}
+        centerLng={center.lng}
+        zoom={zoom}
+        width={width}
+        height={height}
+        onUnavailable={onUnavailable}
+      />
+
+      {/* Retícula: da escala sin fingir que son calles. Sólo cuando no hay
+          imágenes — encima de un mapa de verdad sería una reja sobre la calle.
+          A un pelo de grosor y muy tenue: marcada era papel milimetrado, y el
+          papel milimetrado se mira en vez de mirarse a través. */}
+      {tilesDown &&
+        Array.from({ length: rows }, (_, index) => (
         <View
           key={`h${index}`}
           pointerEvents="none"
@@ -235,8 +255,9 @@ export function MiniMap({
             opacity: 0.35,
           }}
         />
-      ))}
-      {Array.from({ length: columns }, (_, index) => (
+        ))}
+      {tilesDown &&
+        Array.from({ length: columns }, (_, index) => (
         <View
           key={`v${index}`}
           pointerEvents="none"
@@ -250,7 +271,51 @@ export function MiniMap({
             opacity: 0.35,
           }}
         />
-      ))}
+        ))}
+
+      {/* Sin mapa debajo hay que decirlo, y decir qué sigue siendo cierto: el
+          esquema no es un mapa a medio cargar, es otra cosa que sirve igual
+          para lo que hace falta. */}
+      {tilesDown ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: theme.space[3],
+            // Hasta donde empieza la columna de botones, no hasta el borde: con
+            // el margen normal el texto pasaba por debajo del «+» y se cortaba
+            // a media frase.
+            right: 60,
+            top: theme.space[3] + 30,
+            paddingHorizontal: theme.space[3],
+            paddingVertical: theme.space[2],
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.background,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
+        >
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontFamily: fonts.bodyBold,
+              fontSize: 12,
+            }}
+          >
+            Sin las calles, de momento
+          </Text>
+          <Text
+            style={{
+              color: theme.colors.mutedForeground,
+              fontFamily: fonts.body,
+              fontSize: 11,
+            }}
+          >
+            No llegan las imágenes del mapa. Las posiciones, las distancias y los radios que ves
+            son reales y no necesitan conexión.
+          </Text>
+        </View>
+      ) : null}
 
       {/* Los círculos primero, debajo de todos los marcadores. Para un lugar
           esto no es un «radio de aviso»: es el sitio, dibujado con su tamaño.
@@ -258,7 +323,7 @@ export function MiniMap({
           dice. */}
       {ordered.map((marker) => {
         if (!marker.radiusM) return null;
-        const { x, y } = project(marker);
+        const { x, y } = projectPoint(marker);
         const r = marker.radiusM * pxPerMeter;
         // Un círculo más grande que el cuadro no se dibuja.
         //
@@ -297,7 +362,11 @@ export function MiniMap({
               borderWidth: alert ? 2 : 0,
               borderColor: toneColor(marker.tone),
               backgroundColor: alert ? 'transparent' : toneColor(marker.tone),
-              opacity: alert ? 0.7 : 0.3,
+              // La mancha de un lugar se aclara cuando hay mapa debajo: ahí el
+              // parque ya sale verde y con su forma real, así que la mancha
+              // deja de tener que dibujarlo y pasa a solo señalarlo. Encima del
+              // esquema, en cambio, es lo único que dice que es una superficie.
+              opacity: alert ? 0.7 : tilesDown ? 0.3 : 0.18,
             }}
           />
         );
@@ -308,7 +377,7 @@ export function MiniMap({
           es lo que convierte un parque en un borrón verde sin forma. */}
       {ordered.map((marker) => {
         if (!marker.radiusM || marker.tone === 'alert') return null;
-        const { x, y } = project(marker);
+        const { x, y } = projectPoint(marker);
         const r = marker.radiusM * pxPerMeter;
         if (r > Math.min(width, height) * 0.9) return null;
         return (
@@ -336,7 +405,7 @@ export function MiniMap({
       {ordered.map((marker) => {
         const offset = offsets.get(marker.id);
         if (!offset) return null;
-        const { x, y } = project(marker);
+        const { x, y } = projectPoint(marker);
         if (x < -20 || x > width + 20 || y < -20 || y > height + 20) return null;
         const length = Math.hypot(offset.dx, offset.dy);
         return (
@@ -373,7 +442,7 @@ export function MiniMap({
       })}
 
       {ordered.map((marker) => {
-        const anchor = project(marker);
+        const anchor = projectPoint(marker);
         const offset = offsets.get(marker.id) ?? { dx: 0, dy: 0 };
         const x = anchor.x + offset.dx;
         const y = anchor.y + offset.dy;

@@ -11,6 +11,7 @@ import { ReelGrid } from '@/components/reel-grid';
 import { Sheet, type SheetPosition } from '@/components/sheet';
 import { Body, Caption, Screen } from '@/components/ui';
 import { useWeatherState } from '@/lib/conditions';
+import { spanMeters } from '@/lib/tiles';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -79,8 +80,20 @@ const LAYERS: ReadonlyArray<{ id: LayerId; label: string; icon: LucideIcon; hint
 /** Lo que asoma de la hoja con el mapa entero a la vista: cabecera y dos filas. */
 const PEEK_HEIGHT = 164;
 
-/** Cuánto abarca el cuadro de lado a lado. Barrio, zona, distrito. */
-const SPANS_M = [1500, 4000, 12000] as const;
+/**
+ * Los niveles de acercamiento, de más cerca a más lejos.
+ *
+ * Antes eran tres anchos en metros —1,5 / 4 / 12 km— y ahora son niveles del
+ * esquema XYZ, que es lo que las teselas entienden. No es una traducción
+ * cosmética: a un ancho arbitrario le tocaría escalar las imágenes, y una
+ * tesela escalada se ve borrosa y con el texto de las calles ilegible. Los
+ * niveles enteros salen nítidos.
+ *
+ * Cuánto abarca cada uno depende de la latitud —Mercator estira hacia los
+ * polos—, así que la barra de escala lo dice con números en vez de rotularse
+ * «4 km» a lo fijo, que sería mentira en Reikiavik.
+ */
+const ZOOM_STEPS = [17, 15, 13, 11] as const;
 
 /**
  * Cómo se dice una distancia muy corta.
@@ -102,21 +115,16 @@ export default function ExploreScreen() {
 
   const [view, setView] = useState<'map' | 'reels'>('map');
   const [active, setActive] = useState<Set<LayerId>>(new Set(['places']));
-  /* Arranca en 4 km —«tu zona»— y no en 1,5. Probé lo contrario, con el
-     argumento de que a kilómetro y medio un parque se ve como la superficie que
-     es en vez de como una pastilla; y en la captura se vio el problema: a esa
-     escala el círculo de la alerta de cebos ocupa media pantalla, el marcador
-     del parque queda tapado por el aro de «estás aquí», y el de la alerta
-     lejana se va detrás de los botones de zoom. Cuatro kilómetros es donde
-     caben las dos alertas, los tres parques y el café sin que nada se coma a
-     nada. El acercamiento está a un botón. */
-  const [spanIndex, setSpanIndex] = useState(1);
+  /* Arranca en el nivel 15 —barrio, algo menos de dos kilómetros de ancho en
+     Madrid—, que es donde un mapa de calles se lee y donde caben los sitios de
+     alrededor sin que el círculo de una alerta se coma la pantalla. */
+  const [zoomIndex, setZoomIndex] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetPosition>('peek');
   const [showLayers, setShowLayers] = useState(false);
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
 
-  const spanM = SPANS_M[spanIndex] ?? SPANS_M[1];
+  const zoom = ZOOM_STEPS[zoomIndex] ?? ZOOM_STEPS[1];
 
   const markers = useMemo<MapMarker[]>(() => {
     const list: MapMarker[] = [];
@@ -208,7 +216,7 @@ export default function ExploreScreen() {
   );
 
   const selected = markers.find((marker) => marker.id === selectedId) ?? null;
-  const overflowing = radiusOverflows(markers, spanM);
+  const overflowing = radiusOverflows(markers, spanMeters(location.lat, zoom, canvas.width || 390));
 
   const toggle = (id: LayerId) => {
     haptics.tap();
@@ -220,9 +228,9 @@ export default function ExploreScreen() {
     });
   };
 
-  const zoom = (direction: -1 | 1) => {
+  const stepZoom = (direction: -1 | 1) => {
     haptics.tap();
-    setSpanIndex((current) => Math.min(SPANS_M.length - 1, Math.max(0, current + direction)));
+    setZoomIndex((current) => Math.min(ZOOM_STEPS.length - 1, Math.max(0, current + direction)));
   };
 
   const onCanvasLayout = (event: LayoutChangeEvent) => {
@@ -249,7 +257,7 @@ export default function ExploreScreen() {
             <MiniMap
               center={location}
               markers={markers}
-              spanM={spanM}
+              zoom={zoom}
               selectedId={selectedId}
               onSelect={(id) => {
                 setSelectedId(id);
@@ -291,16 +299,16 @@ export default function ExploreScreen() {
                 icon={Plus}
                 label="Acercar"
                 square
-                disabled={spanIndex === 0}
-                onPress={() => zoom(-1)}
+                disabled={zoomIndex === 0}
+                onPress={() => stepZoom(-1)}
               />
               <View style={{ height: 1, backgroundColor: theme.colors.border }} />
               <MapButton
                 icon={Minus}
                 label="Alejar"
                 square
-                disabled={spanIndex === SPANS_M.length - 1}
-                onPress={() => zoom(1)}
+                disabled={zoomIndex === ZOOM_STEPS.length - 1}
+                onPress={() => stepZoom(1)}
               />
             </View>
             <MapButton
@@ -309,7 +317,7 @@ export default function ExploreScreen() {
               onPress={() => {
                 haptics.tap();
                 setSelectedId(null);
-                setSpanIndex(1);
+                setZoomIndex(1);
               }}
             />
           </View>

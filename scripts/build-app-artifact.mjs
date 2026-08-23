@@ -145,14 +145,22 @@ try { if (location.pathname !== '/') history.replaceState(null, '', '/'); } catc
    es donde se conoce el entorno. Se escucha la violación de CSP, que es el
    único aviso fiable de que la petición murió por política y no por red. */
 document.addEventListener('securitypolicyviolation', (event) => {
-  if (!String(event.blockedURI || '').includes('open-meteo')) return;
+  const uri = String(event.blockedURI || '');
+  /* Dos cosas salen a la red y las dos se bloquean aquí por lo mismo. Se
+     nombran las dos porque, si no, la explicación deja fuera justo lo que el
+     usuario está mirando: un mapa sin calles con un aviso que sólo habla del
+     tiempo se lee como que el mapa está roto de verdad. */
+  const isWeather = uri.includes('open-meteo');
+  const isTiles = uri.includes('tile.openstreetmap');
+  if (!isWeather && !isTiles) return;
   const strip = document.getElementById('sandbox');
   if (!strip || !strip.hidden) return;
   strip.hidden = false;
   strip.textContent =
-    'Esta copia se sirve en un visor que bloquea las peticiones a otros dominios, así que la ' +
-    'consulta del tiempo no sale y la app cae a su modo manual. No es un fallo de tu conexión: ' +
-    'instalada, o servida desde su propio dominio, pregunta a Open-Meteo de verdad.';
+    'Esta copia se sirve en un visor que bloquea las peticiones a otros dominios, así que ni las ' +
+    'imágenes del mapa ni la consulta del tiempo llegan: verás el mapa en su modo esquema y el ' +
+    'tiempo en manual. No es un fallo de tu conexión. Instalada, o servida desde su propio ' +
+    'dominio, la app pide las calles a OpenStreetMap y el tiempo a Open-Meteo de verdad.';
 }, { once: false });
 </script>
 
