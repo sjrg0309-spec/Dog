@@ -5,7 +5,7 @@ import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { Badge, Body, Button, Caption, Card, Notice, Row, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
-import { useDeclaredConditions } from '@/lib/conditions';
+import { useWeatherState } from '@/lib/conditions';
 import { MY_PETS } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -57,7 +57,7 @@ import { SAFETY_DISCLAIMER, SAFETY_SCENARIOS, type SafetyScenario } from '@coinc
  */
 export default function SosScreen() {
   const theme = useTheme();
-  const { location } = useDeclaredConditions();
+  const { location } = useWeatherState();
   const { scrolled, onScroll } = useScrolled();
   const activePet = useActivePet();
   const alerts = useAllAlerts(location);

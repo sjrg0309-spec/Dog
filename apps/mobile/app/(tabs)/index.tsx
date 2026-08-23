@@ -14,7 +14,7 @@ import { Avatar } from '@/components/avatar';
 import { Body, Caption, Notice, Screen, Segmented } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { haptics } from '@/lib/haptics';
-import { useConditions, useDeclaredConditions } from '@/lib/conditions';
+import { useConditions, useWeatherState } from '@/lib/conditions';
 import { discover, petHasMeetups, walkingNow } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
 import { Camera, Compass, Heart, ImagePlus, Send, Siren, SquarePen } from '@/lib/icons';
@@ -58,7 +58,7 @@ export default function FeedScreen() {
   const pet = useActivePet();
   const social = petHasMeetups(pet);
   const conditions = useConditions(45);
-  const { location } = useDeclaredConditions();
+  const { location } = useWeatherState();
   const { welfare } = discover(pet, conditions);
   const { scrolled, onScroll } = useScrolled();
 
@@ -69,7 +69,7 @@ export default function FeedScreen() {
 
   const [checkedIn, setCheckedIn] = useState(false);
   const outNow = social ? walkingNow(pet.speciesId) : [];
-  const stopped = social && welfare.level === 'stop';
+  const stopped = social && welfare?.level === 'stop';
 
   // Los estados y la presencia son dos cosas distintas que comparten la fila:
   // el anillo dice si has visto algo, la etiqueta EN VIVO dice si está fuera.

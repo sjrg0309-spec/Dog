@@ -18,6 +18,7 @@
     "@coincide/core": "workspace:*",
     "@coincide/tokens": "workspace:*",
     "@coincide/trackers": "workspace:*",
+    "@coincide/weather": "workspace:*",
     "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/metro-runtime": "^4.0.1",

@@ -200,23 +200,23 @@ describe('el interés del animal manda sobre el plan del tutor', () => {
     // es de qué animal hablamos, y eso basta para que la respuesta sea distinta.
     const warm = { temperatureC: 26, surface: 'grass', durationMinutes: 45 } as const;
 
-    expect(discover(nina, warm).welfare.level).toBe('ok');
-    expect(discover(kira, warm).welfare.level).toBe('stop');
+    expect(discover(nina, warm).welfare?.level).toBe('ok');
+    expect(discover(kira, warm).welfare?.level).toBe('stop');
     expect(discover(kira, warm).entries).toEqual([]);
     // Y la lista de Nina sigue llena: no se ha vaciado la aplicación entera.
     expect(discover(nina, warm).entries.length).toBeGreaterThan(0);
   });
 
   it('a 18 grados los dos salen', () => {
-    expect(discover(nina, MILD).welfare.level).toBe('ok');
-    expect(discover(kira, MILD).welfare.level).toBe('ok');
+    expect(discover(nina, MILD).welfare?.level).toBe('ok');
+    expect(discover(kira, MILD).welfare?.level).toBe('ok');
   });
 
   it('el veredicto se devuelve siempre, también cuando hay lista', () => {
     // La pantalla tiene que poder decir "se puede, con cuidado" sin deducirlo de
     // que la lista no esté vacía.
-    expect(discover(nina, MILD).welfare.level).toBe('ok');
-    expect(discover(nina, hot).welfare.level).toBe('stop');
+    expect(discover(nina, MILD).welfare?.level).toBe('ok');
+    expect(discover(nina, hot).welfare?.level).toBe('stop');
   });
 
   it('cada quedada declara sus minutos de contacto', () => {
@@ -599,5 +599,38 @@ describe('las horas de la semilla', () => {
     // Con todas a la misma hora el feed entero saldría del mismo color, que es
     // exactamente lo que pasaba con las horas relativas.
     expect(times.size).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('sin saber qué tiempo hace', () => {
+  /**
+   * La postura del proyecto entero, aplicada a un dato que ahora puede faltar.
+   *
+   * Cuando la consulta meteorológica no sale, la tentación es seguir como si
+   * hiciera bueno: la lista se ve llena y nadie se queja. Eso convierte la capa
+   * de bienestar en un adorno el día que se cae la red, que es justo el día en
+   * que nadie se entera de que se ha caído.
+   */
+  it('no propone a nadie', () => {
+    const { entries, emptyReason } = discover(nina, null);
+    expect(entries).toEqual([]);
+    expect(emptyReason).toBe('weather_unknown');
+  });
+
+  it('no devuelve un veredicto inventado', () => {
+    expect(discover(nina, null).welfare).toBeNull();
+  });
+
+  it('no se disfraza de «no hay nadie cerca»', () => {
+    // Decirle a alguien que su barrio está vacío cuando el motivo real es que
+    // falló una consulta es mentirle sobre lo que pasa, y encima le hace
+    // buscar el problema donde no está.
+    expect(discover(nina, null).emptyReason).not.toBe('no_candidates');
+  });
+
+  it('tampoco cuenta vetos de seguridad que no ha llegado a evaluar', () => {
+    const result = discover(nina, null);
+    expect(result.safetyVetoed).toBe(0);
+    expect(result.restingNearby).toBe(0);
   });
 });

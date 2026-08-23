@@ -1,4 +1,6 @@
 import { useFonts } from 'expo-font';
+
+import { useWeatherBootstrap } from '@/lib/conditions';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
@@ -32,6 +34,10 @@ export default function RootLayout() {
 function RootStack() {
   const theme = useTheme();
   const [fontsLoaded] = useFonts(FONT_MAP);
+  /* La consulta del tiempo arranca aquí, una vez, y no en cada pantalla que la
+     necesita: son seis, y seis consultas al abrir la aplicación es exactamente
+     lo que la caché existe para evitar. */
+  useWeatherBootstrap();
 
   // Se espera a las fuentes antes de pintar. Sin esto, la primera pasada sale
   // con la fuente del sistema y salta a la definitiva, y el salto de métricas se

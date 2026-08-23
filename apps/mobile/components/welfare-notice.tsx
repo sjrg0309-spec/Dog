@@ -24,12 +24,17 @@ export function WelfareNotice({
   petName,
   showDisclaimer = true,
 }: {
-  verdict: WelfareVerdict;
+  /**
+   * `null` es «todavía no sabemos qué tiempo hace», y entonces no hay nada que
+   * avisar. Se acepta aquí en vez de obligar a cada pantalla a comprobarlo:
+   * eran siete `if` idénticos, y el octavo se habría olvidado.
+   */
+  verdict: WelfareVerdict | null;
   petName: string;
   showDisclaimer?: boolean;
 }) {
   const theme = useTheme();
-  if (verdict.level === 'ok') return null;
+  if (verdict === null || verdict.level === 'ok') return null;
 
   const stopped = verdict.level === 'stop';
 

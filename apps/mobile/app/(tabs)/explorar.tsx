@@ -7,7 +7,7 @@ import { Icon } from '@/components/icon';
 import { MiniMap, radiusOverflows, type MapMarker } from '@/components/mini-map';
 import { ReelGrid } from '@/components/reel-grid';
 import { Badge, Body, Caption, Card, Notice, Row, Screen, Segmented } from '@/components/ui';
-import { useDeclaredConditions } from '@/lib/conditions';
+import { useWeatherState } from '@/lib/conditions';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -57,7 +57,7 @@ const SPANS_M = [1500, 4000, 12000] as const;
 export default function ExploreScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { location } = useDeclaredConditions();
+  const { location } = useWeatherState();
   const { scrolled, onScroll } = useScrolled();
   const alerts = useLiveAlerts(location);
 

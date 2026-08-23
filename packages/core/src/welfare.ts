@@ -21,8 +21,11 @@
  *     puede decir "el mío no aguanta ni eso"; nadie puede decir "el mío sí
  *     aguanta un encuentro a 34 grados sobre asfalto".
  *  3. **Es una función pura.** No consulta el tiempo ni la hora: recibe las
- *     condiciones y devuelve un veredicto. Quien las obtiene es otro, y hoy
- *     ninguna fuente meteorológica está conectada —ver `packages/trackers`.
+ *     condiciones y devuelve un veredicto. Quien las obtiene es `packages/weather`,
+ *     que pregunta a Open-Meteo por la celda donde está el tutor. Que la consulta
+ *     viva fuera es lo que permite probar este módulo entero sin red y sin
+ *     relojes, y lo que hace que un proveedor caído no cambie ningún umbral: si
+ *     no hay dato, quien llama no llama, en vez de llamar con un número supuesto.
  */
 
 import { findSpecies } from './species.js';
@@ -64,6 +67,19 @@ export const HEALTH_FLAG_LABEL: Record<HealthFlag, string> = {
 export const SURFACES = ['grass', 'earth', 'asphalt', 'indoor', 'unknown'] as const;
 export type Surface = (typeof SURFACES)[number];
 
+/**
+ * La temperatura, escrita como se escribe en español.
+ *
+ * Existe desde que el dato viene de un servicio: mientras lo ponía el tutor con
+ * un control de saltos de cinco grados siempre era entero, y una interpolación
+ * a pelo bastaba. Con 31.4 grados de Open-Meteo esa interpolación escribía
+ * «31.4 °C» en mitad de una frase en castellano, con punto decimal. Un decimal
+ * es también toda la precisión que este juicio merece: el modelo no distingue
+ * la terraza de la acera de enfrente.
+ */
+const degrees = (value: number): string =>
+  value.toLocaleString('es-ES', { maximumFractionDigits: 1 });
+
 export type Conditions = {
   /** Temperatura del aire en el momento del encuentro. */
   temperatureC: number;
@@ -72,7 +88,34 @@ export type Conditions = {
   durationMinutes: number;
   /** Horas desde el último encuentro de este animal, o null si no hubo. */
   hoursSinceLastSession?: number | null;
+  /**
+   * Temperatura del suelo, cuando se conoce.
+   *
+   * Es opcional a propósito: quien no la sepa no tiene que inventársela, y
+   * cuando falta se sigue juzgando el asfalto por la temperatura del aire, que
+   * es lo que se hacía antes. La diferencia es que el aire acierta de media y
+   * falla en los dos extremos —el mediodía despejado de abril, en el que el
+   * asfalto ya quema con el aire a 24 °C, y la noche de agosto, en la que no
+   * quema con el aire a 29—. Quien la calcula es `@coincide/weather`, a partir
+   * de la radiación solar; aquí solo se usa.
+   *
+   * `undefined` significa «no se sabe» y `null` también: nunca «está fría».
+   */
+  groundTemperatureC?: number | null;
 };
+
+/**
+ * A partir de aquí el suelo daña una almohadilla en menos de un minuto.
+ *
+ * Vive aquí y no en la capa meteorológica porque es un umbral de bienestar, no
+ * una propiedad del tiempo: quien lo discuta lo discute con el resto del
+ * catálogo. Coincide con `GROUND_BURN_C` de `@coincide/weather`, y hay un test
+ * que comprueba que no se separan.
+ */
+export const GROUND_BURN_C = 48;
+
+/** Temperatura del aire desde la que el asfalto se juzga peligroso a ciegas. */
+export const ASPHALT_AIR_FALLBACK_C = 28;
 
 /**
  * `stop` no es "muy grave": es que la aplicación deja de ofrecerlo.
@@ -236,9 +279,9 @@ export function assessWelfare(subject: CareSubject, conditions: Conditions): Wel
       level: severe ? 'stop' : 'caution',
       code: severe ? 'too_hot' : 'warm',
       message: severe
-        ? `${conditions.temperatureC} °C es demasiado para este ${name}${because}. No es cuestión ` +
+        ? `${degrees(conditions.temperatureC)} °C es demasiado para este ${name}${because}. No es cuestión ` +
           'de ir más despacio: a esa temperatura el problema es estar fuera.'
-        : `${conditions.temperatureC} °C ya aprieta para este ${name}${because}. Sombra, agua y ` +
+        : `${degrees(conditions.temperatureC)} °C ya aprieta para este ${name}${because}. Sombra, agua y ` +
           'menos rato, o mejor a otra hora.',
     });
   }
@@ -248,15 +291,32 @@ export function assessWelfare(subject: CareSubject, conditions: Conditions): Wel
       level: conditions.temperatureC < floor - 5 ? 'stop' : 'caution',
       code: 'too_cold',
       message:
-        `${conditions.temperatureC} °C está por debajo de lo que esta especie lleva bien a la ` +
+        `${degrees(conditions.temperatureC)} °C está por debajo de lo que esta especie lleva bien a la ` +
         'intemperie. Dentro, sí.',
     });
   }
 
-  // El asfalto a pleno sol quema almohadillas mucho antes de lo que parece: el
-  // aire a 28 °C convive con un suelo bastante más caliente, y quien lo pisa
-  // descalzo es él.
-  if (conditions.surface === 'asphalt' && conditions.temperatureC >= 28) {
+  // El suelo, que es lo que se pisa.
+  //
+  // Cuando se conoce su temperatura se juzga esa. Cuando no, se cae al umbral
+  // del aire de siempre: es peor criterio, pero no saber la temperatura del
+  // suelo no es motivo para dejar de mirar el asfalto.
+  const ground = conditions.groundTemperatureC;
+  const groundKnown = ground !== null && ground !== undefined;
+
+  if (groundKnown && outdoors && ground >= GROUND_BURN_C) {
+    reasons.push({
+      level: 'stop',
+      code: 'hot_ground',
+      message:
+        `El suelo está a unos ${Math.round(ground)} °C y le quema las almohadillas: va descalzo. ` +
+        'Hierba, sombra, o a otra hora.',
+    });
+  } else if (
+    !groundKnown &&
+    conditions.surface === 'asphalt' &&
+    conditions.temperatureC >= ASPHALT_AIR_FALLBACK_C
+  ) {
     reasons.push({
       level: 'stop',
       code: 'hot_ground',

@@ -39,7 +39,7 @@ export default function DiscoverScreen() {
   const { entries, emptyReason, safetyVetoed, otherSpeciesNearby, welfare, restingNearby } =
     discover(pet, conditions);
   const { scrolled, onScroll } = useScrolled();
-  const stopped = social && welfare.level === 'stop';
+  const stopped = social && welfare?.level === 'stop';
 
   const title = !social
     ? 'Su especie no queda con nadie'
@@ -102,7 +102,7 @@ export default function DiscoverScreen() {
           </View>
         ) : null}
 
-        {social && welfare.level !== 'ok' ? (
+        {social && welfare?.level !== 'ok' ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
             <WelfareNotice verdict={welfare} petName={pet.name} />
           </View>
@@ -242,6 +242,19 @@ function EmptyState({
   name: string;
 }) {
   const kind = speciesName(speciesId).toLowerCase();
+
+  if (reason === 'weather_unknown') {
+    return (
+      <Notice>
+        <Body>No sabemos qué tiempo hace donde estás.</Body>
+        <Caption>
+          Y sin eso no proponemos nada: la mitad de esta pantalla depende de si a {name} le
+          conviene salir hoy, y eso no se puede suponer. Pon la temperatura ahí arriba y la lista
+          vuelve, o toca actualizar para reintentar la consulta.
+        </Caption>
+      </Notice>
+    );
+  }
 
   if (reason === 'welfare_stop') {
     return (

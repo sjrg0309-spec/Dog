@@ -109,6 +109,17 @@ ${reset}
     font: 500 0.85rem/1.5 system-ui, sans-serif; color: var(--arranque-texto);
     background: var(--arranque-fondo); text-align: center; padding: 2rem;
   }
+  /* La tira del sandbox va arriba del todo y encima de la app: explica algo
+     que la app está diciendo mal en este entorno, así que tiene que leerse
+     antes que ella. */
+  #sandbox {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    padding: 0.6rem 0.9rem;
+    font: 400 0.72rem/1.45 system-ui, sans-serif;
+    color: var(--arranque-texto); background: var(--arranque-fondo);
+    border-bottom: 1px solid currentColor;
+  }
+  #sandbox[hidden] { display: none; }
 </style>
 
 <div id="root"></div>
@@ -119,6 +130,30 @@ ${reset}
    esta página puede colgar de una ruta que no es ninguna del app, y entonces
    arrancaría en la pantalla de «no encontrado» en vez de en el feed. */
 try { if (location.pathname !== '/') history.replaceState(null, '', '/'); } catch (error) {}
+</script>
+
+<div id="sandbox" hidden></div>
+
+<script>
+/* El visor de artifacts sirve la página con una CSP que bloquea cualquier
+   petición a otro dominio. La app consulta el tiempo a Open-Meteo, así que
+   aquí esa llamada no sale, y el navegador la reporta como un fallo de red
+   corriente: la app diría «sin conexión» en un teléfono que tiene datos.
+   Mentira involuntaria, pero mentira.
+
+   Esto no se arregla dentro de la app —allí no hay nada roto— sino aquí, que
+   es donde se conoce el entorno. Se escucha la violación de CSP, que es el
+   único aviso fiable de que la petición murió por política y no por red. */
+document.addEventListener('securitypolicyviolation', (event) => {
+  if (!String(event.blockedURI || '').includes('open-meteo')) return;
+  const strip = document.getElementById('sandbox');
+  if (!strip || !strip.hidden) return;
+  strip.hidden = false;
+  strip.textContent =
+    'Esta copia se sirve en un visor que bloquea las peticiones a otros dominios, así que la ' +
+    'consulta del tiempo no sale y la app cae a su modo manual. No es un fallo de tu conexión: ' +
+    'instalada, o servida desde su propio dominio, pregunta a Open-Meteo de verdad.';
+}, { once: false });
 </script>
 
 <script id="bundle" type="application/gzip-base64">${packed}</script>

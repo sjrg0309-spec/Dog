@@ -47,7 +47,7 @@ export default function PlaydateMatchScreen() {
   const [index, setIndex] = useState(0);
   const [liked, setLiked] = useState<DiscoveryEntry[]>([]);
 
-  const stopped = social && welfare.level === 'stop';
+  const stopped = social && welfare?.level === 'stop';
   const deck = stopped ? [] : entries;
   const current = deck[index] ?? null;
   const next = deck[index + 1] ?? null;

@@ -50,6 +50,9 @@ importers:
       '@coincide/trackers':
         specifier: workspace:*
         version: link:../../packages/trackers
+      '@coincide/weather':
+        specifier: workspace:*
+        version: link:../../packages/weather
       '@expo-google-fonts/atkinson-hyperlegible':
         specifier: ^0.4.1
         version: 0.4.1
@@ -235,6 +238,22 @@ importers:
         version: 2.1.9(@types/node@22.20.1)(lightningcss@1.27.0)(terser@5.50.0)
 
   packages/trackers:
+    dependencies:
+      '@coincide/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(lightningcss@1.27.0)(terser@5.50.0)
+
+  packages/weather:
     dependencies:
       '@coincide/core':
         specifier: workspace:*

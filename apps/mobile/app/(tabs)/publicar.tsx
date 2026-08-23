@@ -9,7 +9,7 @@ import { Icon } from '@/components/icon';
 import { WelfareNotice } from '@/components/welfare-notice';
 import { Body, Button, Caption, Notice, Row, Screen, Segmented } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
-import { useConditions, useDeclaredConditions } from '@/lib/conditions';
+import { useConditions, useWeatherState } from '@/lib/conditions';
 import { discover } from '@/lib/data';
 import { PLACES, type DemoPlace } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
@@ -74,14 +74,20 @@ export default function ComposeScreen() {
   const [pickError, setPickError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
-  const declared = useDeclaredConditions();
+  const declared = useWeatherState();
   const conditions = useConditions(30);
   const { welfare } = discover(pet, conditions);
 
   const wantsVideo = mode === 'reel';
   // Un estado puede ser solo texto; los otros dos necesitan medio.
   const textOnlyStory = mode === 'story' && mediaUri === null && caption.trim().length >= 3;
-  const ready = textOnlyStory || (mediaUri !== null && alt.trim().length >= 3);
+  /* Un reel además necesita las condiciones: la etiqueta de temperatura y
+     superficie es lo único que impide que el formato premie el paseo de
+     mediodía en agosto, y sin dato no hay etiqueta honesta que poner. Los otros
+     dos modos no la llevan, así que no se bloquean por esto. */
+  const needsWeather = mode === 'reel' && conditions === null;
+  const ready =
+    !needsWeather && (textOnlyStory || (mediaUri !== null && alt.trim().length >= 3));
 
   async function pickMedia() {
     setPicking(true);
@@ -131,6 +137,12 @@ export default function ComposeScreen() {
 
     if (mode === 'reel') {
       if (!mediaUri) return;
+      /* Un reel lleva escritas las condiciones en las que se grabó, y esa
+         etiqueta es lo único que impide que el formato premie el paseo de
+         mediodía en agosto. Sin temperatura no hay etiqueta que valga, así que
+         no se publica: poner un número por defecto sería etiquetarlo de
+         mentira, que es peor que no etiquetarlo. */
+      if (!conditions) return;
       publishReel({
         petId: pet.id,
         petName: pet.name,
@@ -142,7 +154,10 @@ export default function ComposeScreen() {
         durationS: 15,
         // Las condiciones no las escribe nadie a mano: salen del mismo control
         // que la aplicación ya usa para decidir si conviene salir.
-        recordedIn: { temperatureC: declared.temperatureC, surface: declared.surface },
+        // Sin temperatura no se publica un reel: la etiqueta de condiciones
+        // es lo que impide que el formato premie el paseo de mediodía en
+        // agosto, y una etiqueta con un número por defecto no impide nada.
+        recordedIn: { temperatureC: conditions.temperatureC, surface: conditions.surface },
       });
       haptics.commit();
       router.replace('/reels');
@@ -187,7 +202,7 @@ export default function ComposeScreen() {
 
         <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[5] }}>
           {/* El bienestar, antes de grabar y no después. */}
-          {mode === 'reel' && welfare.level !== 'ok' ? (
+          {mode === 'reel' && welfare?.level !== 'ok' ? (
             <WelfareNotice verdict={welfare} petName={pet.name} />
           ) : null}
 
@@ -273,7 +288,9 @@ export default function ComposeScreen() {
 
           {!ready ? (
             <Caption>
-              {mode === 'story' && !mediaUri
+              {needsWeather
+                ? 'Un reel se publica con la temperatura y la superficie en las que se grabó, y ahora mismo no sabemos qué tiempo hace. Ponla arriba y sigue.'
+                : mode === 'story' && !mediaUri
                 ? 'Escribe algo, o elige una foto o un vídeo.'
                 : mediaUri === null
                   ? wantsVideo

@@ -55,7 +55,7 @@ export type DiscoveryEntry = {
 
 export type DiscoveryResult = {
   entries: DiscoveryEntry[];
-  emptyReason: EmptyStateReason;
+  emptyReason: AppEmptyReason;
   /**
    * Descartados por un límite de seguridad —tamaño, o algo que declaró su
    * tutor—, para poder decirlo en vez de callarlo.
@@ -76,7 +76,7 @@ export type DiscoveryResult = {
    * que la pantalla tiene que decir, y decirlo requiere tenerlo aquí y no
    * deducirlo de que la lista esté vacía.
    */
-  welfare: WelfareVerdict;
+  welfare: WelfareVerdict | null;
   /**
    * Compañeros que hoy no aparecen porque a **ellos** no les conviene.
    *
@@ -85,6 +85,16 @@ export type DiscoveryResult = {
    */
   restingNearby: number;
 };
+
+/**
+ * Los estados vacíos del algoritmo, más uno que es de la aplicación.
+ *
+ * `weather_unknown` no lo produce `packages/core` y no debería: el núcleo no
+ * sabe que existe un proveedor meteorológico ni que puede caerse. Que no haya
+ * dato del tiempo es una circunstancia de esta aplicación, y por eso el tipo se
+ * ensancha aquí y no allí.
+ */
+export type AppEmptyReason = EmptyStateReason | 'weather_unknown';
 
 /** El perfil de especie de una mascota, o null si no está en el catálogo. */
 export function speciesOf(pet: DemoPet): SpeciesProfile | null {
@@ -104,9 +114,33 @@ export function petHasMeetups(pet: DemoPet): boolean {
  * devuelve `entries` vacío y la pantalla enseña otra cosa —comunidad y
  * servicios—, porque el problema de ese tutor es distinto.
  */
-export function discover(viewerPet: DemoPet, conditions: Conditions): DiscoveryResult {
+export function discover(
+  viewerPet: DemoPet,
+  conditions: Conditions | null,
+): DiscoveryResult {
   const sameSpecies = OTHER_PETS.filter((pet) => pet.speciesId === viewerPet.speciesId);
   const otherSpeciesNearby = OTHER_PETS.length - sameSpecies.length;
+
+  /*
+   * Sin tiempo no se propone nada.
+   *
+   * Es la misma postura que con un veto de bienestar, y por el mismo motivo:
+   * una lista que sigue ahí se acaba usando. La diferencia es que este estado
+   * se arregla en un toque —la pantalla enseña el control para poner la
+   * temperatura a mano— así que no deja a nadie encerrado, solo obliga a que
+   * alguien diga qué tiempo hace antes de que la aplicación opine.
+   */
+  if (conditions === null) {
+    return {
+      entries: [],
+      emptyReason: 'weather_unknown',
+      safetyVetoed: 0,
+      otherSpeciesNearby,
+      welfare: null,
+      restingNearby: 0,
+    };
+  }
+
   const welfare = assessWelfare(viewerPet, conditions);
 
   if (!petHasMeetups(viewerPet)) {

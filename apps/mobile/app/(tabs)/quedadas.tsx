@@ -20,7 +20,7 @@ import {
   Title,
 } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
-import { useDeclaredConditions } from '@/lib/conditions';
+import { useConditionsBuilder } from '@/lib/conditions';
 import { allPlaydates, petById, petHasMeetups, playdatesFor, speciesOf } from '@/lib/data';
 import { SIZE_LABEL, energyLabel, speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
@@ -53,7 +53,7 @@ export default function PlaydatesScreen() {
   const social = petHasMeetups(pet);
   const mine = playdatesFor(pet.speciesId);
   const otherSpecies = allPlaydates().length - mine.length;
-  const declared = useDeclaredConditions();
+  const build = useConditionsBuilder();
 
   if (!social) {
     return (
@@ -131,10 +131,9 @@ export default function PlaydatesScreen() {
           // El bienestar es del grupo entero, incluido el animal del tutor: si a
           // uno de los seis le está prohibiendo el calor, el encuentro no se
           // hace porque a los otros cinco les venga bien.
-          const welfare = groupWelfare(withMine, {
-            ...declared,
-            durationMinutes: playdate.sessionMinutes,
-          });
+          // Sin tiempo no se juzga al grupo: la tarjeta se enseña sin
+          // veredicto en vez de con uno inventado.
+          const welfare = build ? groupWelfare(withMine, build(playdate.sessionMinutes)) : null;
 
           return (
             <Card key={playdate.id}>
@@ -194,7 +193,7 @@ export default function PlaydatesScreen() {
               {/* Va antes que el botón, y cuando dice que no, el botón no está. */}
               <WelfareNotice verdict={welfare} petName={pet.name} showDisclaimer={false} />
 
-              {welfare.level === 'stop' ? null : affinity.hasVeto ? (
+              {welfare?.level === 'stop' ? null : affinity.hasVeto ? (
                 <Notice>
                   <Body>{pet.name} no puede unirse a este grupo.</Body>
                   <Caption>

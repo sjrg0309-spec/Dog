@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
-import { useDeclaredConditions } from '@/lib/conditions';
+import { useWeatherState } from '@/lib/conditions';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
@@ -37,7 +37,7 @@ import { useTheme } from '@/lib/theme';
 export default function TabsLayout() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { location } = useDeclaredConditions();
+  const { location } = useWeatherState();
   const criticalNearby = useCriticalCount(location);
 
   return (

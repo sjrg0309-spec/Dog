@@ -236,3 +236,60 @@ describe('el bienestar manda sobre el descubrimiento', () => {
     expect(matches[0]?.welfare?.recommendedMinutes).toBe(dog.care.maxSessionMinutes);
   });
 });
+
+describe('la temperatura del suelo manda sobre la del aire', () => {
+  const asphalt = { ...mild, surface: 'asphalt' } as const;
+
+  it('con el suelo medido, un asfalto caliente para el encuentro', () => {
+    const verdict = assessWelfare(makePet(), { ...asphalt, temperatureC: 24, groundTemperatureC: 51 });
+    expect(verdict.reasons.map((reason) => reason.code)).toContain('hot_ground');
+    expect(verdict.level).toBe('stop');
+  });
+
+  /**
+   * El caso que el umbral del aire dejaba pasar.
+   *
+   * Un mediodía despejado de abril: el aire no llega a 28, así que la regla
+   * anterior decía que no pasaba nada, y el asfalto ya estaba por encima de los
+   * cincuenta grados. Este test es el motivo entero del cambio.
+   */
+  it('para aunque el aire esté por debajo del umbral viejo', () => {
+    const before = assessWelfare(makePet(), { ...asphalt, temperatureC: 24 });
+    const after = assessWelfare(makePet(), { ...asphalt, temperatureC: 24, groundTemperatureC: 50 });
+    expect(before.reasons.map((reason) => reason.code)).not.toContain('hot_ground');
+    expect(after.reasons.map((reason) => reason.code)).toContain('hot_ground');
+  });
+
+  /** Y el que paraba de más: una noche de agosto, con el asfalto ya frío. */
+  it('no para de noche por un umbral de aire que ya no significa nada', () => {
+    const verdict = assessWelfare(makePet(), {
+      ...asphalt,
+      temperatureC: 29,
+      groundTemperatureC: 30,
+    });
+    expect(verdict.reasons.map((reason) => reason.code)).not.toContain('hot_ground');
+  });
+
+  it('sin dato del suelo sigue valiendo el criterio del aire', () => {
+    const verdict = assessWelfare(makePet(), { ...asphalt, temperatureC: 29 });
+    expect(verdict.reasons.map((reason) => reason.code)).toContain('hot_ground');
+  });
+
+  it('null no se lee como suelo frío', () => {
+    const verdict = assessWelfare(makePet(), {
+      ...asphalt,
+      temperatureC: 29,
+      groundTemperatureC: null,
+    });
+    expect(verdict.reasons.map((reason) => reason.code)).toContain('hot_ground');
+  });
+
+  it('bajo techo el suelo no dispara nada', () => {
+    const verdict = assessWelfare(makePet(), {
+      ...mild,
+      surface: 'indoor',
+      groundTemperatureC: 55,
+    });
+    expect(verdict.reasons.map((reason) => reason.code)).not.toContain('hot_ground');
+  });
+});

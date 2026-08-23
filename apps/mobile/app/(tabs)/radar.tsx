@@ -21,7 +21,7 @@ import {
 import { assessWelfare } from '@coincide/core';
 
 import { useActivePet } from '@/lib/active-pet';
-import { setLocation, useDeclaredConditions } from '@/lib/conditions';
+import { setLocation, useConditionsBuilder, useWeatherState } from '@/lib/conditions';
 import { RADAR_AREA_NOTE, petFriendlyPlaces, placeAt } from '@/lib/geofence';
 import { Icon } from '@/components/icon';
 import { MapPin } from '@/lib/icons';
@@ -59,7 +59,8 @@ export default function RadarScreen() {
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
   const others = walkingNow(pet.speciesId);
-  const declared = useDeclaredConditions();
+  const declared = useWeatherState();
+  const build = useConditionsBuilder();
 
   // La zona manda antes que el bienestar: si no se puede encender el radar
   // aquí, la temperatura da igual.
@@ -78,12 +79,18 @@ export default function RadarScreen() {
 
   // El check-in más corto es el que decide si hoy se puede salir siquiera; cada
   // duración se comprueba por separado para no ofrecer las que no convienen.
-  const welfare = assessWelfare(pet, { ...declared, durationMinutes: DURATIONS[0].minutes });
-  const allowed = DURATIONS.filter(
-    (duration) =>
-      assessWelfare(pet, { ...declared, durationMinutes: duration.minutes }).recommendedMinutes >=
-      duration.minutes,
-  );
+  //
+  // Sin saber qué tiempo hace no se ofrece ninguna: `build` es null y la lista
+  // de duraciones permitidas queda vacía, que es lo mismo que hace un veto de
+  // calor. Un botón de check-in que aparece igual cuando no sabemos si se puede
+  // salir es un botón que decide por su cuenta.
+  const welfare = build ? assessWelfare(pet, build(DURATIONS[0].minutes)) : null;
+  const allowed = build
+    ? DURATIONS.filter(
+        (duration) =>
+          assessWelfare(pet, build(duration.minutes)).recommendedMinutes >= duration.minutes,
+      )
+    : [];
   const longest = allowed[allowed.length - 1]?.minutes ?? 0;
 
   if (!social) {
@@ -146,7 +153,7 @@ export default function RadarScreen() {
           </Card>
         ) : here === null ? (
           <OutsideArea />
-        ) : welfare.level === 'stop' ? (
+        ) : welfare?.level === 'stop' ? (
           // No se enseña el botón en gris ni con un aviso al lado: no está.
           // Un control desactivado invita a buscar cómo activarlo.
           <WelfareNotice verdict={welfare} petName={pet.name} />
@@ -231,7 +238,7 @@ export default function RadarScreen() {
  */
 function WhereAmI() {
   const theme = useTheme();
-  const declared = useDeclaredConditions();
+  const declared = useWeatherState();
   const here = placeAt(declared.location);
 
   const options = [

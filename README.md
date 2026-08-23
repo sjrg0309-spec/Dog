@@ -173,8 +173,17 @@ o `stop`, y un `stop` saca al animal de la lista en lugar de dejarlo abajo del r
 puntuación se compensa; un límite, no.
 
 **Nadie consulta el tiempo desde `packages/core`.** El módulo de bienestar recibe las condiciones y
-devuelve un veredicto, para poder probarlo entero sin red. Hoy la temperatura la declara el tutor
-con un control visible, porque no hay proveedor meteorológico conectado y la pantalla lo dice.
+devuelve un veredicto, para poder probarlo entero sin red ni relojes. Quien consulta es
+`packages/weather`, que pregunta a Open-Meteo por la celda donde está el tutor —coordenada
+redondeada a ~1,1 km, que es la resolución del modelo: más precisión no mejora el dato, solo se lo
+cuenta a un tercero—. De ahí sale también la radiación solar, y de la radiación una estimación de
+la temperatura del suelo: el asfalto quema por el sol, no por el aire, así que juzgarlo por la
+temperatura del aire paraba de más una noche de agosto y de menos un mediodía despejado de abril.
+
+**Y si la consulta falla, no se propone nada.** No hay temperatura por defecto: un número
+inventado delante de una función que puede decir «hoy no salgas» convierte una decisión en una
+casualidad y encima sin que se note. La pantalla dice que no lo sabe y ofrece ponerla a mano, que
+es un toque.
 
 **El chip identifica, no localiza.** Un microchip es un transpondedor RFID pasivo: sin batería, sin
 GPS y sin forma de seguirlo. Sirve como insignia de tutor verificado, y el formato válido no
@@ -248,10 +257,12 @@ desbordamiento a 320 px.
 - **Integración con Fi y Tractive.** Ninguno de los dos publica API para terceros; la capa de
   adaptadores está lista y declara su estado en lugar de fallar en silencio. Hoy funcionan el GPS
   del teléfono y una ingesta genérica por webhook firmado.
-- **Proveedor meteorológico.** La capa de bienestar recibe las condiciones y no las consulta; hoy
-  las declara el tutor. `api.open-meteo.com` está bloqueada por el proxy de salida de este entorno
-  (403, comprobado), así que conectarla queda pendiente de un entorno con salida a internet. Lo que
-  cambia entonces es un módulo.
+- **La llamada real a Open-Meteo.** El adaptador está escrito contra su especificación OpenAPI y
+  probado contra ella, incluidas las respuestas rotas, pero desde este contenedor no se ha podido
+  ejecutar: el proxy de salida bloquea el dominio, igual que bloquea a los otros cuatro proveedores
+  que se probaron. Lo que sí se comprueba aquí es que la petición **se emite** y con qué —el
+  auditor de la app la intercepta y verifica que la coordenada sale redondeada—. En un teléfono la
+  red es la del teléfono y la llamada sale.
 - **Feed social, grupos, chat y verificación de identidad.** Fase 2.
 
 ---

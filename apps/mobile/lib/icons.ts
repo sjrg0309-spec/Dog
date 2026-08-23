@@ -39,6 +39,9 @@ export {
   // Estado
   BadgeCheck,
   TriangleAlert,
+  // Tiempo
+  ThermometerSun,
+  RefreshCw,
   CircleAlert,
   CircleCheck,
   Ban,
