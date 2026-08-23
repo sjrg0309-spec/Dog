@@ -32,6 +32,8 @@ export {
   Users,
   ChevronLeft,
   ChevronRight,
+  /** Las tres rayas del perfil, que es donde Instagram guarda los ajustes. */
+  Menu,
   ArrowLeft,
   X,
   Ellipsis,
@@ -81,6 +83,11 @@ export {
   Wind,
   TreePine,
   Sun,
+  /** Su pareja en el ajuste de tema. Van juntos y con etiqueta: sol y luna a
+      dieciséis píxeles se distinguen por la forma, no por el color. */
+  Moon,
+  /** El ajuste de movimiento reducido. Es el símbolo estándar y se reconoce. */
+  Accessibility,
   Phone,
   // Mapa y lugares
   MapPin,

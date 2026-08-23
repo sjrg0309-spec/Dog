@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -6,6 +7,7 @@ import { Avatar } from '@/components/avatar';
 import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { ProfileMenu } from '@/components/profile-menu';
 import { SceneView } from '@/components/scene';
 import { StoryRing } from '@/components/story-ring';
 import { buildScene } from '@/lib/artwork';
@@ -33,6 +35,7 @@ import {
   HeartPulse,
   ImageOff,
   Lock,
+  Menu,
   Phone,
   Pill,
   QrCode,
@@ -81,6 +84,18 @@ export default function ProfileScreen() {
   const saved = useSavedPosts();
   const [walkMode, setWalkMode] = useState(false);
   const [tab, setTab] = useState<'grid' | 'saved' | 'record'>('grid');
+  const [menu, setMenu] = useState(false);
+
+  /* Las entradas desde configuración: `/perfil?tab=record` abre la ficha y
+     `/perfil?modo=paseo` enciende el código. Van por parámetro y no por estado
+     inicial porque esta pantalla es una pestaña y **ya está montada** cuando se
+     llega desde ajustes: sin el efecto, el estado inicial se calculó hace rato
+     y el enlace no haría nada. */
+  const params = useLocalSearchParams<{ tab?: string; modo?: string }>();
+  useEffect(() => {
+    if (params.tab === 'record' || params.tab === 'saved') setTab(params.tab);
+    if (params.modo === 'paseo') setWalkMode(true);
+  }, [params.tab, params.modo]);
 
   // Días distintos de la semana con paseo declarado. Es la cifra que de verdad
   // dice cuánto se mueve un perro, y la que hace que la coincidencia horaria
@@ -94,7 +109,31 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <NavBar title={pet.name} scrolled={scrolled} showTitle={scrolled} />
+      <NavBar
+        title={pet.name}
+        scrolled={scrolled}
+        showTitle={scrolled}
+        trailing={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Menú del perfil"
+            accessibilityHint="Configuración, actividad, guardados e historial"
+            onPress={() => {
+              haptics.tap();
+              setMenu(true);
+            }}
+            style={({ pressed }) => ({
+              width: theme.touchTarget.min,
+              height: theme.touchTarget.min,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Icon icon={Menu} size="lg" decorative />
+          </Pressable>
+        }
+      />
 
       <ScrollView
         onScroll={onScroll}
@@ -429,6 +468,14 @@ export default function ProfileScreen() {
           ) : null}
         </View>
       </ScrollView>
+
+      {menu ? (
+        <ProfileMenu
+          onClose={() => setMenu(false)}
+          onSaved={() => setTab('saved')}
+          onWalkMode={() => setWalkMode(true)}
+        />
+      ) : null}
     </Screen>
   );
 }

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NavBar, useScrolled } from '@/components/chrome';
@@ -45,6 +45,7 @@ import { useUnreadActivity } from '@/lib/activity';
 import { totalUnread, useThreads } from '@/lib/messages';
 import { useLiveAlerts } from '@/lib/safety';
 import { useStoriesOf, useStoryGroups } from '@/lib/stories';
+import { setSetting, useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -78,7 +79,12 @@ export default function FeedScreen() {
   const { scrolled, onScroll } = useScrolled();
 
   const [tab, setTab] = useState<FeedTab>('nearby');
-  const [radiusM, setRadiusM] = useState<NearbyRadius>(NEARBY_RADII_M[0]);
+  /* El radio vive en los ajustes y no aquí: es el mismo valor que se toca
+     desde configuración, así que dos estados serían dos verdades. La píldora de
+     «5 km» de esta barra sigue siendo el camino rápido —se cambia donde se
+     nota—, solo que ahora escribe donde lo lee la otra pantalla. */
+  const radiusM = useSettings().feedRadiusM;
+  const setRadiusM = useCallback((value: NearbyRadius) => setSetting('feedRadiusM', value), []);
   const reeling = tab === 'reels';
   /* Con los reels puestos el filtro sigue calculando el feed de vecindario. Es
      deliberado: es barato, y al volver de los reels la lista ya está hecha en

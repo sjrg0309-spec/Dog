@@ -22,6 +22,7 @@ import {
 
 import { useActivePet } from './active-pet';
 import { accentOf } from './artwork';
+import { useSettings } from './settings';
 
 export const lightColors = themeToHex(lightTokens as unknown as Record<string, string>) as unknown as SemanticTokens;
 export const darkColors = themeToHex(darkTokens as unknown as Record<string, string>) as unknown as SemanticTokens;
@@ -178,7 +179,12 @@ const PALETTES = Object.fromEntries(
  */
 export function useTheme(): Theme {
   const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  /* La preferencia de la aplicación manda sobre la del sistema, y solo aquí:
+     es lo que hace que «Oscuro» en ajustes sea un ajuste y no una etiqueta.
+     Con «El del teléfono» —lo de fábrica— esto no existe y decide el sistema,
+     que es lo que espera quien nunca abre esta pantalla. */
+  const choice = useSettings().theme;
+  const isDark = choice === 'system' ? scheme === 'dark' : choice === 'dark';
   const pet = useActivePet();
   const accent = accentOf(pet.id);
 

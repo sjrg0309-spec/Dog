@@ -15,8 +15,22 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 
+import { useSettings } from './settings';
+
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
+  /*
+   * El ajuste de la aplicación **suma, no sustituye**.
+   *
+   * Se puede pedir movimiento reducido desde aquí aunque el teléfono no lo
+   * tenga puesto —hay quien lo quiere en esta aplicación y no en el resto—,
+   * pero no al revés: con la preferencia del sistema activada, nada de esta
+   * pantalla la cancela. Quien la activó lo hizo por un motivo que no es
+   * estético, y una aplicación que se salta esa preferencia porque tiene su
+   * propio interruptor es exactamente el fallo que la preferencia existe para
+   * evitar.
+   */
+  const forced = useSettings().motion === 'reduced';
 
   useEffect(() => {
     let alive = true;
@@ -38,5 +52,5 @@ export function useReducedMotion(): boolean {
     };
   }, []);
 
-  return reduced;
+  return forced || reduced;
 }

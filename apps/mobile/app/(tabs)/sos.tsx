@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -17,6 +18,7 @@ import {
   Eye,
   Locate,
   Phone,
+  ChevronRight,
   Siren,
   TriangleAlert,
   X,
@@ -30,9 +32,11 @@ import {
   type LiveAlert,
 } from '@/lib/safety';
 import { useHazardZones } from '@/lib/rescue';
+import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import {
   EVIDENCE_CHECKLIST,
+  alertReachM,
   REPORTING_CHANNELS_NOTE,
   RESCUE_DISCLAIMER,
   RESCUE_SCENARIOS,
@@ -543,8 +547,6 @@ function AlertCard({
 
   const { alert, scenario } = live;
   const grew = live.radiusM > scenario.initialRadiusM;
-  const km = (meters: number) =>
-    meters >= 1000 ? `${(meters / 1000).toFixed(1).replace('.', ',')} km` : `${meters} m`;
 
   return (
     <View
@@ -842,6 +844,8 @@ function RescueSection() {
         </Card>
       ) : null}
 
+      <RoleRow />
+
       <View style={{ gap: theme.space[2] }}>
         {RESCUE_SCENARIOS.map((scenario) => (
           <RescueCard
@@ -882,6 +886,61 @@ function RescueSection() {
   );
 }
 
+/** «1,5 km» o «800 m». Se decide por el número, no por quien llame. */
+function km(meters: number): string {
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1).replace('.', ',')} km` : `${meters} m`;
+}
+
+/**
+ * Con qué alcance te llegan los avisos, y cómo cambiarlo.
+ *
+ * Va aquí y no solo en configuración porque esta es la pantalla donde alguien
+ * se da cuenta de que le interesa: se lee «a una rescatista le llega desde
+ * cinco kilómetros» justo cuando está mirando qué hacer con un animal
+ * envenenado. Un ajuste enterrado que nadie sabe que existe es un ajuste que no
+ * existe.
+ */
+function RoleRow() {
+  const theme = useTheme();
+  const router = useRouter();
+  const rescuer = useSettings().rescuer;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={rescuer ? 'Recibes avisos como rescatista' : 'Recibes avisos como tutor'}
+      accessibilityHint="Abre configuración para cambiarlo"
+      onPress={() => {
+        haptics.tap();
+        router.push('/ajustes');
+      }}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[3],
+        minHeight: theme.touchTarget.comfortable,
+        paddingHorizontal: theme.space[4],
+        paddingVertical: theme.space[3],
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        backgroundColor: pressed ? theme.colors.surfaceSunken : theme.colors.surface,
+      })}
+    >
+      <Icon icon={Siren} size="lg" color={theme.colors.mutedForeground} decorative />
+      <View style={{ flex: 1 }}>
+        <Body>{rescuer ? 'Te llegan como rescatista' : 'Te llegan como tutor'}</Body>
+        <Caption>
+          {rescuer
+            ? 'Desde varios kilómetros, y también lo que no es peligro para tu paseo.'
+            : 'Lo que tienes a mano, y solo lo que afecta a vuestro paseo.'}
+        </Caption>
+      </View>
+      <Icon icon={ChevronRight} size="base" color={theme.colors.mutedForeground} decorative />
+    </Pressable>
+  );
+}
+
 function placeNameOf(placeId: string): string {
   return Object.values(PLACES).find((place) => place.id === placeId)?.name ?? 'Tu zona';
 }
@@ -897,6 +956,12 @@ function RescueCard({
 }) {
   const theme = useTheme();
   const critical = scenario.severity === 'critical';
+  /* Lo que cambia el papel elegido, dicho en cada situación y no en general.
+     «Un animal atado sin agua» no le llega a un tutor y sí a una rescatista, y
+     eso no es un ajuste fino de notificaciones: es la diferencia entre decidir
+     por dónde paseas y coger el coche. */
+  const rescuer = useSettings().rescuer;
+  const reach = alertReachM(scenario, rescuer ? 'rescuer' : 'tutor');
 
   return (
     <Pressable
@@ -937,6 +1002,11 @@ function RescueCard({
         />
       </Row>
       <Caption>{scenario.description}</Caption>
+      <Caption>
+        {reach === 0
+          ? 'No te avisa: no es un peligro para tu paseo. A una rescatista sí le llega.'
+          : `Te avisa si pasa a menos de ${km(reach)}.`}
+      </Caption>
 
       {open ? (
         <View style={{ gap: theme.space[2], paddingTop: theme.space[1] }}>
