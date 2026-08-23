@@ -7,3 +7,4 @@ export * from './discovery.js';
 export * from './species.js';
 export * from './fixtures.js';
 export * from './welfare.js';
+export * from './safety.js';
