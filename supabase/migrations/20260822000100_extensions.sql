@@ -14,15 +14,29 @@ create extension if not exists pgcrypto with schema extensions;
 -- ---------------------------------------------------------------------------
 -- Tipos del dominio.
 --
--- El orden de los valores de `dog_size` y `energy_level` es significativo: la
+-- El orden de los valores de `pet_size` y `energy_level` es significativo: la
 -- distancia entre dos tallas es aritmética y el algoritmo de compatibilidad
 -- depende de ello. Insertar un valor nuevo en medio cambiaría las puntuaciones.
+--
+-- `pet_size` es una escala RELATIVA DENTRO DE LA ESPECIE. Un conejo gigante y un
+-- mastín gigante no tienen nada que ver, y da igual: los encuentros son siempre
+-- entre animales de la misma especie, así que la comparación nunca cruza ese
+-- límite.
 -- ---------------------------------------------------------------------------
 
-create type public.dog_size as enum ('mini', 'small', 'medium', 'large', 'giant');
-create type public.energy_level as enum ('couch', 'explorer', 'sprinter');
-create type public.play_style as enum ('chase', 'wrestle', 'toys', 'calm_walk');
-create type public.dog_sex as enum ('male', 'female');
+create type public.pet_size as enum ('mini', 'small', 'medium', 'large', 'giant');
+-- Valores neutros a propósito: la interfaz los traduce al lenguaje de cada
+-- especie ("de sofá" y "velocista" en un perro, "tranquilo" y "muy activo" en un
+-- conejo), pero el dato guardado es el mismo y el algoritmo no necesita saber de
+-- qué animal habla.
+create type public.energy_level as enum ('low', 'medium', 'high');
+-- Superconjunto multiespecie. Cada especie declara cuáles le aplican:
+-- `grooming`, `side_by_side` y `forage` son lo que de verdad hacen conejos,
+-- cobayas y hurones, y tenían que entrar en el cálculo, no quedarse de adorno.
+create type public.play_style as enum (
+  'chase', 'wrestle', 'toys', 'calm_walk', 'grooming', 'side_by_side', 'forage'
+);
+create type public.pet_sex as enum ('male', 'female');
 
 create type public.trust_circle_flag as enum (
   'loves_everyone',
@@ -30,7 +44,8 @@ create type public.trust_circle_flag as enum (
   'prefers_females',
   'prefers_males',
   'shy_at_first',
-  'no_hyper_puppies'
+  -- Antes era "no cachorros": ahora vale para el juvenil de cualquier especie.
+  'no_hyper_juveniles'
 );
 
 create type public.playdate_kind as enum ('live_walk', 'scheduled', 'recurring', 'spot_booking');
@@ -87,3 +102,32 @@ as $$
     4326
   )::extensions.geography;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Modelo social y taxonomía.
+--
+-- El modelo social es la decisión que gobierna todo el producto: qué se le
+-- ofrece al tutor y si un encuentro tiene sentido siquiera.
+-- ---------------------------------------------------------------------------
+
+create type public.social_model as enum (
+  -- Encuentros abiertos en grupo. Solo el perro.
+  'pack',
+  -- Dos o tres, en terreno neutral, supervisados y cortos.
+  'small_group',
+  -- Sin encuentros. La aplicación ofrece comunidad, lugares y servicios.
+  'solitary'
+);
+
+create type public.taxon_group as enum (
+  'mammal_carnivore', 'mammal_lagomorph', 'mammal_rodent',
+  'bird', 'reptile', 'amphibian', 'fish', 'invertebrate'
+);
+
+create type public.legal_status as enum (
+  'companion_animal',
+  'domestic',
+  'positive_list_pending',
+  'restricted',
+  'excluded'
+);

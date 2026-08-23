@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Atkinson_Hyperlegible, Bricolage_Grotesque } from 'next/font/google';
 
-import '@doggymeet/tokens/tokens.css';
+import '@coincide/tokens/tokens.css';
 import './globals.css';
 
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -27,15 +27,15 @@ const display = Bricolage_Grotesque({
 
 export const metadata: Metadata = {
   title: {
-    default: 'DoggyMeet — paseos que sí ocurren',
-    template: '%s · DoggyMeet',
+    default: 'Coincide — paseos que sí ocurren',
+    template: '%s · Coincide',
   },
   description:
     'Encuentra perros compatibles con el tuyo, coincide con quien pasea a tu misma hora y organizad la salida. Funciona a las siete de la mañana y a las once de la noche.',
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    siteName: 'DoggyMeet',
+    siteName: 'Coincide',
   },
 };
 
@@ -54,7 +54,7 @@ export const viewport: Viewport = {
  */
 const themeScript = `
 try {
-  var stored = localStorage.getItem('doggymeet-theme');
+  var stored = localStorage.getItem('coincide-theme');
   if (stored === 'light' || stored === 'dark') {
     document.documentElement.setAttribute('data-theme', stored);
   }
@@ -81,7 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   cy="11"
                   r="4"
                   fill="none"
-                  stroke="var(--dm-primary)"
+                  stroke="var(--co-primary)"
                   strokeWidth="2.5"
                 />
                 <circle
@@ -89,12 +89,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   cy="11"
                   r="9"
                   fill="none"
-                  stroke="var(--dm-live-ring)"
+                  stroke="var(--co-live-ring)"
                   strokeWidth="1.5"
                   opacity="0.6"
                 />
               </svg>
-              <span className="brand__word">DoggyMeet</span>
+              <span className="brand__word">Coincide</span>
             </a>
 
             <nav className="site-nav" aria-label="Principal">
@@ -118,7 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="site-footer">
           <div className="shell stack">
             <p>
-              DoggyMeet es un MVP en construcción. Los datos que se muestran son una semilla de
+              Coincide es un MVP en construcción. Los datos que se muestran son una semilla de
               demostración, no usuarios reales.
             </p>
             <p>

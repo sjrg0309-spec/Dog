@@ -9,7 +9,7 @@
  */
 
 import { calculateAffinity } from './affinity.js';
-import type { AffinityBand, MatchableDog, PairHistory } from './types.js';
+import type { AffinityBand, MatchablePet, PairHistory } from './types.js';
 import { bandFor } from './affinity.js';
 
 export type PairScore = {
@@ -38,14 +38,14 @@ const noHistory: HistoryLookup = () => ({});
 
 /** Todas las parejas del grupo, sin repetir y sin el par consigo mismo. */
 export function scorePairs(
-  dogs: readonly MatchableDog[],
+  pets: readonly MatchablePet[],
   history: HistoryLookup = noHistory,
 ): PairScore[] {
   const pairs: PairScore[] = [];
-  for (let i = 0; i < dogs.length; i += 1) {
-    for (let j = i + 1; j < dogs.length; j += 1) {
-      const first = dogs[i];
-      const second = dogs[j];
+  for (let i = 0; i < pets.length; i += 1) {
+    for (let j = i + 1; j < pets.length; j += 1) {
+      const first = pets[i];
+      const second = pets[j];
       if (!first || !second) continue;
       const result = calculateAffinity(first, second, history(first.id, second.id));
       pairs.push({ a: first.id, b: second.id, score: result.score, vetoed: result.vetoed });
@@ -57,18 +57,18 @@ export function scorePairs(
 /**
  * Afinidad de un grupo ya formado.
  *
- * Un grupo de un solo perro es trivialmente perfecto: no hay pareja que pueda
+ * Un grupo de un solo animal es trivialmente perfecto: no hay pareja que pueda
  * fallar. Se devuelve 100 en lugar de un caso especial en cada llamador.
  */
 export function groupAffinity(
-  dogs: readonly MatchableDog[],
+  pets: readonly MatchablePet[],
   history: HistoryLookup = noHistory,
 ): GroupAffinity {
-  if (dogs.length < 2) {
+  if (pets.length < 2) {
     return { min: 100, mean: 100, band: 'great', weakestPair: null, hasVeto: false, pairs: [] };
   }
 
-  const pairs = scorePairs(dogs, history);
+  const pairs = scorePairs(pets, history);
   let weakestPair = pairs[0] ?? null;
   let total = 0;
 
@@ -91,40 +91,40 @@ export function groupAffinity(
 }
 
 export type FormedGroup = {
-  dogs: MatchableDog[];
+  pets: MatchablePet[];
   affinity: GroupAffinity;
   /** Candidatos que no entraron, con el motivo. */
-  rejected: Array<{ dogId: string; reason: string }>;
+  rejected: Array<{ petId: string; reason: string }>;
 };
 
 /**
  * Propone el grupo que maximiza el mínimo.
  *
  * Esto es lo que un directorio de espacios en renta no puede hacer: alquilar un
- * patio a una persona es fácil; saber qué cinco perros pueden compartirlo sin
- * pelearse requiere conocer a los perros.
+ * patio a una persona es fácil; saber qué cinco animales pueden compartirlo sin
+ * pelearse requiere conocer a los animales.
  *
  * La búsqueda es voraz — en cada paso entra el candidato que menos daña el
  * mínimo. No garantiza el óptimo global, y es la decisión correcta igualmente:
- * los grupos reales son de tres a ocho perros, el usuario puede quitar y poner a
+ * los grupos reales son de tres a ocho animales, el usuario puede quitar y poner a
  * mano, y una búsqueda exhaustiva sobre decenas de candidatos costaría
  * combinatoria a cambio de una diferencia que nadie percibe. El sesgo del voraz
  * es conservador: prefiere grupos pequeños y seguros a grandes y frágiles.
  */
 export function formGroup(
-  host: MatchableDog,
-  candidates: readonly MatchableDog[],
-  options: { maxDogs: number; minAffinity?: number; history?: HistoryLookup } = { maxDogs: 6 },
+  host: MatchablePet,
+  candidates: readonly MatchablePet[],
+  options: { maxPets: number; minAffinity?: number; history?: HistoryLookup } = { maxPets: 6 },
 ): FormedGroup {
-  const { maxDogs, minAffinity = 60, history = noHistory } = options;
+  const { maxPets, minAffinity = 60, history = noHistory } = options;
 
-  const chosen: MatchableDog[] = [host];
-  const rejected: Array<{ dogId: string; reason: string }> = [];
-  const remaining = candidates.filter((dog) => dog.id !== host.id);
+  const chosen: MatchablePet[] = [host];
+  const rejected: Array<{ petId: string; reason: string }> = [];
+  const remaining = candidates.filter((pet) => pet.id !== host.id);
   const discarded = new Set<string>();
 
-  while (chosen.length < maxDogs) {
-    let best: { dog: MatchableDog; affinity: GroupAffinity } | null = null;
+  while (chosen.length < maxPets) {
+    let best: { pet: MatchablePet; affinity: GroupAffinity } | null = null;
 
     for (const candidate of remaining) {
       if (discarded.has(candidate.id)) continue;
@@ -132,12 +132,12 @@ export function formGroup(
       const affinity = groupAffinity([...chosen, candidate], history);
       if (affinity.hasVeto) {
         discarded.add(candidate.id);
-        rejected.push({ dogId: candidate.id, reason: 'Incompatible por seguridad con el grupo' });
+        rejected.push({ petId: candidate.id, reason: 'Incompatible por seguridad con el grupo' });
         continue;
       }
       if (affinity.min < minAffinity) {
         discarded.add(candidate.id);
-        rejected.push({ dogId: candidate.id, reason: 'Bajaría demasiado la afinidad del grupo' });
+        rejected.push({ petId: candidate.id, reason: 'Bajaría demasiado la afinidad del grupo' });
         continue;
       }
 
@@ -149,17 +149,17 @@ export function formGroup(
         (affinity.min === best.affinity.min && affinity.mean > best.affinity.mean) ||
         (affinity.min === best.affinity.min &&
           affinity.mean === best.affinity.mean &&
-          candidate.id < best.dog.id);
+          candidate.id < best.pet.id);
 
-      if (better) best = { dog: candidate, affinity };
+      if (better) best = { pet: candidate, affinity };
     }
 
     if (!best) break;
-    chosen.push(best.dog);
-    discarded.add(best.dog.id);
+    chosen.push(best.pet);
+    discarded.add(best.pet.id);
   }
 
-  return { dogs: chosen, affinity: groupAffinity(chosen, history), rejected };
+  return { pets: chosen, affinity: groupAffinity(chosen, history), rejected };
 }
 
 /**

@@ -42,12 +42,12 @@ export default async function HomePage() {
             Que tu perro salga <em>con alguien</em>.
           </h1>
           <p className="lede">
-            DoggyMeet empareja perros por energía, tamaño y forma de jugar, y cruza vuestros
+            Coincide empareja perros por energía, tamaño y forma de jugar, y cruza vuestros
             horarios de paseo. No hace falta que nadie esté conectado a la vez: basta con que
             salgáis a la misma hora.
           </p>
 
-          <div className="row" style={{ marginTop: 'var(--dm-space-6)' }}>
+          <div className="row" style={{ marginTop: 'var(--co-space-6)' }}>
             <a className="button button--primary" href="#quedadas">
               Ver quedadas cerca
             </a>
@@ -58,7 +58,7 @@ export default async function HomePage() {
 
           <p
             className="card__meta"
-            style={{ marginTop: 'var(--dm-space-5)', maxWidth: 'var(--dm-measure-narrow)' }}
+            style={{ marginTop: 'var(--co-space-5)', maxWidth: 'var(--co-measure-narrow)' }}
           >
             {places.length} parques en el directorio, {fencedParks} de ellos vallados.{' '}
             {playdates.length > 0
@@ -151,7 +151,7 @@ export default async function HomePage() {
           <p className="eyebrow">Espacios privados</p>
           <h2>Un patio cerrado sale barato entre cinco</h2>
           <p className="lede">
-            Alquilar un espacio privado a una persona es caro. Lo interesante es que DoggyMeet ya
+            Alquilar un espacio privado a una persona es caro. Lo interesante es que Coincide ya
             sabe qué perros encajan entre sí, así que puede proponer el grupo y repartir el importe.
           </p>
         </div>
@@ -177,7 +177,7 @@ export default async function HomePage() {
           ))}
         </div>
 
-        <div className="notice" style={{ marginTop: 'var(--dm-space-6)' }}>
+        <div className="notice" style={{ marginTop: 'var(--co-space-6)' }}>
           <span aria-hidden="true">!</span>
           <p>
             <strong>El cobro todavía no ocurre dentro de la aplicación.</strong> En esta fase el

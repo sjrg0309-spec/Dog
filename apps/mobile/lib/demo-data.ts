@@ -4,7 +4,7 @@
  * IMPORTANTE, para que nadie se confunda leyendo esto: **son los mismos perros
  * que la semilla de la base de datos**, no un conjunto inventado aparte. El
  * algoritmo que se ejecuta sobre ellos es el real, importado de
- * `@doggymeet/core`; lo único que falta es el transporte.
+ * `@coincide/core`; lo único que falta es el transporte.
  *
  * La razón es concreta: React Native no puede hablar con Postgres directamente,
  * y en el entorno donde se construyó esto no hay un proyecto Supabase
@@ -13,7 +13,7 @@
  * con dos implementaciones: esta y la de Supabase, que es un solo módulo.
  */
 
-import type { Availability, MatchableDog } from '@doggymeet/core';
+import type { Availability, MatchableDog } from '@coincide/core';
 
 export type DemoDog = MatchableDog & {
   name: string;

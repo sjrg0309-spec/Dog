@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { classifyResults, rankCandidates, type DiscoveryCandidate } from './discovery.js';
-import { makeAvailability, makeDog, resetDogIds } from './fixtures.js';
+import { makeAvailability, makePet, resetPetIds } from './fixtures.js';
 
-beforeEach(resetDogIds);
+beforeEach(resetPetIds);
 
 const MORNING = [makeAvailability({ weekday: 1, startTime: '07:00', endTime: '08:00' })];
 const EVENING = [makeAvailability({ weekday: 1, startTime: '19:00', endTime: '20:00' })];
@@ -12,7 +12,7 @@ const PARK = { lat: 40.4153, lng: -3.6844 };
 const FAR = { lat: 40.4553, lng: -3.7444 };
 
 const viewer = () => ({
-  dog: makeDog({ size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] }),
+  pet: makePet({ size: 'medium', energyLevel: 'medium', playStyles: ['chase'] }),
   availability: MORNING,
   location: PARK,
 });
@@ -23,16 +23,16 @@ describe('orden del descubrimiento', () => {
     // Dos vetos distintos: uno por riesgo de lesión (tres tallas de diferencia)
     // y otro por el límite que el tutor declaró.
     const giant: DiscoveryCandidate = {
-      dog: makeDog({ size: 'giant', trustCircle: ['same_size_only'] }),
+      pet: makePet({ size: 'giant', trustCircle: ['same_size_only'] }),
       availability: MORNING,
       location: PARK,
     };
     const tiny: DiscoveryCandidate = {
-      dog: makeDog({ size: 'mini' }),
+      pet: makePet({ size: 'mini' }),
       availability: MORNING,
       location: PARK,
     };
-    const meTiny = { ...me, dog: makeDog({ size: 'giant' }) };
+    const meTiny = { ...me, pet: makePet({ size: 'giant' }) };
 
     // Un veto es un límite de seguridad, no una puntuación baja que se pueda
     // compensar estando al lado.
@@ -43,45 +43,45 @@ describe('orden del descubrimiento', () => {
 
   it('a igualdad de afinidad y distancia, gana quien coincide de horario', () => {
     const me = viewer();
-    const shape = { size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] } as const;
+    const shape = { size: 'medium', energyLevel: 'medium', playStyles: ['chase'] } as const;
 
     const sameSchedule: DiscoveryCandidate = {
-      dog: makeDog(shape),
+      pet: makePet(shape),
       availability: MORNING,
       location: PARK,
     };
     const otherSchedule: DiscoveryCandidate = {
-      dog: makeDog(shape),
+      pet: makePet(shape),
       availability: EVENING,
       location: PARK,
     };
 
     const ranked = rankCandidates(me, [otherSchedule, sameSchedule]);
-    expect(ranked[0]?.dogId).toBe(sameSchedule.dog.id);
+    expect(ranked[0]?.petId).toBe(sameSchedule.pet.id);
   });
 
   it('a igualdad de todo lo demás, gana quien está más cerca', () => {
     const me = viewer();
-    const shape = { size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] } as const;
+    const shape = { size: 'medium', energyLevel: 'medium', playStyles: ['chase'] } as const;
 
-    const near: DiscoveryCandidate = { dog: makeDog(shape), availability: MORNING, location: PARK };
-    const far: DiscoveryCandidate = { dog: makeDog(shape), availability: MORNING, location: FAR };
+    const near: DiscoveryCandidate = { pet: makePet(shape), availability: MORNING, location: PARK };
+    const far: DiscoveryCandidate = { pet: makePet(shape), availability: MORNING, location: FAR };
 
     const ranked = rankCandidates(me, [far, near]);
-    expect(ranked[0]?.dogId).toBe(near.dog.id);
+    expect(ranked[0]?.petId).toBe(near.pet.id);
   });
 
   it('los tres ejes viajan por separado hasta la interfaz', () => {
     const me = viewer();
     const candidate: DiscoveryCandidate = {
-      dog: makeDog({ size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] }),
+      pet: makePet({ size: 'medium', energyLevel: 'medium', playStyles: ['chase'] }),
       availability: MORNING,
       location: PARK,
     };
 
     const [match] = rankCandidates(me, [candidate]);
 
-    // Nunca se funden en un solo porcentaje: un perro mediocre pero cercano no
+    // Nunca se funden en un solo porcentaje: un animal mediocre pero cercano no
     // puede presentarse como "95 % compatible".
     expect(match?.affinity.score).toBeDefined();
     expect(match?.schedule.score).toBeDefined();
@@ -92,7 +92,7 @@ describe('orden del descubrimiento', () => {
   it('explica en lenguaje llano por qué coinciden', () => {
     const me = viewer();
     const candidate: DiscoveryCandidate = {
-      dog: makeDog({ size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] }),
+      pet: makePet({ size: 'medium', energyLevel: 'medium', playStyles: ['chase'] }),
       availability: MORNING,
       location: PARK,
     };
@@ -104,7 +104,7 @@ describe('orden del descubrimiento', () => {
 
   it('no se devuelve a sí mismo', () => {
     const me = viewer();
-    const self: DiscoveryCandidate = { dog: me.dog, availability: MORNING, location: PARK };
+    const self: DiscoveryCandidate = { pet: me.pet, availability: MORNING, location: PARK };
 
     expect(rankCandidates(me, [self])).toHaveLength(0);
   });
@@ -114,7 +114,7 @@ describe('orden del descubrimiento', () => {
     // debe seguir siendo útil, no quedarse en blanco.
     const me = { ...viewer(), location: null };
     const candidate: DiscoveryCandidate = {
-      dog: makeDog({ size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] }),
+      pet: makePet({ size: 'medium', energyLevel: 'medium', playStyles: ['chase'] }),
       availability: MORNING,
       location: null,
     };
@@ -128,15 +128,15 @@ describe('orden del descubrimiento', () => {
 
   it('es determinista ante empates', () => {
     const me = viewer();
-    const shape = { size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] } as const;
+    const shape = { size: 'medium', energyLevel: 'medium', playStyles: ['chase'] } as const;
     const candidates: DiscoveryCandidate[] = [
-      { dog: makeDog(shape), availability: MORNING, location: PARK },
-      { dog: makeDog(shape), availability: MORNING, location: PARK },
-      { dog: makeDog(shape), availability: MORNING, location: PARK },
+      { pet: makePet(shape), availability: MORNING, location: PARK },
+      { pet: makePet(shape), availability: MORNING, location: PARK },
+      { pet: makePet(shape), availability: MORNING, location: PARK },
     ];
 
-    const first = rankCandidates(me, candidates).map((match) => match.dogId);
-    const second = rankCandidates(me, [...candidates].reverse()).map((match) => match.dogId);
+    const first = rankCandidates(me, candidates).map((match) => match.petId);
+    const second = rankCandidates(me, [...candidates].reverse()).map((match) => match.petId);
 
     // Una lista que baila entre recargas se percibe como un fallo.
     expect(first).toEqual(second);
@@ -145,7 +145,7 @@ describe('orden del descubrimiento', () => {
   it('oculta por debajo del umbral salvo que se pida lo contrario', () => {
     const me = viewer();
     const poor: DiscoveryCandidate = {
-      dog: makeDog({ size: 'small', energyLevel: 'couch', playStyles: ['calm_walk'] }),
+      pet: makePet({ size: 'small', energyLevel: 'low', playStyles: ['calm_walk'] }),
       availability: EVENING,
       location: FAR,
     };
@@ -164,7 +164,7 @@ describe('estados vacíos — decir la verdad en vez de rellenar', () => {
     expect(classifyResults(me, [], [])).toBe('no_candidates');
 
     const incompatible: DiscoveryCandidate = {
-      dog: makeDog({ size: 'small', energyLevel: 'couch', playStyles: ['calm_walk'] }),
+      pet: makePet({ size: 'small', energyLevel: 'low', playStyles: ['calm_walk'] }),
       availability: MORNING,
       location: PARK,
     };
@@ -175,7 +175,7 @@ describe('estados vacíos — decir la verdad en vez de rellenar', () => {
   it('distingue el caso de no coincidir nunca de horario', () => {
     const me = viewer();
     const nightOwl: DiscoveryCandidate = {
-      dog: makeDog({ size: 'small', energyLevel: 'couch', playStyles: ['calm_walk'] }),
+      pet: makePet({ size: 'small', energyLevel: 'low', playStyles: ['calm_walk'] }),
       availability: EVENING,
       location: FAR,
     };
@@ -187,7 +187,7 @@ describe('estados vacíos — decir la verdad en vez de rellenar', () => {
   it('reconoce cuando sí hay resultados', () => {
     const me = viewer();
     const good: DiscoveryCandidate = {
-      dog: makeDog({ size: 'medium', energyLevel: 'explorer', playStyles: ['chase'] }),
+      pet: makePet({ size: 'medium', energyLevel: 'medium', playStyles: ['chase'] }),
       availability: MORNING,
       location: PARK,
     };

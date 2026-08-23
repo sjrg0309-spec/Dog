@@ -15,7 +15,7 @@ import {
   light as lightTokens,
   themeToHex,
   type SemanticTokens,
-} from '@doggymeet/tokens';
+} from '@coincide/tokens';
 
 export const lightColors = themeToHex(lightTokens as unknown as Record<string, string>) as unknown as SemanticTokens;
 export const darkColors = themeToHex(darkTokens as unknown as Record<string, string>) as unknown as SemanticTokens;

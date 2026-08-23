@@ -1,4 +1,4 @@
-# DoggyMeet
+# Coincide
 
 Red social de paseos caninos. Empareja perros por temperamento, cruza los horarios de paseo de sus
 tutores y facilita que la salida ocurra de verdad.
@@ -22,7 +22,7 @@ justo cuando más solo se pasea.
 ## Estructura
 
 ```
-doggymeet/
+coincide/
 ├── apps/
 │   ├── web/          Next.js — páginas públicas de quedada, espacio y parques
 │   └── mobile/       Expo — el producto: descubrir, radar, quedadas, espacios
@@ -57,11 +57,11 @@ pnpm install
 node packages/db/dist/seed-cli.js
 
 # Web en http://localhost:3000
-pnpm --filter @doggymeet/web build
-pnpm --filter @doggymeet/web start
+pnpm --filter @coincide/web build
+pnpm --filter @coincide/web start
 
 # Aplicación móvil
-pnpm --filter @doggymeet/mobile start
+pnpm --filter @coincide/mobile start
 ```
 
 ---
@@ -113,7 +113,7 @@ esquema y no en un documento:
 ```bash
 pnpm test          # 213 tests unitarios y de integración
 pnpm typecheck     # todos los paquetes y aplicaciones
-pnpm --filter @doggymeet/web e2e   # 42 casos en Chromium, dos viewports
+pnpm --filter @coincide/web e2e   # 42 casos en Chromium, dos viewports
 node scripts/screenshots.mjs       # capturas en claro, oscuro y sistema
 ```
 

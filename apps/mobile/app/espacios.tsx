@@ -1,6 +1,6 @@
 import { ScrollView, View } from 'react-native';
 
-import { formGroup, formatCents, splitCost } from '@doggymeet/core';
+import { formGroup, formatCents, splitCost } from '@coincide/core';
 
 import { Badge, Body, Button, Caption, Card, Eyebrow, Heading, Notice, Row, Screen, Title } from '@/components/ui';
 import { myDog, spots } from '@/lib/data';
@@ -12,7 +12,7 @@ import { useTheme } from '@/lib/theme';
  *
  * Aquí está la diferencia con un directorio de sitios en alquiler: alquilar un
  * patio a una persona es fácil, y saber qué cinco perros pueden compartirlo sin
- * pelearse requiere conocer a los perros. DoggyMeet ya lo sabe, así que propone
+ * pelearse requiere conocer a los perros. Coincide ya lo sabe, así que propone
  * el grupo que maximiza el mínimo y reparte el importe.
  *
  * El cobro no ocurre dentro de la aplicación en esta fase, y la pantalla lo dice

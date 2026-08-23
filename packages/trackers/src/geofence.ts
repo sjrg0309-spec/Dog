@@ -1,7 +1,7 @@
 /**
  * Geocercas y check-in automático.
  *
- * Es lo que hace que el collar aporte algo de verdad: el perro llega al parque,
+ * Es lo que hace que el collar aporte algo de verdad: el animal llega al parque,
  * el radar se enciende solo y al salir caduca solo. El tutor no tiene que
  * acordarse de nada, que es exactamente lo que falla cuando hay que pulsar un
  * botón antes de salir con prisa.
@@ -9,7 +9,7 @@
  * Dos detalles que separan esto de un simple "¿está dentro del círculo?":
  *
  *  1. **Histéresis.** El radio de entrada y el de salida no son el mismo. Con un
- *     único umbral, un perro parado justo en el borde con una lectura de GPS que
+ *     único umbral, un animal parado justo en el borde con una lectura de GPS que
  *     baila diez metros genera entradas y salidas sin parar, y con ellas una
  *     cascada de notificaciones. Se entra al cruzar el radio y se sale al
  *     superarlo con un margen.
@@ -19,7 +19,7 @@
  *     abre el check-in.
  */
 
-import { distanceMeters, type LatLng } from '@doggymeet/core';
+import { distanceMeters, type LatLng } from '@coincide/core';
 
 /** Margen del radio de salida sobre el de entrada. */
 export const EXIT_HYSTERESIS = 1.25;
@@ -29,14 +29,14 @@ export const DEFAULT_DWELL_MINUTES = 3;
 
 export type Geofence = {
   id: string;
-  dogId: string;
+  petId: string;
   placeId: string | null;
   center: LatLng;
   radiusMeters: number;
   autoCheckin: boolean;
 };
 
-/** Lo que se sabe del perro respecto a una geocerca entre lectura y lectura. */
+/** Lo que se sabe del animal respecto a una geocerca entre lectura y lectura. */
 export type GeofenceState = {
   inside: boolean;
   /** Momento de la primera lectura dentro de la racha actual. */
@@ -120,7 +120,7 @@ export function advanceGeofence(
  *
  * Cuando dos parques se solapan gana el centro más cercano, no la primera
  * coincidencia: si no, el orden de la lista decidiría en qué parque aparece el
- * perro.
+ * animal.
  */
 export function pickGeofence(fences: readonly Geofence[], point: LatLng): Geofence | null {
   let best: { fence: Geofence; distance: number } | null = null;

@@ -12,7 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { asService, asUser, createPool, type Db } from './client.js';
 import { SEED_IDS, seed } from './seed.js';
 
-const { profiles: P, dogs: D, spots: S, playdates: E } = SEED_IDS;
+const { profiles: P, pets: A, spots: S, playdates: E } = SEED_IDS;
 
 let db: Db;
 
@@ -42,10 +42,10 @@ describe('visitante sin cuenta', () => {
     expect(rows.length).toBe(4);
   });
 
-  it('no puede leer perfiles ni perros directamente', async () => {
+  it('no puede leer perfiles ni animales directamente', async () => {
     const { profiles, dogs } = await asUser(db, null, async (client) => ({
       profiles: (await client.query('select id from public.profiles')).rows,
-      dogs: (await client.query('select id from public.dogs')).rows,
+      dogs: (await client.query('select id from public.pets')).rows,
     }));
 
     expect(profiles).toHaveLength(0);
@@ -66,17 +66,17 @@ describe('visitante sin cuenta', () => {
 describe('separación entre tutores', () => {
   it('un tutor no lee los pings del collar de otro, en ninguna consulta', async () => {
     // El caso más delicado de todo el esquema: los pings son el rastro diario
-    // de una persona, no solo de su perro.
+    // de una persona, no solo de su animal.
     const rows = await asUser(db, P.carlos, async (client) =>
-      (await client.query('select id from public.tracker_pings where dog_id = $1', [D.nina])).rows,
+      (await client.query('select id from public.tracker_pings where pet_id = $1', [A.nina])).rows,
     );
 
     expect(rows).toHaveLength(0);
   });
 
-  it('el tutor sí lee los pings de su propio perro', async () => {
+  it('el tutor sí lee los pings de su propio animal', async () => {
     const rows = await asUser(db, P.marta, async (client) =>
-      (await client.query('select id from public.tracker_pings where dog_id = $1', [D.nina])).rows,
+      (await client.query('select id from public.tracker_pings where pet_id = $1', [A.nina])).rows,
     );
 
     expect(rows.length).toBeGreaterThan(0);
@@ -95,7 +95,7 @@ describe('separación entre tutores', () => {
   it('un desconocido no navega la agenda de paseo de otro', async () => {
     // Publicar el horario de paseo de alguien es publicar su rutina diaria.
     const rows = await asUser(db, P.pablo, async (client) =>
-      (await client.query('select id from public.dog_availability where dog_id = $1', [D.nina]))
+      (await client.query('select id from public.pet_availability where pet_id = $1', [A.nina]))
         .rows,
     );
 
@@ -105,17 +105,17 @@ describe('separación entre tutores', () => {
   it('un amigo aceptado sí ve la agenda', async () => {
     // Marta y Carlos son amigos en la semilla.
     const rows = await asUser(db, P.carlos, async (client) =>
-      (await client.query('select id from public.dog_availability where dog_id = $1', [D.nina]))
+      (await client.query('select id from public.pet_availability where pet_id = $1', [A.nina]))
         .rows,
     );
 
     expect(rows.length).toBeGreaterThan(0);
   });
 
-  it('un tutor no puede modificar el perro de otro', async () => {
+  it('un tutor no puede modificar el animal de otro', async () => {
     const updated = await asUser(db, P.pablo, async (client) =>
-      (await client.query('update public.dogs set name = $2 where id = $1 returning id', [
-        D.nina,
+      (await client.query('update public.pets set name = $2 where id = $1 returning id', [
+        A.nina,
         'Secuestrada',
       ])).rowCount,
     );
@@ -134,13 +134,13 @@ describe('separación entre tutores', () => {
     expect(updated).toBe(0);
   });
 
-  it('un tutor no puede apuntar a la quedada un perro que no es suyo', async () => {
+  it('un tutor no puede apuntar a la quedada un animal que no es suyo', async () => {
     await expect(
       asUser(db, P.pablo, async (client) =>
         client.query(
-          `insert into public.playdate_rsvps (playdate_id, dog_id, profile_id)
+          `insert into public.playdate_rsvps (playdate_id, pet_id, profile_id)
            values ($1, $2, $3)`,
-          [E.gigantes, D.nina, P.pablo],
+          [E.gigantes, A.nina, P.pablo],
         ),
       ),
     ).rejects.toThrow();
@@ -148,12 +148,12 @@ describe('separación entre tutores', () => {
 });
 
 describe('columnas que la vista pública no debe exponer', () => {
-  it('el código del chip nunca sale en public_dogs, solo la insignia', async () => {
+  it('el código del chip nunca sale en public_pets, solo la insignia', async () => {
     const columns = await asService(db, async (client) =>
       (
         await client.query(
           `select column_name from information_schema.columns
-           where table_schema = 'public' and table_name = 'public_dogs'`,
+           where table_schema = 'public' and table_name = 'public_pets'`,
         )
       ).rows.map((row) => row.column_name),
     );
@@ -212,38 +212,39 @@ describe('columnas que la vista pública no debe exponer', () => {
 });
 
 describe('coincidencia de horarios sin exponer la agenda', () => {
-  it('devuelve el agregado a quien es dueño del perro', async () => {
+  it('devuelve el agregado a quien es dueño del animal', async () => {
     const rows = await asUser(db, P.marta, async (client) =>
-      (await client.query('select * from public.schedule_matches($1)', [D.nina])).rows,
+      (await client.query('select * from public.schedule_matches($1)', [A.nina])).rows,
     );
 
-    const toby = rows.find((row) => row.dog_id === D.toby);
+    const toby = rows.find((row) => row.pet_id === A.toby);
     expect(toby).toBeDefined();
     // Cinco días de lunes a viernes, 45 minutos cada uno.
     expect(toby.total_minutes).toBe(225);
     expect(toby.shared_place_minutes).toBe(225);
     // Solo el agregado: ni una franja concreta.
-    expect(Object.keys(toby)).toEqual(['dog_id', 'total_minutes', 'shared_place_minutes', 'days']);
+    expect(Object.keys(toby)).toEqual(['pet_id', 'total_minutes', 'shared_place_minutes', 'days']);
   });
 
   it('no puede usarse como buscador de rutinas ajenas', async () => {
     await expect(
       asUser(db, P.pablo, async (client) =>
-        client.query('select * from public.schedule_matches($1)', [D.nina]),
+        client.query('select * from public.schedule_matches($1)', [A.nina]),
       ),
     ).rejects.toThrow(/Solo el tutor/);
   });
 
   it('encuentra la coincidencia de los dos paseos de medianoche', async () => {
-    // Luna 23:00–00:30 y Kira 23:20–00:10, tres días por semana. Es el caso que
-    // justifica todo el cálculo de cruce de medianoche.
-    const rows = await asUser(db, P.marta, async (client) =>
-      (await client.query('select * from public.schedule_matches($1)', [D.luna])).rows,
+    // Rocky sale 23:00–00:30 y Bruno 23:20–00:10, tres días por semana. Es el
+    // caso que justifica todo el cálculo de cruce de medianoche, y el que un
+    // cálculo ingenuo dejaría fuera.
+    const rows = await asUser(db, P.diego, async (client) =>
+      (await client.query('select * from public.schedule_matches($1)', [A.rocky])).rows,
     );
 
-    const kira = rows.find((row) => row.dog_id === D.kira);
-    expect(kira).toBeDefined();
-    expect(kira.total_minutes).toBe(3 * 50);
+    const bruno = rows.find((row) => row.pet_id === A.bruno);
+    expect(bruno).toBeDefined();
+    expect(bruno.total_minutes).toBe(3 * 50);
   });
 });
 

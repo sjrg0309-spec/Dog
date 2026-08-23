@@ -26,9 +26,9 @@ export function connectionConfig(overrides: ConnectionOptions = {}) {
   return {
     host: overrides.host ?? process.env.PGHOST ?? '127.0.0.1',
     port: overrides.port ?? Number(process.env.PGPORT ?? 5432),
-    user: overrides.user ?? process.env.PGUSER ?? 'doggymeet',
-    password: overrides.password ?? process.env.PGPASSWORD ?? 'doggymeet',
-    database: overrides.database ?? process.env.PGDATABASE ?? 'doggymeet',
+    user: overrides.user ?? process.env.PGUSER ?? 'coincide',
+    password: overrides.password ?? process.env.PGPASSWORD ?? 'coincide',
+    database: overrides.database ?? process.env.PGDATABASE ?? 'coincide',
   };
 }
 

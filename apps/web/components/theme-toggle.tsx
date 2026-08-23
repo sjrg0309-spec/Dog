@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
-const STORAGE_KEY = 'doggymeet-theme';
+const STORAGE_KEY = 'coincide-theme';
 
 const LABEL: Record<Theme, string> = {
   light: 'Claro',

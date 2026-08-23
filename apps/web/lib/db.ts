@@ -11,18 +11,18 @@ import pg from 'pg';
  * política es demasiado permisiva se nota aquí antes que en producción.
  */
 
-const globalForPool = globalThis as unknown as { doggymeetPool?: pg.Pool };
+const globalForPool = globalThis as unknown as { coincidePool?: pg.Pool };
 
 function pool(): pg.Pool {
-  globalForPool.doggymeetPool ??= new pg.Pool({
+  globalForPool.coincidePool ??= new pg.Pool({
     host: process.env.PGHOST ?? '127.0.0.1',
     port: Number(process.env.PGPORT ?? 5432),
-    user: process.env.PGUSER ?? 'doggymeet',
-    password: process.env.PGPASSWORD ?? 'doggymeet',
-    database: process.env.PGDATABASE ?? 'doggymeet',
+    user: process.env.PGUSER ?? 'coincide',
+    password: process.env.PGPASSWORD ?? 'coincide',
+    database: process.env.PGDATABASE ?? 'coincide',
     max: 5,
   });
-  return globalForPool.doggymeetPool;
+  return globalForPool.coincidePool;
 }
 
 /** Ejecuta una consulta como visitante anónimo. */

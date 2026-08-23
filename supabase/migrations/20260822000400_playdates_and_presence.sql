@@ -3,7 +3,16 @@
 create table public.playdates (
   id uuid primary key default extensions.gen_random_uuid(),
   host_id uuid not null references public.profiles (id) on delete cascade,
-  host_dog_id uuid references public.dogs (id) on delete set null,
+  host_pet_id uuid references public.pets (id) on delete set null,
+
+  /**
+   * Una quedada es siempre de una sola especie.
+   *
+   * No es una restricción de la interfaz: es la misma regla que aplica el
+   * algoritmo. Un hurón fue criado para cazar conejos, y ninguna puntuación de
+   * temperamento debería poder ponerlos en el mismo parque.
+   */
+  species_id text not null references public.species (id),
 
   kind public.playdate_kind not null,
   title text not null check (length(trim(title)) between 3 and 120),
@@ -21,12 +30,12 @@ create table public.playdates (
   visibility public.playdate_visibility not null default 'public',
 
   -- Parámetros de admisión.
-  admits_sizes public.dog_size[] not null default '{}',
+  admits_sizes public.pet_size[] not null default '{}',
   admits_energy public.energy_level[] not null default '{}',
-  puppies_only boolean not null default false,
+  juveniles_only boolean not null default false,
   breed_filter text[] not null default '{}',
   leashed boolean not null default false,
-  max_dogs smallint check (max_dogs is null or max_dogs between 2 and 50),
+  max_pets smallint check (max_pets is null or max_pets between 2 and 50),
 
   public_slug text not null unique,
   status public.playdate_status not null default 'active',
@@ -50,15 +59,46 @@ create trigger playdates_touch_updated_at
   for each row execute function public.touch_updated_at();
 
 create index playdates_point_idx on public.playdates using gist (point);
+create index playdates_species_idx on public.playdates (species_id);
 create index playdates_host_idx on public.playdates (host_id);
 create index playdates_place_idx on public.playdates (place_id) where place_id is not null;
 -- El descubrimiento solo pregunta por quedadas vivas y futuras.
 create index playdates_active_idx on public.playdates (starts_at)
   where status = 'active';
 
+/**
+ * Una quedada solo existe para una especie que socializa.
+ *
+ * Sin esto, nada impediría crear una "quedada de gatos" que la aplicación
+ * después no puede recomendar a nadie, y que además sería mala para los gatos.
+ */
+create or replace function public.enforce_social_species_playdate()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  model public.social_model;
+begin
+  select s.social_model into model
+  from public.species s
+  where s.id = new.species_id;
+
+  if model = 'solitary' then
+    raise exception 'La especie % no participa en encuentros presenciales', new.species_id
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger playdates_enforce_social_species
+  before insert or update of species_id on public.playdates
+  for each row execute function public.enforce_social_species_playdate();
+
 create table public.playdate_rsvps (
   playdate_id uuid not null references public.playdates (id) on delete cascade,
-  dog_id uuid not null references public.dogs (id) on delete cascade,
+  pet_id uuid not null references public.pets (id) on delete cascade,
   profile_id uuid not null references public.profiles (id) on delete cascade,
   status public.rsvp_status not null default 'going',
   -- Se guarda la afinidad del momento de unirse: permite auditar después qué
@@ -66,16 +106,50 @@ create table public.playdate_rsvps (
   affinity_at_join smallint check (affinity_at_join between 0 and 100),
   checked_in_at timestamptz,
   created_at timestamptz not null default now(),
-  primary key (playdate_id, dog_id)
+  primary key (playdate_id, pet_id)
 );
 
+/**
+ * El animal que se apunta tiene que ser de la especie de la quedada.
+ *
+ * Se comprueba en la base y no solo en la interfaz: es una regla de seguridad
+ * física, y un cliente móvil se puede desensamblar.
+ */
+create or replace function public.enforce_rsvp_species()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  playdate_species text;
+  pet_species text;
+begin
+  select d.species_id into playdate_species
+  from public.playdates d where d.id = new.playdate_id;
+
+  select p.species_id into pet_species
+  from public.pets p where p.id = new.pet_id;
+
+  if playdate_species is distinct from pet_species then
+    raise exception 'Esta quedada es de % y tu animal es de %',
+      playdate_species, pet_species
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger playdate_rsvps_enforce_species
+  before insert or update on public.playdate_rsvps
+  for each row execute function public.enforce_rsvp_species();
+
 create index playdate_rsvps_profile_idx on public.playdate_rsvps (profile_id);
-create index playdate_rsvps_dog_idx on public.playdate_rsvps (dog_id);
+create index playdate_rsvps_pet_idx on public.playdate_rsvps (pet_id);
 
 -- ---------------------------------------------------------------------------
 -- Radar en vivo.
 --
--- Una fila por perro, que se sobrescribe. No se historiza a propósito: guardar
+-- Una fila por animal, que se sobrescribe. No se historiza a propósito: guardar
 -- el rastro de por dónde pasea alguien cada día es justo lo que este producto no
 -- debe hacer, y la forma más fiable de no filtrarlo es no tenerlo.
 --
@@ -84,7 +158,7 @@ create index playdate_rsvps_dog_idx on public.playdate_rsvps (dog_id);
 -- ---------------------------------------------------------------------------
 
 create table public.live_presence (
-  dog_id uuid primary key references public.dogs (id) on delete cascade,
+  pet_id uuid primary key references public.pets (id) on delete cascade,
   profile_id uuid not null references public.profiles (id) on delete cascade,
   playdate_id uuid references public.playdates (id) on delete set null,
   place_id uuid references public.places (id) on delete set null,
@@ -103,19 +177,19 @@ create index live_presence_profile_idx on public.live_presence (profile_id);
 create table public.playdate_feedback (
   id uuid primary key default extensions.gen_random_uuid(),
   playdate_id uuid references public.playdates (id) on delete set null,
-  rater_dog_id uuid not null references public.dogs (id) on delete cascade,
-  rated_dog_id uuid not null references public.dogs (id) on delete cascade,
+  rater_pet_id uuid not null references public.pets (id) on delete cascade,
+  rated_pet_id uuid not null references public.pets (id) on delete cascade,
   -- Un pulgar arriba o abajo. Deliberadamente no hay estrellas: pedir un
-  -- matiz de cinco niveles sobre el perro de un vecino invita a un detalle que
+  -- matiz de cinco niveles sobre el animal de un vecino invita a un detalle que
   -- nadie quiere escribir y que a nadie le sienta bien leer.
   is_positive boolean not null,
   note text check (note is null or length(note) <= 300),
   created_at timestamptz not null default now(),
-  constraint playdate_feedback_no_self check (rater_dog_id <> rated_dog_id),
-  unique (playdate_id, rater_dog_id, rated_dog_id)
+  constraint playdate_feedback_no_self check (rater_pet_id <> rated_pet_id),
+  unique (playdate_id, rater_pet_id, rated_pet_id)
 );
 
-create index playdate_feedback_pair_idx on public.playdate_feedback (rater_dog_id, rated_dog_id);
+create index playdate_feedback_pair_idx on public.playdate_feedback (rater_pet_id, rated_pet_id);
 
 -- Tokens de envío. La ubicación aquí SIEMPRE está degradada a ~1 km: sirve para
 -- decidir un radio de dos kilómetros y no sirve para seguir a nadie.

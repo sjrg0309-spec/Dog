@@ -11,7 +11,7 @@
 
 import { Text, View } from 'react-native';
 
-import type { AffinityBand } from '@doggymeet/core';
+import type { AffinityBand } from '@coincide/core';
 
 import { Badge, Caption, Card, Heading, Row } from './ui';
 import { fonts } from '@/lib/fonts';

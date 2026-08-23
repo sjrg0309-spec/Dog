@@ -21,7 +21,7 @@ import { TrackerError, type TrackerDevice } from './types.js';
 
 const device: TrackerDevice = {
   id: 'device-1',
-  dogId: 'dog-1',
+  petId: 'dog-1',
   vendor: 'webhook',
   externalId: null,
   label: 'Collar de prueba',
@@ -47,7 +47,7 @@ describe('microchip — identidad, no ubicación', () => {
   });
 
   it('acepta los formatos heredados de 9 y 10 dígitos', () => {
-    // Rechazarlos dejaría fuera justo a los perros adultos, que son muchos.
+    // Rechazarlos dejaría fuera justo a los animals adultos, que son muchos.
     expect(validateMicrochip('123456789').valid).toBe(true);
     expect(validateMicrochip('1234567890').valid).toBe(true);
   });
@@ -197,7 +197,7 @@ describe('geocercas y check-in automático', () => {
   const PARK = { lat: 40.4098, lng: -3.6939 };
   const fence: Geofence = {
     id: 'fence-1',
-    dogId: 'dog-1',
+    petId: 'dog-1',
     placeId: 'place-1',
     center: PARK,
     radiusMeters: 150,
@@ -266,7 +266,7 @@ describe('geocercas y check-in automático', () => {
 
   it('la histéresis evita el parpadeo de un GPS que baila en el borde', () => {
     // Un punto entre el radio de entrada y el de salida: fuera para entrar,
-    // dentro para seguir dentro. Sin esto, un perro parado en el borde generaría
+    // dentro para seguir dentro. Sin esto, un animal parado en el borde generaría
     // una cascada de entradas y salidas, y con ella de notificaciones.
     const edge = north(fence.radiusMeters * 1.1);
 

@@ -170,7 +170,7 @@ export function parseGenericPayload(rawBody: string, device: TrackerDevice): Tra
   const battery = asNumber(payload.battery);
 
   return {
-    dogId: device.dogId,
+    petId: device.petId,
     deviceId: device.id,
     point: { lat, lng },
     accuracyMeters: asNumber(payload.accuracy),

@@ -1,5 +1,5 @@
 {
-  "name": "@doggymeet/trackers",
+  "name": "@coincide/trackers",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,6 +13,6 @@
     "test": "vitest run",
     "lint": "echo 'lint via typecheck'"
   },
-  "dependencies": { "@doggymeet/core": "workspace:*" },
+  "dependencies": { "@coincide/core": "workspace:*" },
   "devDependencies": { "@types/node": "^22.10.2", "typescript": "^5.7.2", "vitest": "^2.1.8" }
 }

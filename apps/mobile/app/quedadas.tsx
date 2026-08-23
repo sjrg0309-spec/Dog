@@ -1,6 +1,6 @@
 import { ScrollView, View } from 'react-native';
 
-import { groupAffinity } from '@doggymeet/core';
+import { groupAffinity } from '@coincide/core';
 
 import { Badge, Body, Button, Caption, Card, Eyebrow, Heading, Notice, Row, Screen, Title } from '@/components/ui';
 import { dogById, myDog, playdates } from '@/lib/data';

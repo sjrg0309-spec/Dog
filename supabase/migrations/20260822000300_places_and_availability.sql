@@ -1,4 +1,8 @@
--- Lugares y horarios declarados de paseo.
+-- Lugares y horarios declarados de salida.
+--
+-- Un "lugar" no es solo un parque canino: también una terraza que admite gatos
+-- en transportín, un hotel que acepta hurones o una tienda especializada. Por
+-- eso `admits_species` es una columna y no una suposición.
 
 create table public.places (
   id uuid primary key default extensions.gen_random_uuid(),
@@ -11,13 +15,22 @@ create table public.places (
   has_double_gate boolean,
   has_water boolean,
   has_shade boolean,
-  has_small_dog_area boolean,
+  has_small_pet_area boolean,
+  /**
+   * Especies que el lugar admite.
+   *
+   * Vacío significa "sin especificar", no "ninguna": un parque canino no ha
+   * declarado nada sobre hurones, y darlo por rechazado sería inventárselo.
+   * La interfaz distingue los tres estados en lugar de colapsarlos en un no.
+   */
+  admits_species text[] not null default '{}',
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now()
 );
 
 create index places_point_idx on public.places using gist (point);
 create index places_kind_idx on public.places (kind);
+create index places_admits_species_idx on public.places using gin (admits_species);
 
 -- ---------------------------------------------------------------------------
 -- Horario declarado.
@@ -30,9 +43,9 @@ create index places_kind_idx on public.places (kind);
 -- 23:30 es un caso corriente, no una excepción.
 -- ---------------------------------------------------------------------------
 
-create table public.dog_availability (
+create table public.pet_availability (
   id uuid primary key default extensions.gen_random_uuid(),
-  dog_id uuid not null references public.dogs (id) on delete cascade,
+  pet_id uuid not null references public.pets (id) on delete cascade,
   weekday smallint not null check (weekday between 0 and 6),
   start_time time not null,
   end_time time not null,
@@ -40,12 +53,12 @@ create table public.dog_availability (
   created_at timestamptz not null default now(),
   -- Una franja de duración cero no significa nada; se rechaza en el origen para
   -- que ningún cálculo tenga que decidir qué hacer con ella.
-  constraint dog_availability_non_empty check (start_time <> end_time)
+  constraint pet_availability_non_empty check (start_time <> end_time)
 );
 
-create index dog_availability_dog_idx on public.dog_availability (dog_id);
-create index dog_availability_slot_idx on public.dog_availability (weekday, start_time, end_time);
-create index dog_availability_place_idx on public.dog_availability (place_id)
+create index pet_availability_pet_idx on public.pet_availability (pet_id);
+create index pet_availability_slot_idx on public.pet_availability (weekday, start_time, end_time);
+create index pet_availability_place_idx on public.pet_availability (place_id)
   where place_id is not null;
 
 /**
@@ -89,12 +102,12 @@ as $$
 $$;
 
 /**
- * Minutos de solapamiento semanal entre las agendas de dos perros.
+ * Minutos de solapamiento semanal entre las agendas de dos animales.
  *
  * Devuelve además los minutos que además coinciden en el mismo parque, que
  * pesan más: quedar es mucho más probable cuando ya vais al mismo sitio.
  */
-create or replace function public.schedule_overlap_minutes(dog_a uuid, dog_b uuid)
+create or replace function public.schedule_overlap_minutes(pet_a uuid, pet_b uuid)
 returns table (total_minutes int, shared_place_minutes int, days smallint[])
 language sql
 stable
@@ -102,15 +115,15 @@ set search_path = ''
 as $$
   with a as (
     select av.place_id, i.interval_start, i.interval_end
-    from public.dog_availability av
+    from public.pet_availability av
     cross join lateral public.availability_intervals(av.weekday, av.start_time, av.end_time) i
-    where av.dog_id = dog_a
+    where av.pet_id = pet_a
   ),
   b as (
     select av.place_id, i.interval_start, i.interval_end
-    from public.dog_availability av
+    from public.pet_availability av
     cross join lateral public.availability_intervals(av.weekday, av.start_time, av.end_time) i
-    where av.dog_id = dog_b
+    where av.pet_id = pet_b
   ),
   matched as (
     select

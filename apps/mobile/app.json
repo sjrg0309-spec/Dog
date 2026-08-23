@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "DoggyMeet",
-    "slug": "doggymeet",
+    "name": "Coincide",
+    "slug": "coincide",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "doggymeet",
+    "scheme": "coincide",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -12,14 +12,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.doggymeet.app",
+      "bundleIdentifier": "com.coincide.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "DoggyMeet usa tu ubicaci\u00f3n para mostrarte perros compatibles paseando cerca y para encender el check-in autom\u00e1tico al llegar a tus parques habituales. La ubicaci\u00f3n que se guarda para avisar a otros va redondeada a un kil\u00f3metro.",
+        "NSLocationWhenInUseUsageDescription": "Coincide usa tu ubicaci\u00f3n para mostrarte perros compatibles paseando cerca y para encender el check-in autom\u00e1tico al llegar a tus parques habituales. La ubicaci\u00f3n que se guarda para avisar a otros va redondeada a un kil\u00f3metro.",
         "NSCameraUsageDescription": "Para la foto y el v\u00eddeo de tu perro."
       }
     },
     "android": {
-      "package": "com.doggymeet.app",
+      "package": "com.coincide.app",
       "adaptiveIcon": {
         "backgroundColor": "#1F2A24"
       },

@@ -1,5 +1,5 @@
 /**
- * El anillo del radar: el elemento distintivo de DoggyMeet.
+ * El anillo del radar: el elemento distintivo de Coincide.
  *
  * Es a la vez la mecánica central del producto —quién está paseando cerca
  * ahora— y la marca. Es el único elemento con movimiento continuo de toda la
@@ -19,40 +19,40 @@ export function RadarRing({ label }: { label: string }) {
           className="radar__pulse"
           r="88"
           fill="none"
-          stroke="var(--dm-live-ring)"
+          stroke="var(--co-live-ring)"
           strokeWidth="2"
         />
         <circle
           className="radar__pulse radar__pulse--delayed"
           r="88"
           fill="none"
-          stroke="var(--dm-live-ring)"
+          stroke="var(--co-live-ring)"
           strokeWidth="2"
         />
         <circle
           className="radar__pulse radar__pulse--more-delayed"
           r="88"
           fill="none"
-          stroke="var(--dm-live-ring)"
+          stroke="var(--co-live-ring)"
           strokeWidth="2"
         />
 
         {/* Sustituto sin movimiento. */}
         <g className="radar__static">
-          <circle r="88" fill="none" stroke="var(--dm-live-ring)" strokeWidth="2" opacity="0.35" />
-          <circle r="60" fill="none" stroke="var(--dm-live-ring)" strokeWidth="4" opacity="0.6" />
+          <circle r="88" fill="none" stroke="var(--co-live-ring)" strokeWidth="2" opacity="0.35" />
+          <circle r="60" fill="none" stroke="var(--co-live-ring)" strokeWidth="4" opacity="0.6" />
         </g>
 
         {/* Núcleo: el parque donde estás. */}
-        <circle r="34" fill="var(--dm-accent)" />
-        <circle r="34" fill="none" stroke="var(--dm-primary)" strokeWidth="2.5" />
+        <circle r="34" fill="var(--co-accent)" />
+        <circle r="34" fill="none" stroke="var(--co-primary)" strokeWidth="2.5" />
 
         {/* Otros perros dentro del radio. Su posición es fija y decorativa: no
             representa a nadie real, así que no se anuncia como dato. */}
-        <circle cx="-62" cy="-28" r="7" fill="var(--dm-primary)" />
-        <circle cx="58" cy="-46" r="7" fill="var(--dm-primary)" />
-        <circle cx="46" cy="58" r="7" fill="var(--dm-primary)" />
-        <circle cx="-40" cy="66" r="7" fill="var(--dm-live-ring)" />
+        <circle cx="-62" cy="-28" r="7" fill="var(--co-primary)" />
+        <circle cx="58" cy="-46" r="7" fill="var(--co-primary)" />
+        <circle cx="46" cy="58" r="7" fill="var(--co-primary)" />
+        <circle cx="-40" cy="66" r="7" fill="var(--co-live-ring)" />
       </g>
     </svg>
   );

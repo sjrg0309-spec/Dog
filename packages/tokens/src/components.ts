@@ -1,14 +1,14 @@
 /**
  * Tokens de componente — nivel 3 de 3.
  *
- * Referencian tokens semánticos por nombre (como `var(--dm-*)` en web) para que
+ * Referencian tokens semánticos por nombre (como `var(--co-*)` en web) para que
  * un cambio de tema los arrastre sin tocar nada aquí.
  */
 
 import { duration, easing, fontSize, fontWeight, radius, space, touchTarget } from './primitives.js';
 
 /** Referencia a una variable CSS semántica. */
-const v = (name: string) => `var(--dm-${name})`;
+const v = (name: string) => `var(--co-${name})`;
 
 export const button = {
   radius: radius.md,

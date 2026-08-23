@@ -1,7 +1,7 @@
 /**
  * Coincidencia de horarios de paseo.
  *
- * Es el motor que hace que DoggyMeet funcione a cualquier hora. El radar en
+ * Es el motor que hace que Coincide funcione a cualquier hora. El radar en
  * vivo solo sirve en hora punta; esto sirve siempre, y no exige que dos
  * personas estén conectadas a la vez. Quien pasea a las once de la noche es
  * justamente quien más lo necesita, así que el cruce de medianoche no es un

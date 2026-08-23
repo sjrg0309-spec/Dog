@@ -9,11 +9,11 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { scheduleOverlap, splitCost, toWeeklyIntervals } from '@doggymeet/core';
+import { scheduleOverlap, splitCost, toWeeklyIntervals } from '@coincide/core';
 import { asService, asUser, createPool, type Db } from './client.js';
 import { SEED_IDS, seed } from './seed.js';
 
-const { profiles: P, dogs: D } = SEED_IDS;
+const { profiles: P, pets: A } = SEED_IDS;
 
 let db: Db;
 
@@ -61,7 +61,7 @@ describe('proyección de franjas horarias', () => {
 describe('solapamiento de agendas', () => {
   it('SQL y TypeScript dan los mismos minutos para el grupo de la mañana', async () => {
     const [sql] = await asService(db, async (client) =>
-      (await client.query('select * from public.schedule_overlap_minutes($1, $2)', [D.nina, D.toby]))
+      (await client.query('select * from public.schedule_overlap_minutes($1, $2)', [A.nina, A.toby]))
         .rows,
     );
 
@@ -79,25 +79,22 @@ describe('solapamiento de agendas', () => {
   });
 
   it('SQL y TypeScript coinciden también cruzando medianoche', async () => {
+    // Rocky 23:00–00:30 y Bruno 23:20–00:10, tres días por semana. Si el
+    // servidor y el cliente discrepasen aquí, la aplicación diría una cosa y la
+    // base otra sobre la misma pregunta.
     const [sql] = await asService(db, async (client) =>
-      (await client.query('select * from public.schedule_overlap_minutes($1, $2)', [D.luna, D.kira]))
-        .rows,
+      (await client.query('select * from public.schedule_overlap_minutes($1, $2)', [
+        A.rocky,
+        A.bruno,
+      ])).rows,
     );
 
-    const luna = [2, 4, 6].map((weekday) => ({
-      weekday,
-      startTime: '23:00',
-      endTime: '00:30',
-      placeId: SEED_IDS.places.berlin,
-    }));
-    const kira = [2, 4, 6].map((weekday) => ({
-      weekday,
-      startTime: '23:20',
-      endTime: '00:10',
-      placeId: SEED_IDS.places.berlin,
-    }));
+    const nightly = (startTime: string, endTime: string) =>
+      [2, 4, 6].map((weekday) => ({ weekday, startTime, endTime, placeId: SEED_IDS.places.berlin }));
 
-    expect(sql.total_minutes).toBe(scheduleOverlap(luna, kira).totalMinutes);
+    expect(sql.total_minutes).toBe(
+      scheduleOverlap(nightly('23:00', '00:30'), nightly('23:20', '00:10')).totalMinutes,
+    );
   });
 });
 
@@ -119,18 +116,18 @@ describe('reparto del coste', () => {
         );
         const bookingId = rows[0].id;
 
-        const dogIds = Object.values(D).slice(0, people);
-        for (const dogId of dogIds) {
+        const petIds = Object.values(A).slice(0, people);
+        for (const petId of petIds) {
           await client.query(
-            `insert into public.booking_participants (booking_id, dog_id, profile_id)
+            `insert into public.booking_participants (booking_id, pet_id, profile_id)
              values ($1, $2, $3)`,
-            [bookingId, dogId, P.marta],
+            [bookingId, petId, P.marta],
           );
         }
 
         return (
           await client.query(
-            'select share_cents from public.booking_participants where booking_id = $1 order by dog_id',
+            'select share_cents from public.booking_participants where booking_id = $1 order by pet_id',
             [bookingId],
           )
         ).rows.map((row) => row.share_cents);
@@ -149,8 +146,8 @@ describe('consultas geoespaciales', () => {
     );
 
     // Toby está en Parque Central; Kira, a seis kilómetros en Parque Berlín.
-    expect(near.map((row) => row.dog_id)).toContain(D.toby);
-    expect(near.map((row) => row.dog_id)).not.toContain(D.kira);
+    expect(near.map((row) => row.pet_id)).toContain(A.toby);
+    expect(near.map((row) => row.pet_id)).not.toContain(A.canela);
   });
 
   it('una presencia caducada desaparece del radar en el acto', async () => {
@@ -159,14 +156,14 @@ describe('consultas geoespaciales', () => {
         `update public.live_presence
            set last_seen_at = now() - interval '2 hours',
                expires_at = now() - interval '1 minute'
-         where dog_id = $1`,
-        [D.toby],
+         where pet_id = $1`,
+        [A.toby],
       );
       return (await client.query('select * from public.presence_nearby(40.4098, -3.6939, 2000)'))
         .rows;
     });
 
-    expect(visible.map((row) => row.dog_id)).not.toContain(D.toby);
+    expect(visible.map((row) => row.pet_id)).not.toContain(A.toby);
   });
 
   it('la ubicación de los tokens se guarda degradada, la escriba quien la escriba', async () => {
@@ -202,23 +199,23 @@ describe('consultas geoespaciales', () => {
 });
 
 describe('cumpleaños', () => {
-  it('encuentra a los perros que cumplen dentro del plazo', async () => {
+  it('encuentra a los animales que cumplen dentro del plazo', async () => {
     const rows = await asService(db, async (client) => {
       // Se mueve la fecha de nacimiento de Nina a dentro de tres días,
       // conservando el año, para no depender de la fecha real de ejecución.
       await client.query(
-        `update public.dogs
+        `update public.pets
            set birth_date = make_date(
              2021,
              extract(month from current_date + 3)::int,
              extract(day from current_date + 3)::int
            )
          where id = $1`,
-        [D.nina],
+        [A.nina],
       );
-      return (await client.query('select * from public.dogs_with_birthday(7)')).rows;
+      return (await client.query('select * from public.pets_with_birthday(7)')).rows;
     });
 
-    expect(rows.map((row) => row.dog_id)).toContain(D.nina);
+    expect(rows.map((row) => row.pet_id)).toContain(A.nina);
   });
 });

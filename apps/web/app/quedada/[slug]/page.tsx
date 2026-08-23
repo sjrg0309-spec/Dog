@@ -55,7 +55,7 @@ export default async function PlaydatePage({ params }: Params) {
 
   return (
     <div className="shell section">
-      <article className="stack" style={{ gap: 'var(--dm-space-8)' }}>
+      <article className="stack" style={{ gap: 'var(--co-space-8)' }}>
         <header className="stack">
           <div className="row">
             <span className="badge badge--accent">{KIND_LABEL[playdate.kind] ?? playdate.kind}</span>
@@ -81,7 +81,7 @@ export default async function PlaydatePage({ params }: Params) {
           </div>
           <div>
             <dt>Organiza</dt>
-            <dd>{playdate.host_name ?? 'Un tutor de DoggyMeet'}</dd>
+            <dd>{playdate.host_name ?? 'Un tutor de Coincide'}</dd>
           </div>
           <div>
             <dt>Aforo</dt>
@@ -205,7 +205,7 @@ export default async function PlaydatePage({ params }: Params) {
           </p>
           <div className="row">
             <button className="button button--primary" type="button" disabled>
-              Abrir en DoggyMeet
+              Abrir en Coincide
             </button>
             <a className="button button--outline" href="/">
               Ver otras quedadas

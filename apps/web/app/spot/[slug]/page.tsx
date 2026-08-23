@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { formatCents, splitCost } from '@doggymeet/core';
+import { formatCents, splitCost } from '@coincide/core';
 import { spotBySlug } from '@/lib/db';
 import { formatPrice, triState, triStateLabel } from '@/lib/format';
 
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
   return {
     title: spot.title,
-    description: spot.description ?? 'Espacio privado para perros en DoggyMeet.',
+    description: spot.description ?? 'Espacio privado para perros en Coincide.',
   };
 }
 
@@ -37,7 +37,7 @@ export default async function SpotPage({ params }: Params) {
 
   return (
     <div className="shell section">
-      <article className="stack" style={{ gap: 'var(--dm-space-8)' }}>
+      <article className="stack" style={{ gap: 'var(--co-space-8)' }}>
         <header className="stack">
           <div className="row">
             <span className="badge badge--accent">
@@ -66,7 +66,7 @@ export default async function SpotPage({ params }: Params) {
           </div>
           <div>
             <dt>Anfitrión</dt>
-            <dd>{spot.host_name ?? 'Un tutor de DoggyMeet'}</dd>
+            <dd>{spot.host_name ?? 'Un tutor de Coincide'}</dd>
           </div>
         </dl>
 
@@ -74,7 +74,7 @@ export default async function SpotPage({ params }: Params) {
         <section className="stack">
           <h2>Reservar en grupo</h2>
           <p className="card__meta">
-            Aquí está la diferencia con alquilar un espacio a título individual: DoggyMeet conoce el
+            Aquí está la diferencia con alquilar un espacio a título individual: Coincide conoce el
             temperamento de cada perro, así que propone el grupo que mejor encaja y reparte el
             importe. Lo que decide si un grupo funciona es su pareja más floja, no su promedio.
           </p>
@@ -84,7 +84,7 @@ export default async function SpotPage({ params }: Params) {
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                fontSize: 'var(--dm-font-size-sm)',
+                fontSize: 'var(--co-font-size-sm)',
               }}
             >
               <caption className="visually-hidden">
@@ -96,8 +96,8 @@ export default async function SpotPage({ params }: Params) {
                     scope="col"
                     style={{
                       textAlign: 'left',
-                      padding: 'var(--dm-space-2)',
-                      borderBottom: '1px solid var(--dm-border-strong)',
+                      padding: 'var(--co-space-2)',
+                      borderBottom: '1px solid var(--co-border-strong)',
                     }}
                   >
                     Perros
@@ -106,8 +106,8 @@ export default async function SpotPage({ params }: Params) {
                     scope="col"
                     style={{
                       textAlign: 'right',
-                      padding: 'var(--dm-space-2)',
-                      borderBottom: '1px solid var(--dm-border-strong)',
+                      padding: 'var(--co-space-2)',
+                      borderBottom: '1px solid var(--co-border-strong)',
                     }}
                   >
                     Por perro
@@ -121,9 +121,9 @@ export default async function SpotPage({ params }: Params) {
                       scope="row"
                       style={{
                         textAlign: 'left',
-                        padding: 'var(--dm-space-2)',
-                        borderBottom: '1px solid var(--dm-border)',
-                        fontWeight: 'var(--dm-font-weight-medium)',
+                        padding: 'var(--co-space-2)',
+                        borderBottom: '1px solid var(--co-border)',
+                        fontWeight: 'var(--co-font-weight-medium)',
                       }}
                     >
                       {example.count}
@@ -131,8 +131,8 @@ export default async function SpotPage({ params }: Params) {
                     <td
                       style={{
                         textAlign: 'right',
-                        padding: 'var(--dm-space-2)',
-                        borderBottom: '1px solid var(--dm-border)',
+                        padding: 'var(--co-space-2)',
+                        borderBottom: '1px solid var(--co-border)',
                         fontVariantNumeric: 'tabular-nums',
                       }}
                     >

@@ -10,9 +10,9 @@ set -euo pipefail
 
 PGHOST="${PGHOST:-127.0.0.1}"
 PGPORT="${PGPORT:-5432}"
-PGUSER="${PGUSER:-doggymeet}"
-PGPASSWORD="${PGPASSWORD:-doggymeet}"
-PGDATABASE="${PGDATABASE:-doggymeet}"
+PGUSER="${PGUSER:-coincide}"
+PGPASSWORD="${PGPASSWORD:-coincide}"
+PGDATABASE="${PGDATABASE:-coincide}"
 export PGHOST PGPORT PGUSER PGPASSWORD
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -6,9 +6,9 @@
  * sin GPS, legible solo con un lector a pocos centímetros. No emite, no se
  * puede seguir y no aparece en ningún mapa.
  *
- * Lo que sí aporta a DoggyMeet es identidad: ligar el chip a la cuenta permite
+ * Lo que sí aporta a Coincide es identidad: ligar el chip a la cuenta permite
  * mostrar una insignia de tutor verificado, y en una aplicación donde quedas en
- * un parque con desconocidos y sueltas a tu perro con los suyos, esa señal vale.
+ * un parque con desconocidos y sueltas a tu animal con los suyos, esa señal vale.
  *
  * Y lo que este módulo NO puede hacer, por si alguien lo espera: comprobar que
  * un código existe de verdad. El número impreso en la cartilla no lleva dígito
@@ -44,7 +44,7 @@ export function normalizeMicrochip(input: string): string {
  * Se aceptan tres formatos porque los tres circulan:
  *  - ISO 11784/11785 FDX-B, 15 dígitos. Es el estándar en Europa desde 2011.
  *  - Formatos heredados de 9 y 10 dígitos (AVID, Trovan, Destron), todavía
- *    presentes en muchos perros adultos. Rechazarlos dejaría fuera justo a los
+ *    presentes en muchos animals adultos. Rechazarlos dejaría fuera justo a los
  *    animales mayores.
  */
 export function validateMicrochip(input: string): MicrochipValidation {

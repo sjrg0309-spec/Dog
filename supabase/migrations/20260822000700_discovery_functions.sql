@@ -27,7 +27,7 @@ create or replace function public.presence_nearby(
   radius_m int default 2000
 )
 returns table (
-  dog_id uuid,
+  pet_id uuid,
   profile_id uuid,
   place_id uuid,
   playdate_id uuid,
@@ -39,7 +39,7 @@ stable
 set search_path = ''
 as $$
   select
-    p.dog_id,
+    p.pet_id,
     p.profile_id,
     p.place_id,
     p.playdate_id,
@@ -110,7 +110,7 @@ create or replace function public.spots_nearby(
 returns table (
   id uuid,
   title text,
-  max_dogs smallint,
+  max_pets smallint,
   price_per_slot_cents int,
   slot_minutes smallint,
   is_fenced boolean,
@@ -122,7 +122,7 @@ stable
 set search_path = ''
 as $$
   select
-    s.id, s.title, s.max_dogs, s.price_per_slot_cents, s.slot_minutes, s.is_fenced,
+    s.id, s.title, s.max_pets, s.price_per_slot_cents, s.slot_minutes, s.is_fenced,
     s.public_slug,
     extensions.st_distance(s.point, public.make_point(lat, lng))
   from public.spots s
@@ -140,13 +140,13 @@ $$;
 -- Por eso esta función es `security definer` y devuelve **solo el agregado**:
 -- cuántos minutos coincidís, cuántos en el mismo parque y qué días. Nunca las
 -- franjas concretas de nadie. Y comprueba que quien pregunta es el dueño del
--- perro por el que pregunta, para que no pueda usarse como buscador de rutinas
+-- animal por el que pregunta, para que no pueda usarse como buscador de rutinas
 -- ajenas.
 -- ---------------------------------------------------------------------------
 
-create or replace function public.schedule_matches(target_dog uuid, max_results int default 50)
+create or replace function public.schedule_matches(target_pet uuid, max_results int default 50)
 returns table (
-  dog_id uuid,
+  pet_id uuid,
   total_minutes int,
   shared_place_minutes int,
   days smallint[]
@@ -158,29 +158,29 @@ set search_path = ''
 as $$
 begin
   if not exists (
-    select 1 from public.dogs d
-    where d.id = target_dog and d.owner_id = auth.uid()
+    select 1 from public.pets d
+    where d.id = target_pet and d.owner_id = auth.uid()
   ) then
-    raise exception 'Solo el tutor puede consultar las coincidencias de su perro'
+    raise exception 'Solo el tutor puede consultar las coincidencias de su animal'
       using errcode = '42501';
   end if;
 
   return query
   with mine as (
     select av.place_id, i.interval_start, i.interval_end
-    from public.dog_availability av
+    from public.pet_availability av
     cross join lateral public.availability_intervals(av.weekday, av.start_time, av.end_time) i
-    where av.dog_id = target_dog
+    where av.pet_id = target_pet
   ),
   theirs as (
-    select av.dog_id, av.place_id, i.interval_start, i.interval_end
-    from public.dog_availability av
+    select av.pet_id, av.place_id, i.interval_start, i.interval_end
+    from public.pet_availability av
     cross join lateral public.availability_intervals(av.weekday, av.start_time, av.end_time) i
-    where av.dog_id <> target_dog
+    where av.pet_id <> target_pet
   ),
   matched as (
     select
-      t.dog_id,
+      t.pet_id,
       least(m.interval_end, t.interval_end) - greatest(m.interval_start, t.interval_start)
         as minutes,
       greatest(m.interval_start, t.interval_start) as overlap_start,
@@ -190,12 +190,12 @@ begin
       on least(m.interval_end, t.interval_end) > greatest(m.interval_start, t.interval_start)
   )
   select
-    o.dog_id,
+    o.pet_id,
     sum(o.minutes)::int,
     coalesce(sum(o.minutes) filter (where o.same_place), 0)::int,
     array_agg(distinct ((o.overlap_start / 1440) % 7)::smallint)
   from matched o
-  group by o.dog_id
+  group by o.pet_id
   order by 2 desc
   limit max_results;
 end;
@@ -231,9 +231,9 @@ $$;
 revoke all on function public.push_targets_in_radius(double precision, double precision, int)
   from public, anon, authenticated;
 
-/** Perros que cumplen hoy años, para sugerir reservar un spot. */
-create or replace function public.dogs_with_birthday(within_days int default 7)
-returns table (dog_id uuid, owner_id uuid, name text, turning_age int, birthday date)
+/** Animales que cumplen hoy años, para sugerir reservar un spot. */
+create or replace function public.pets_with_birthday(within_days int default 7)
+returns table (pet_id uuid, owner_id uuid, name text, turning_age int, birthday date)
 language sql
 stable
 set search_path = ''
@@ -244,7 +244,7 @@ as $$
     d.name,
     extract(year from age(next_birthday, d.birth_date))::int,
     next_birthday
-  from public.dogs d
+  from public.pets d
   cross join lateral (
     select case
       when make_date(

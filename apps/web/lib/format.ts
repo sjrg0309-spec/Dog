@@ -6,7 +6,7 @@
  * lugar de que se cuele un identificador en bruto en la interfaz.
  */
 
-import { formatCents } from '@doggymeet/core';
+import { formatCents } from '@coincide/core';
 
 export const SIZE_LABEL: Record<string, string> = {
   mini: 'Mini',

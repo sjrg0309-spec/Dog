@@ -1,8 +1,8 @@
 -- Espacios privados y reserva en grupo con reparto de coste.
 --
 -- La diferencia con un directorio de espacios en renta está aquí: alquilar un
--- patio a una persona es fácil, y saber qué cinco perros pueden compartirlo sin
--- pelearse requiere conocer a los perros. DoggyMeet ya lo sabe, así que puede
+-- patio a una persona es fácil, y saber qué cinco animales pueden compartirlo sin
+-- pelearse requiere conocer a los animales. Coincide ya lo sabe, así que puede
 -- armar el grupo y repartir el importe.
 --
 -- En esta fase el cobro NO ocurre dentro de la aplicación: `payment_mode` es
@@ -28,11 +28,11 @@ create table public.spots (
   fence_height_cm smallint check (fence_height_cm is null or fence_height_cm between 30 and 400),
   has_water boolean not null default false,
   has_shade boolean not null default false,
-  -- Un grupo cada vez: es la razón por la que un tutor con un perro reactivo
+  -- Un grupo cada vez: es la razón por la que un tutor con un animal reactivo
   -- paga por un espacio privado en lugar de ir al parque.
   is_private_single_group boolean not null default true,
 
-  max_dogs smallint not null check (max_dogs between 1 and 30),
+  max_pets smallint not null check (max_pets between 1 and 30),
   price_per_slot_cents int not null check (price_per_slot_cents >= 0),
   slot_minutes smallint not null default 60 check (slot_minutes between 15 and 480),
   currency text not null default 'EUR' check (currency ~ '^[A-Z]{3}$'),
@@ -67,8 +67,8 @@ create table public.spot_bookings (
 
   total_price_cents int not null check (total_price_cents >= 0),
   -- Derivado: se recalcula cada vez que alguien confirma o se cae del grupo.
-  price_per_dog_cents int not null default 0 check (price_per_dog_cents >= 0),
-  confirmed_dogs_count smallint not null default 0 check (confirmed_dogs_count >= 0),
+  price_per_pet_cents int not null default 0 check (price_per_pet_cents >= 0),
+  confirmed_pets_count smallint not null default 0 check (confirmed_pets_count >= 0),
 
   -- La afinidad del grupo en el momento de reservar, por el mínimo par a par.
   group_affinity_min smallint check (group_affinity_min between 0 and 100),
@@ -92,12 +92,12 @@ create index spot_bookings_organizer_idx on public.spot_bookings (organizer_id);
 
 create table public.booking_participants (
   booking_id uuid not null references public.spot_bookings (id) on delete cascade,
-  dog_id uuid not null references public.dogs (id) on delete cascade,
+  pet_id uuid not null references public.pets (id) on delete cascade,
   profile_id uuid not null references public.profiles (id) on delete cascade,
   status public.rsvp_status not null default 'going',
   share_cents int not null default 0 check (share_cents >= 0),
   created_at timestamptz not null default now(),
-  primary key (booking_id, dog_id)
+  primary key (booking_id, pet_id)
 );
 
 create index booking_participants_profile_idx on public.booking_participants (profile_id);
@@ -134,7 +134,7 @@ begin
       set share_cents = 0
       where booking_id = booking;
     update public.spot_bookings
-      set price_per_dog_cents = 0, confirmed_dogs_count = 0
+      set price_per_pet_cents = 0, confirmed_pets_count = 0
       where id = booking;
     return;
   end if;
@@ -142,25 +142,25 @@ begin
   base := total / going_count;
   remainder := total % going_count;
 
-  -- El orden por `dog_id` hace el reparto determinista: recalcular dos veces
+  -- El orden por `pet_id` hace el reparto determinista: recalcular dos veces
   -- con los mismos participantes da exactamente las mismas partes.
   with ordered as (
-    select dog_id, row_number() over (order by dog_id) - 1 as position
+    select pet_id, row_number() over (order by pet_id) - 1 as position
     from public.booking_participants
     where booking_id = booking and status = 'going'
   )
   update public.booking_participants p
     set share_cents = base + case when o.position < remainder then 1 else 0 end
     from ordered o
-    where p.booking_id = booking and p.dog_id = o.dog_id;
+    where p.booking_id = booking and p.pet_id = o.pet_id;
 
   update public.booking_participants
     set share_cents = 0
     where booking_id = booking and status <> 'going';
 
   update public.spot_bookings
-    set price_per_dog_cents = base + case when remainder > 0 then 1 else 0 end,
-        confirmed_dogs_count = going_count
+    set price_per_pet_cents = base + case when remainder > 0 then 1 else 0 end,
+        confirmed_pets_count = going_count
     where id = booking;
 end;
 $$;

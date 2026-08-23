@@ -7,20 +7,20 @@
  *
  * Se combinan **solo** para decidir el orden de la lista. La interfaz enseña los
  * tres por separado, porque fundirlos en un único porcentaje convertiría a un
- * perro mediocre pero cercano en un "95 % compatible", y eso es mentirle al
+ * animal mediocre pero cercano en un "95 % compatible", y eso es mentirle al
  * usuario sobre lo único que de verdad le importa.
  */
 
 import { calculateAffinity } from './affinity.js';
 import { distanceMeters, proximityScore } from './geo.js';
 import { describeOverlap, scheduleOverlap, type ScheduleOverlap } from './schedule.js';
-import type { AffinityResult, Availability, LatLng, MatchableDog, PairHistory } from './types.js';
+import type { AffinityResult, Availability, LatLng, MatchablePet, PairHistory } from './types.js';
 
 /** Pesos del orden. Solo afectan a la ordenación, nunca a lo que se muestra. */
 export const RANK_WEIGHTS = { affinity: 0.5, schedule: 0.3, proximity: 0.2 } as const;
 
 export type DiscoveryInput = {
-  dog: MatchableDog;
+  pet: MatchablePet;
   availability: readonly Availability[];
   location?: LatLng | null;
 };
@@ -30,7 +30,7 @@ export type DiscoveryCandidate = DiscoveryInput & {
 };
 
 export type DiscoveryMatch = {
-  dogId: string;
+  petId: string;
   affinity: AffinityResult;
   schedule: ScheduleOverlap;
   /** Descripción en lenguaje llano, o null si no coinciden. */
@@ -66,9 +66,9 @@ export function rankCandidates(
   const matches: DiscoveryMatch[] = [];
 
   for (const candidate of candidates) {
-    if (candidate.dog.id === viewer.dog.id) continue;
+    if (candidate.pet.id === viewer.pet.id) continue;
 
-    const affinity = calculateAffinity(viewer.dog, candidate.dog, candidate.history ?? {});
+    const affinity = calculateAffinity(viewer.pet, candidate.pet, candidate.history ?? {});
     if (affinity.vetoed) continue;
     if (!includeIncompatible && affinity.score < minAffinity) continue;
 
@@ -86,7 +86,7 @@ export function rankCandidates(
       RANK_WEIGHTS.proximity * proximity;
 
     matches.push({
-      dogId: candidate.dog.id,
+      petId: candidate.pet.id,
       affinity,
       schedule,
       scheduleSummary: describeOverlap(schedule),
@@ -99,7 +99,7 @@ export function rankCandidates(
   // El id desempata para que dos ejecuciones con los mismos datos den el mismo
   // orden; una lista que baila entre recargas se percibe como un fallo.
   return matches.sort(
-    (a, b) => b.rankScore - a.rankScore || (a.dogId < b.dogId ? -1 : a.dogId > b.dogId ? 1 : 0),
+    (a, b) => b.rankScore - a.rankScore || (a.petId < b.petId ? -1 : a.petId > b.petId ? 1 : 0),
   );
 }
 
@@ -122,7 +122,7 @@ export function classifyResults(
   matches: readonly DiscoveryMatch[],
 ): EmptyStateReason {
   if (matches.length > 0) return 'has_matches';
-  if (candidates.filter((candidate) => candidate.dog.id !== viewer.dog.id).length === 0) {
+  if (candidates.filter((candidate) => candidate.pet.id !== viewer.pet.id).length === 0) {
     return 'no_candidates';
   }
   const anyOverlap = candidates.some(

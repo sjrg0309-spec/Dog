@@ -96,7 +96,7 @@ describe('solapamiento entre agendas', () => {
   });
 
   it('encuentra la coincidencia de dos paseos nocturnos que cruzan medianoche', () => {
-    // Dos personas que sacan al perro pasada la medianoche son las que más
+    // Dos personas que sacan al animal pasada la medianoche son las que más
     // necesitan esta función y las que un cálculo ingenuo dejaría fuera.
     const a = [makeAvailability({ weekday: 3, startTime: '23:30', endTime: '00:30' })];
     const b = [makeAvailability({ weekday: 3, startTime: '23:45', endTime: '00:15' })];

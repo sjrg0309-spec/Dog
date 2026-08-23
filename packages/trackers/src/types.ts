@@ -7,13 +7,13 @@
  * parte de la aplicación sepa qué marca hay detrás.
  */
 
-import type { LatLng } from '@doggymeet/core';
+import type { LatLng } from '@coincide/core';
 
 export type TrackerVendor = 'phone' | 'webhook' | 'tractive' | 'fi' | 'other';
 
 /** Una lectura de posición, venga de donde venga. */
 export type TrackerPing = {
-  dogId: string;
+  petId: string;
   deviceId: string;
   point: LatLng;
   /** Precisión declarada en metros. Nula cuando el origen no la aporta. */
@@ -24,7 +24,7 @@ export type TrackerPing = {
 
 export type TrackerDevice = {
   id: string;
-  dogId: string;
+  petId: string;
   vendor: TrackerVendor;
   externalId: string | null;
   label: string | null;

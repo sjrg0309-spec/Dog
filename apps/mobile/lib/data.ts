@@ -7,7 +7,7 @@
  * es sustituir un módulo, no reescribir pantallas.
  *
  * Lo que **no** es local es el cálculo: la afinidad, la coincidencia de horarios
- * y el orden del descubrimiento salen de `@doggymeet/core`, el mismo código que
+ * y el orden del descubrimiento salen de `@coincide/core`, el mismo código que
  * verifican los 94 tests del paquete y que la base de datos espeja en SQL.
  */
 
@@ -18,7 +18,7 @@ import {
   type DiscoveryCandidate,
   type DiscoveryMatch,
   type EmptyStateReason,
-} from '@doggymeet/core';
+} from '@coincide/core';
 
 import { MY_DOG, OTHER_DOGS, PLAYDATES, SPOTS, type DemoDog } from './demo-data';
 

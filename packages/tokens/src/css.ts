@@ -30,14 +30,14 @@ function semanticVars(theme: SemanticTokens, indent: string): string {
     .map(([key, value]) =>
       key === 'colorScheme'
         ? `${indent}color-scheme: ${value};`
-        : `${indent}--dm-${kebab(key)}: ${value};`,
+        : `${indent}--co-${kebab(key)}: ${value};`,
     )
     .join('\n');
 }
 
 function scaleVars(prefix: string, scale: Record<string, string>, indent: string): string {
   return Object.entries(scale)
-    .map(([key, value]) => `${indent}--dm-${prefix}-${kebab(key).replace('.', '_')}: ${value};`)
+    .map(([key, value]) => `${indent}--co-${prefix}-${kebab(key).replace('.', '_')}: ${value};`)
     .join('\n');
 }
 
@@ -71,7 +71,7 @@ export function buildTokensCss(): string {
   ].join('\n\n');
 
   return `/**
- * DoggyMeet — tokens de diseño.
+ * Coincide — tokens de diseño.
  *
  * GENERADO por packages/tokens. No editar a mano: los cambios se pierden en el
  * siguiente build. La fuente está en packages/tokens/src.

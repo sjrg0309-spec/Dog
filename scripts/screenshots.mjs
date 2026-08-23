@@ -55,7 +55,7 @@ for (const viewport of VIEWPORTS) {
       if (theme.attribute) {
         await page.addInitScript((value) => {
           try {
-            localStorage.setItem('doggymeet-theme', value);
+            localStorage.setItem('coincide-theme', value);
           } catch {
             /* sin almacenamiento se cae al tema del sistema */
           }

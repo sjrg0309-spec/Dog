@@ -5,16 +5,32 @@
  * poder ejecutarse —y probarse— sin base de datos, sin red y sin Supabase.
  */
 
-/** Talla. El orden importa: la distancia entre tallas es aritmética. */
-export const DOG_SIZES = ['mini', 'small', 'medium', 'large', 'giant'] as const;
-export type DogSize = (typeof DOG_SIZES)[number];
+import type { PlayStyle } from './species.js';
 
-/** "Nivel de batería" en el lenguaje del producto. */
-export const ENERGY_LEVELS = ['couch', 'explorer', 'sprinter'] as const;
+export type { PlayStyle, SocialModel, SpeciesProfile, TaxonGroup } from './species.js';
+
+/**
+ * Talla, **relativa dentro de la especie**.
+ *
+ * Un conejo "gigante" y un perro "gigante" no tienen nada que ver, y da igual:
+ * los encuentros son siempre entre animales de la misma especie, así que la
+ * comparación nunca cruza ese límite. Una escala relativa evita inventar
+ * categorías absolutas de peso que no significarían lo mismo para un hurón que
+ * para un mastín.
+ */
+export const PET_SIZES = ['mini', 'small', 'medium', 'large', 'giant'] as const;
+export type PetSize = (typeof PET_SIZES)[number];
+
+/**
+ * Nivel de actividad.
+ *
+ * Los valores son neutros a propósito. La interfaz los traduce al lenguaje de
+ * cada especie —"de sofá" y "velocista" para un perro, "tranquilo" y "muy
+ * activo" para un conejo—, pero el dato que guarda la base es el mismo, y así
+ * el algoritmo no necesita saber de qué animal habla.
+ */
+export const ENERGY_LEVELS = ['low', 'medium', 'high'] as const;
 export type EnergyLevel = (typeof ENERGY_LEVELS)[number];
-
-export const PLAY_STYLES = ['chase', 'wrestle', 'toys', 'calm_walk'] as const;
-export type PlayStyle = (typeof PLAY_STYLES)[number];
 
 export const TRUST_CIRCLE = [
   'loves_everyone',
@@ -22,37 +38,39 @@ export const TRUST_CIRCLE = [
   'prefers_females',
   'prefers_males',
   'shy_at_first',
-  'no_hyper_puppies',
+  /** Antes era "no cachorros": ahora vale para el juvenil de cualquier especie. */
+  'no_hyper_juveniles',
 ] as const;
 export type TrustCircleFlag = (typeof TRUST_CIRCLE)[number];
 
-export type DogSex = 'male' | 'female';
+export type PetSex = 'male' | 'female';
 
 /**
- * La proyección de un perro que necesita el algoritmo.
+ * La proyección de una mascota que necesita el algoritmo.
  *
  * Deliberadamente no incluye nombre ni foto: mantener fuera lo presentacional
  * hace imposible que una decisión de puntuación dependa de ello.
  */
-export type MatchableDog = {
+export type MatchablePet = {
   id: string;
-  size: DogSize;
+  /** Identificador del catálogo de especies. Decide todo lo demás. */
+  speciesId: string;
+  size: PetSize;
   energyLevel: EnergyLevel;
   playStyles: readonly PlayStyle[];
   trustCircle: readonly TrustCircleFlag[];
-  sex: DogSex;
-  /** Meses de edad. Por debajo de 12 se considera cachorro. */
+  sex: PetSex;
   ageMonths: number;
 };
 
-/** Franja declarada de paseo. `endTime <= startTime` significa cruce de medianoche. */
+/** Franja declarada de paseo o de salida. `endTime <= startTime` cruza medianoche. */
 export type Availability = {
   /** 0 = domingo … 6 = sábado, como en `Date#getDay`. */
   weekday: number;
   /** `HH:MM` en 24 h. */
   startTime: string;
   endTime: string;
-  /** Parque habitual de esa franja, si lo hay. */
+  /** Lugar habitual de esa franja, si lo hay. */
   placeId?: string | null;
 };
 
@@ -75,6 +93,14 @@ export type AffinityResult = {
   band: AffinityBand;
   /** Un veto es un bloqueo de seguridad, no una puntuación baja. */
   vetoed: boolean;
+  /**
+   * Por qué se ha bloqueado.
+   *
+   * `different_species` y `solitary_species` no son "muy incompatibles": son
+   * situaciones en las que el encuentro no debe plantearse, y la interfaz las
+   * explica de forma distinta a un veto por tamaño o por límite declarado.
+   */
+  vetoKind: 'none' | 'different_species' | 'solitary_species' | 'safety' | 'self';
   /** Motivos de veto, en español, listos para mostrar. */
   vetoReasons: string[];
   /** Por qué encajan, en español. Alimenta el "por qué" de la tarjeta. */

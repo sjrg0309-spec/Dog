@@ -1,5 +1,5 @@
 {
-  "name": "@doggymeet/mobile",
+  "name": "@coincide/mobile",
   "version": "0.1.0",
   "private": true,
   "main": "expo-router/entry",
@@ -15,9 +15,9 @@
   },
   "dependencies": {
     "@babel/runtime": "^8.0.0",
-    "@doggymeet/core": "workspace:*",
-    "@doggymeet/tokens": "workspace:*",
-    "@doggymeet/trackers": "workspace:*",
+    "@coincide/core": "workspace:*",
+    "@coincide/tokens": "workspace:*",
+    "@coincide/trackers": "workspace:*",
     "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo/metro-runtime": "^4.0.1",
