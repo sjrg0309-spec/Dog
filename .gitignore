@@ -30,5 +30,6 @@ artifacts/screenshots/*.png
 # El prototipo publicable y sus datos: se regeneran con
 # `node scripts/build-demo-data.mjs && node scripts/build-demo-page.mjs`.
 artifacts/coincide-demo.html
+artifacts/coincide-web.html
 artifacts/demo-data.json
 scripts/demo-pets.mjs
