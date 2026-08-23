@@ -22,11 +22,27 @@ type Props = {
   size?: 'sm' | 'base' | 'lg' | 'xl';
   color?: string;
   strokeWidth?: number;
+  /**
+   * Relleno.
+   *
+   * Es lo que distingue «puesto» de «sin poner» en un corazón, un marcador o
+   * una pestaña activa. Importa más de lo que parece: el relleno sobrevive a
+   * una captura en blanco y negro y a cualquier deficiencia de visión del
+   * color, y el cambio de tinte no.
+   */
+  fill?: string;
 } & ({ label: string; decorative?: false } | { label?: never; decorative: true });
 
 const SCALE = { sm: 16, base: 20, lg: 24, xl: 28 } as const;
 
-export function Icon({ icon: Glyph, size = 'base', color, strokeWidth = 2, ...rest }: Props) {
+export function Icon({
+  icon: Glyph,
+  size = 'base',
+  color,
+  strokeWidth = 2,
+  fill = 'none',
+  ...rest
+}: Props) {
   const theme = useTheme();
   const decorative = 'decorative' in rest && rest.decorative === true;
 
@@ -38,7 +54,12 @@ export function Icon({ icon: Glyph, size = 'base', color, strokeWidth = 2, ...re
       accessibilityElementsHidden={decorative}
       importantForAccessibility={decorative ? 'no-hide-descendants' : 'yes'}
     >
-      <Glyph size={SCALE[size]} color={color ?? theme.colors.foreground} strokeWidth={strokeWidth} />
+      <Glyph
+        size={SCALE[size]}
+        color={color ?? theme.colors.foreground}
+        strokeWidth={strokeWidth}
+        fill={fill}
+      />
     </View>
   );
 }

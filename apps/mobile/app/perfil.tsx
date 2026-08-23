@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Avatar } from '@/components/avatar';
 import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { StoryRing } from '@/components/story-ring';
 import {
   Badge,
   Body,
@@ -24,7 +25,10 @@ import {
   BadgeCheck,
   Cake,
   Check,
+  FileText,
+  Grid3x3,
   HeartPulse,
+  ImageOff,
   Lock,
   Phone,
   Pill,
@@ -35,6 +39,7 @@ import {
   X,
 } from '@/lib/icons';
 import { speciesName } from '@/lib/labels';
+import { usePostsOf, type Post } from '@/lib/posts';
 import {
   dueLabel,
   isOverdue,
@@ -69,7 +74,15 @@ export default function ProfileScreen() {
   const { scrolled, onScroll } = useScrolled();
   const pet = useActivePet();
   const record = useMedicalRecord(pet.id);
+  const posts = usePostsOf(pet.id);
   const [walkMode, setWalkMode] = useState(false);
+  const [tab, setTab] = useState<'grid' | 'record'>('grid');
+
+  // Días distintos de la semana con paseo declarado. Es la cifra que de verdad
+  // dice cuánto se mueve un perro, y la que hace que la coincidencia horaria
+  // funcione: un seguidor no significa nada aquí.
+  const walkDays = new Set(pet.availability.map((slot) => slot.weekday)).size;
+  const friends = 3;
 
   const overdue = record.filter((entry) => isOverdue(entry));
   const years = Math.floor(pet.ageMonths / 12);
@@ -88,24 +101,44 @@ export default function ProfileScreen() {
           <PetSwitcher />
         </View>
 
-        {/* Quién es */}
+        {/* Quién es — cabecera de perfil de Instagram: retrato a la
+            izquierda, tres cifras a la derecha, y la biografía debajo a todo
+            el ancho. Se toma prestada porque resuelve bien lo mismo que aquí
+            hace falta: quién es y cuánto se mueve, en una pantalla. */}
         <View
           style={{
+            flexDirection: 'row',
             alignItems: 'center',
-            gap: theme.space[2],
+            gap: theme.space[5],
             paddingHorizontal: theme.space[4],
-            paddingTop: theme.space[6],
-            paddingBottom: theme.space[5],
+            paddingTop: theme.space[5],
           }}
         >
-          <Avatar id={pet.id} name={pet.name} size={96} />
+          <StoryRing size={80} state={walkMode ? 'unseen' : 'none'}>
+            <Avatar id={pet.id} name={pet.name} size={80} />
+          </StoryRing>
+
+          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-around' }}>
+            <Stat value={posts.length} label={posts.length === 1 ? 'foto' : 'fotos'} />
+            <Stat value={friends} label="amigos" />
+            <Stat value={walkDays} label="días/semana" />
+          </View>
+        </View>
+
+        <View
+          style={{
+            paddingHorizontal: theme.space[4],
+            paddingTop: theme.space[3],
+            gap: theme.space[1],
+          }}
+        >
           <Text
             accessibilityRole="header"
             style={{
               color: theme.colors.foreground,
               fontFamily: fonts.displayExtrabold,
-              fontSize: theme.fontSize['3xl'],
-              letterSpacing: -0.5,
+              fontSize: theme.fontSize.xl,
+              letterSpacing: -0.3,
             }}
           >
             {pet.name}
@@ -114,13 +147,24 @@ export default function ProfileScreen() {
             style={{
               color: theme.colors.mutedForeground,
               fontFamily: fonts.body,
-              fontSize: theme.fontSize.base,
-              textAlign: 'center',
+              fontSize: theme.fontSize.sm,
             }}
           >
             {pet.breeds.join(' · ')} · {years} {years === 1 ? 'año' : 'años'}
             {months > 0 ? ` y ${months} ${months === 1 ? 'mes' : 'meses'}` : ''}
           </Text>
+          {pet.bio ? (
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.base,
+                lineHeight: theme.fontSize.base * 1.4,
+              }}
+            >
+              {pet.bio}
+            </Text>
+          ) : null}
           <Row gap={2}>
             {pet.isMicrochipVerified ? (
               <Badge tone="verified" icon={BadgeCheck}>
@@ -131,32 +175,151 @@ export default function ProfileScreen() {
             )}
             <Badge tone="neutral">{speciesName(pet.speciesId)}</Badge>
           </Row>
-          {pet.bio ? (
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontFamily: fonts.body,
-                fontSize: theme.fontSize.base,
-                textAlign: 'center',
-                lineHeight: theme.fontSize.base * 1.45,
-                paddingTop: theme.space[2],
-              }}
-            >
-              {pet.bio}
-            </Text>
-          ) : null}
         </View>
+
+        {/* Los destacados de Instagram, con un trabajo distinto: aquí no son
+            colecciones de historias sino los atajos que un tutor busca en su
+            propio perfil. La forma es la misma —fila de círculos con rótulo—
+            porque es la que la gente ya sabe tocar. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0, marginBottom: theme.space[5] }}
+          contentContainerStyle={{
+            paddingHorizontal: theme.space[4],
+            paddingTop: theme.space[5],
+            gap: theme.space[4],
+          }}
+        >
+          {/* Cada destacado hace algo. Cuatro círculos bonitos que no llevan a
+              ningún sitio es lo que convierte un perfil en una maqueta. */}
+          {[
+            { icon: QrCode, label: 'Modo Paseo', go: () => setWalkMode((value) => !value) },
+            { icon: Syringe, label: 'Vacunas', go: () => setTab('record') },
+            { icon: Cake, label: 'Cumpleaños', go: () => setTab('record') },
+            { icon: FileText, label: 'Horario', go: () => setTab('record') },
+          ].map((highlight) => (
+            <Pressable
+              key={highlight.label}
+              accessibilityRole="button"
+              accessibilityLabel={highlight.label}
+              onPress={() => {
+                haptics.tap();
+                highlight.go();
+              }}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                gap: theme.space[1],
+                width: 74,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  borderWidth: 1.5,
+                  borderColor:
+                    highlight.label === 'Modo Paseo' && walkMode
+                      ? theme.colors.liveRing
+                      : theme.colors.border,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor:
+                    highlight.label === 'Modo Paseo' && walkMode
+                      ? theme.colors.liveSurface
+                      : theme.colors.surface,
+                }}
+              >
+                <Icon
+                  icon={highlight.icon}
+                  size="lg"
+                  color={theme.colors.foreground}
+                  decorative
+                />
+              </View>
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: theme.colors.mutedForeground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.xs,
+                }}
+              >
+                {highlight.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
 
         {/* Modo Paseo */}
         <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[6] }}>
           <WalkMode pet={pet} on={walkMode} onToggle={() => setWalkMode((value) => !value)} />
         </View>
 
+        {/* Las dos pestañas del perfil de Instagram, con lo que aquí importa
+            debajo: la cuadrícula de fotos y la ficha médica. La ficha está
+            detrás de una pestaña y no a continuación por una razón: es privada,
+            y tenerla siempre abierta en la pantalla que más se enseña a otros
+            es la forma más fácil de que se vea sin querer. */}
+        <View style={{ flexDirection: 'row', paddingTop: theme.space[6] }}>
+          {(
+            [
+              { id: 'grid' as const, icon: Grid3x3, label: 'Fotos' },
+              { id: 'record' as const, icon: Lock, label: 'Ficha médica' },
+            ]
+          ).map((option) => {
+            const active = tab === option.id;
+            return (
+              <Pressable
+                key={option.id}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={option.label}
+                onPress={() => {
+                  haptics.tap();
+                  setTab(option.id);
+                }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.space[2],
+                  minHeight: theme.touchTarget.comfortable,
+                  borderBottomWidth: 2,
+                  borderBottomColor: active ? theme.colors.foreground : 'transparent',
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Icon
+                  icon={option.icon}
+                  size="base"
+                  color={active ? theme.colors.foreground : theme.colors.mutedForeground}
+                  decorative
+                />
+                <Text
+                  style={{
+                    color: active ? theme.colors.foreground : theme.colors.mutedForeground,
+                    fontFamily: active ? fonts.bodyBold : fonts.body,
+                    fontSize: theme.fontSize.sm,
+                  }}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
         <Separator />
+
+        {tab === 'grid' ? <PostGrid posts={posts} name={pet.name} /> : null}
 
         {/* Ficha médica */}
         <View
           style={{
+            display: tab === 'record' ? 'flex' : 'none',
             paddingHorizontal: theme.space[4],
             paddingTop: theme.space[6],
             gap: theme.space[3],
@@ -246,6 +409,97 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+/** Una cifra del perfil: número grande arriba, rótulo debajo. */
+function Stat({ value, label }: { value: number; label: string }) {
+  const theme = useTheme();
+  return (
+    <View accessible accessibilityLabel={`${value} ${label}`} style={{ alignItems: 'center' }}>
+      <Text
+        style={{
+          color: theme.colors.foreground,
+          fontFamily: fonts.displayExtrabold,
+          fontSize: theme.fontSize.lg,
+          fontVariant: ['tabular-nums'],
+        }}
+      >
+        {value}
+      </Text>
+      <Text
+        style={{
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.xs,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * La cuadrícula de publicaciones.
+ *
+ * Tres columnas y un píxel de separación, como en Instagram. La rejilla no es
+ * estética: es lo que deja ver de un vistazo si un perfil está vivo, y sin
+ * fotos —que es el caso de esta demostración— tiene que decirlo en lugar de
+ * enseñar tres filas de cuadrados grises.
+ */
+function PostGrid({ posts, name }: { posts: Post[]; name: string }) {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const cell = (width - 4) / 3;
+
+  if (posts.length === 0) {
+    return (
+      <View style={{ padding: theme.space[8], alignItems: 'center', gap: theme.space[2] }}>
+        <Icon icon={ImageOff} size="xl" color={theme.colors.mutedForeground} decorative />
+        <Caption>{name} todavía no tiene fotos publicadas.</Caption>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2, paddingTop: 2 }}>
+      {posts.map((post) => (
+        <View
+          key={post.id}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={post.imageAlt}
+          style={{
+            width: cell,
+            height: cell,
+            backgroundColor: theme.colors.surfaceSunken,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: theme.space[2],
+          }}
+        >
+          {post.imageUri ? null : (
+            <>
+              <Icon icon={ImageOff} size="base" color={theme.colors.mutedForeground} decorative />
+              <Text
+                numberOfLines={3}
+                style={{
+                  marginTop: theme.space[1],
+                  color: theme.colors.mutedForeground,
+                  fontFamily: fonts.body,
+                  fontSize: 10,
+                  textAlign: 'center',
+                  lineHeight: 13,
+                }}
+              >
+                {post.imageAlt}
+              </Text>
+            </>
+          )}
+        </View>
+      ))}
+    </View>
   );
 }
 

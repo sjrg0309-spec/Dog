@@ -32,6 +32,7 @@ const ROUTES = [
   { path: '/sos', name: 'app-sos-escenarios', tap: 'Dar la alarma' },
   { path: '/explorar', name: 'app-explorar' },
   { path: '/perfil', name: 'app-perfil' },
+  { path: '/perfil', name: 'app-perfil-ficha', tap: 'Ficha médica' },
   // Modo Paseo encendido: el código y lo que enseña, que es la mitad de la
   // decisión de privacidad de esa pantalla.
   { path: '/perfil', name: 'app-perfil-modo-paseo', tap: 'Modo Paseo' },
@@ -39,6 +40,8 @@ const ROUTES = [
   // ficha médica también.
   { path: '/perfil', name: 'app-perfil-kira', pet: 'Kira', tap: 'Modo Paseo' },
   { path: '/mensajes', name: 'app-mensajes' },
+  // Una conversación abierta: burbujas, separador de día y doble check.
+  { path: '/mensajes', name: 'app-mensajes-hilo', tap: 'Cumpleaños de Toby' },
   { path: '/citas', name: 'app-citas' },
   { path: '/descubrir', name: 'app-descubrir' },
   { path: '/descubrir', name: 'app-descubrir-kira', pet: 'Kira' },
@@ -121,7 +124,9 @@ for (const theme of THEMES) {
     // Lo último: un interruptor o un botón que abre lo que hay que enseñar. Va
     // después del selector de mascota para que se abra sobre la correcta.
     if (route.tap) {
-      await page.getByRole(route.tap === 'Modo Paseo' ? 'switch' : 'button', { name: route.tap }).click();
+      const role =
+        route.tap === 'Modo Paseo' ? 'switch' : route.tap === 'Ficha médica' ? 'tab' : 'button';
+      await page.getByRole(role, { name: route.tap }).first().click();
       await page.waitForTimeout(400);
     }
 

@@ -22,6 +22,14 @@ export type Message = {
   body: string;
   at: Date;
   mine: boolean;
+  /**
+   * Hasta dónde ha llegado, en los mensajes propios.
+   *
+   * Es el doble check de WhatsApp, y no es adorno: en un hilo de alerta la
+   * diferencia entre «entregado» y «leído» es la diferencia entre saber que
+   * alguien está buscando y no saberlo. En los mensajes ajenos no aplica.
+   */
+  delivery?: 'sent' | 'delivered' | 'read';
 };
 
 export type Thread = {
@@ -108,6 +116,7 @@ let threads: Thread[] = [
         body: 'Nosotras vamos. Kira se queda en casa, con ese calor no le conviene.',
         at: minutesAgo(540),
         mine: true,
+        delivery: 'read',
       },
     ],
   },
@@ -173,6 +182,10 @@ export function send(threadId: string, body: string, authorName: string): void {
               body: trimmed,
               at: new Date(),
               mine: true,
+              // Sale como enviado, no como leído. Pintar dos checks azules en
+              // cuanto sale el mensaje sería mentir sobre lo único que ese
+              // icono significa.
+              delivery: 'sent',
             },
           ],
         }
@@ -183,4 +196,37 @@ export function send(threadId: string, body: string, authorName: string): void {
 
 export function totalUnread(all: Thread[]): number {
   return all.reduce((sum, thread) => sum + thread.unread, 0);
+}
+
+/** «14:32». En un chat la hora exacta importa; el «hace 3 h» no sirve. */
+export function clockTime(date: Date): string {
+  return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * El separador de fecha de WhatsApp: «Hoy», «Ayer», o el día.
+ *
+ * Va como una pastilla flotando entre los mensajes, no como una cabecera fija,
+ * porque marca un corte en la conversación y no una sección.
+ */
+export function dayLabel(date: Date, now = new Date()): string {
+  const startOf = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(date)) / 86_400_000);
+  if (days <= 0) return 'Hoy';
+  if (days === 1) return 'Ayer';
+  if (days < 7) return date.toLocaleDateString('es-ES', { weekday: 'long' });
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+}
+
+/** Agrupa los mensajes por día, para poder intercalar el separador. */
+export function groupByDay(messages: readonly Message[]): Array<{ day: string; items: Message[] }> {
+  const groups: Array<{ day: string; items: Message[] }> = [];
+  for (const message of messages) {
+    const day = dayLabel(message.at);
+    const last = groups[groups.length - 1];
+    if (last && last.day === day) last.items.push(message);
+    else groups.push({ day, items: [message] });
+  }
+  return groups;
 }

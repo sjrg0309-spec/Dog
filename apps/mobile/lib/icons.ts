@@ -32,7 +32,10 @@ export {
   Users,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
   X,
+  Ellipsis,
+  Settings,
   // Estado
   BadgeCheck,
   TriangleAlert,
@@ -54,6 +57,12 @@ export {
   Share2,
   Bone,
   Sparkles,
+  Grid3x3,
+  Tag,
+  Bell,
+  UserPlus,
+  Image as ImageIcon,
+  Video,
   // Seguridad
   Siren,
   ShieldAlert,
@@ -92,4 +101,8 @@ export {
   Search,
   Zap,
   Footprints,
+  // Mensajería
+  CheckCheck,
+  Paperclip,
+  Mic,
 } from 'lucide-react-native';

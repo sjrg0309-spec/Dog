@@ -8,12 +8,14 @@ import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { PostCard } from '@/components/post-card';
 import { StoryRail } from '@/components/story-rail';
+import { Avatar } from '@/components/avatar';
 import { Body, Caption, Notice, Screen, Segmented } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
+import { haptics } from '@/lib/haptics';
 import { useConditions, useDeclaredConditions } from '@/lib/conditions';
 import { discover, petHasMeetups, walkingNow } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
-import { Compass, ImagePlus, Siren } from '@/lib/icons';
+import { Camera, Compass, Heart, ImagePlus, Send, Siren, SquarePen } from '@/lib/icons';
 import {
   FEED_SCOPES,
   NEARBY_RADII_M,
@@ -22,6 +24,7 @@ import {
   type FeedScope,
   type NearbyRadius,
 } from '@/lib/posts';
+import { totalUnread, useThreads } from '@/lib/messages';
 import { useLiveAlerts } from '@/lib/safety';
 import { useTheme } from '@/lib/theme';
 
@@ -69,6 +72,7 @@ export default function FeedScreen() {
   // si acaso, y ese es justo el momento en que sirve de algo enterarse.
   const alerts = useLiveAlerts(location);
   const topAlert = alerts[0];
+  const unread = totalUnread(useThreads());
 
   return (
     <Screen>
@@ -76,10 +80,16 @@ export default function FeedScreen() {
         title="Coincide"
         scrolled={scrolled}
         trailing={
-          <Link href="/publicar" asChild>
+          <>
+            {/* Actividad y mensajes, en ese orden y a la derecha del wordmark.
+                Es la cabecera de Instagram, y el orden no es casual: la
+                actividad es lo que te ha pasado a ti y los mensajes lo que
+                alguien te está diciendo. Lo segundo espera; lo primero, no. */}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Publicar una foto"
+              accessibilityLabel="Actividad"
+              accessibilityHint="Reacciones y comentarios en tus publicaciones"
+              onPress={() => haptics.tap()}
               style={({ pressed }) => ({
                 width: theme.touchTarget.min,
                 height: theme.touchTarget.min,
@@ -88,9 +98,63 @@ export default function FeedScreen() {
                 opacity: pressed ? 0.5 : 1,
               })}
             >
-              <Icon icon={ImagePlus} size="lg" decorative />
+              <Icon icon={Heart} size="lg" decorative />
             </Pressable>
-          </Link>
+
+            {/* Sin `Link asChild`: en web ese envoltorio se llevaba el botón
+                fuera de la fila y el icono salía cortado por la esquina. La
+                navegación directa hace lo mismo y se coloca donde toca. */}
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={unread > 0 ? `Mensajes, ${unread} sin leer` : 'Mensajes'}
+              onPress={() => {
+                haptics.tap();
+                router.push('/mensajes');
+              }}
+              style={({ pressed }) => ({
+                width: theme.touchTarget.min,
+                height: theme.touchTarget.min,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.5 : 1,
+              })}
+            >
+              <View
+                style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Icon icon={Send} size="lg" decorative />
+                {unread > 0 ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      right: -8,
+                      top: -6,
+                      minWidth: 18,
+                      height: 18,
+                      paddingHorizontal: 4,
+                      borderRadius: 9,
+                      backgroundColor: theme.colors.destructive,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 2,
+                      borderColor: theme.colors.background,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: theme.colors.destructiveForeground,
+                        fontFamily: fonts.bodyBold,
+                        fontSize: 10,
+                        lineHeight: 12,
+                      }}
+                    >
+                      {unread}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </Pressable>
+          </>
         }
       />
 
@@ -102,6 +166,14 @@ export default function FeedScreen() {
       >
         <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[3] }}>
           <PetSwitcher />
+        </View>
+
+        {/* El compositor de Facebook: avatar, una pregunta en una píldora y dos
+            atajos. Funciona porque no pide nada —no abre un formulario, abre
+            una conversación— y porque la pregunta nombra al perro, que es de
+            quien va a ir la foto. */}
+        <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[4] }}>
+          <Composer petName={pet.name} onPress={() => router.push('/publicar')} />
         </View>
 
         {topAlert ? (
@@ -225,6 +297,115 @@ export default function FeedScreen() {
         onPress={() => router.push('/publicar')}
       />
     </Screen>
+  );
+}
+
+/**
+ * El compositor.
+ *
+ * Es la fila de Facebook —avatar, pregunta en una píldora, atajos debajo— y se
+ * toma prestada por lo que hace bien: **no pide nada**. Un botón que dice
+ * «publicar» abre un formulario; una pregunta abre una conversación, y encima
+ * nombra al perro, que es de quien va a ir la foto.
+ *
+ * Los dos atajos van a lo mismo que la píldora a propósito: la cámara y la
+ * galería son el 90 % de lo que se publica aquí, y obligar a pasar por una
+ * pantalla intermedia para elegir entre dos cosas es una pantalla de más.
+ */
+function Composer({ petName, onPress }: { petName: string; onPress: () => void }) {
+  const theme = useTheme();
+  const pet = useActivePet();
+
+  return (
+    <View
+      style={{
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        padding: theme.space[3],
+        gap: theme.space[2],
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
+        <Avatar id={pet.id} name={pet.name} size={40} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`¿Qué está haciendo ${petName} hoy?`}
+          accessibilityHint="Abre la pantalla de publicar"
+          onPress={onPress}
+          style={({ pressed }) => ({
+            flex: 1,
+            minHeight: theme.touchTarget.min,
+            justifyContent: 'center',
+            paddingHorizontal: theme.space[4],
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.colors.surfaceSunken,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Text
+            style={{
+              color: theme.colors.mutedForeground,
+              fontFamily: fonts.body,
+              fontSize: theme.fontSize.base,
+            }}
+          >
+            ¿Qué está haciendo {petName} hoy?
+          </Text>
+        </Pressable>
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.border,
+          paddingTop: theme.space[1],
+        }}
+      >
+        {[
+          { icon: Camera, label: 'Cámara' },
+          { icon: ImagePlus, label: 'Galería' },
+          { icon: SquarePen, label: 'Solo texto' },
+        ].map((shortcut) => (
+          <Pressable
+            key={shortcut.label}
+            accessibilityRole="button"
+            accessibilityLabel={shortcut.label}
+            onPress={() => {
+              haptics.tap();
+              onPress();
+            }}
+            style={({ pressed }) => ({
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: theme.space[1.5],
+              minHeight: theme.touchTarget.min,
+              opacity: pressed ? 0.5 : 1,
+            })}
+          >
+            <Icon
+              icon={shortcut.icon}
+              size="base"
+              color={theme.colors.mutedForeground}
+              decorative
+            />
+            <Text
+              style={{
+                color: theme.colors.mutedForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.sm,
+              }}
+            >
+              {shortcut.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 

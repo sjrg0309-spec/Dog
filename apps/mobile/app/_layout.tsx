@@ -142,7 +142,13 @@ function RootTabs() {
               <TabIcon
                 icon={Megaphone}
                 color={criticalNearby > 0 ? theme.colors.destructive : color}
-                focused={focused || criticalNearby > 0}
+                // La pastilla significa «estás aquí» y solo eso. Con una alerta
+                // abierta se pintaba también en SOS sin estar seleccionado, así
+                // que dos pestañas parecían la actual a la vez. Lo que avisa de
+                // la alerta es el color y el globo con el número, no la
+                // pastilla.
+                focused={focused}
+                alert={criticalNearby > 0}
               />
             ),
           }}
@@ -186,9 +192,51 @@ function RootTabs() {
  * Van marcados como decorativos porque la etiqueta de texto de la pestaña ya
  * aporta el nombre: anunciarlos duplicaría la lectura del lector de pantalla.
  */
-function TabIcon({ icon, color, focused }: { icon: LucideIcon; color: string; focused: boolean }) {
-  // La pestaña activa no se distingue solo por el color: también engorda el
-  // trazo. Quien no separe la salvia del gris tiene que poder verlo igualmente,
-  // y el rótulo de texto sigue debajo de todas formas.
-  return <Icon icon={icon} size="lg" color={color} strokeWidth={focused ? 2.5 : 1.75} decorative />;
+function TabIcon({
+  icon,
+  color,
+  focused,
+  alert = false,
+}: {
+  icon: LucideIcon;
+  color: string;
+  focused: boolean;
+  /** Hay algo abierto que reclama atención, pero esta no es la pestaña actual. */
+  alert?: boolean;
+}) {
+  const theme = useTheme();
+
+  /**
+   * La pestaña activa lleva una pastilla detrás, no el icono relleno.
+   *
+   * Instagram rellena el icono, y es lo primero que probé. No funciona con esta
+   * librería: Lucide son trazos, no siluetas, así que rellenar el globo de
+   * mensajes lo convertía en un borrón sin los puntos de dentro. Se veía en la
+   * captura y no en el tipado.
+   *
+   * La pastilla hace el mismo trabajo y mejor: es una forma sólida, así que
+   * sobrevive a una captura en blanco y negro y a cualquier deficiencia de
+   * visión del color, que es lo que el cambio de tinte no hace. Y el rótulo de
+   * texto sigue debajo de todas formas.
+   */
+  return (
+    <View
+      style={{
+        minWidth: 52,
+        height: 30,
+        borderRadius: theme.radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: focused ? theme.colors.accent : 'transparent',
+      }}
+    >
+      <Icon
+        icon={icon}
+        size="lg"
+        color={color}
+        strokeWidth={focused || alert ? 2.4 : 1.75}
+        decorative
+      />
+    </View>
+  );
 }

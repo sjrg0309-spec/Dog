@@ -39,8 +39,26 @@ import { PawTrail } from './paw-trail';
 import { Badge, Row } from './ui';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { Bone, ImageOff, MapPin, MessageCircle, PawPrint, Send, Share2 } from '@/lib/icons';
-import { addComment, bark, react, REACTIONS, timeAgo, type Post } from '@/lib/posts';
+import {
+  Bone,
+  Bookmark,
+  Ellipsis,
+  ImageOff,
+  MapPin,
+  MessageCircle,
+  PawPrint,
+  Send,
+  Share2,
+} from '@/lib/icons';
+import {
+  addComment,
+  bark,
+  react,
+  REACTIONS,
+  timeAgo,
+  totalReactions,
+  type Post,
+} from '@/lib/posts';
 import { useTheme } from '@/lib/theme';
 
 /** El icono de cada reacción. El nombre y el texto viven en `lib/posts`. */
@@ -62,6 +80,8 @@ export function PostCard({
   const theme = useTheme();
   const [draft, setDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   /**
    * El doble toque.
@@ -146,17 +166,6 @@ export function PostCard({
                 >
                   {post.placeName}
                 </Text>
-                {distanceLabel ? (
-                  <Text
-                    style={{
-                      color: theme.colors.mutedForeground,
-                      fontFamily: fonts.body,
-                      fontSize: theme.fontSize.sm,
-                    }}
-                  >
-                    · a {distanceLabel}
-                  </Text>
-                ) : null}
               </Pressable>
             </Link>
           ) : null}
@@ -166,7 +175,74 @@ export function PostCard({
             {affinity.score} % · {affinity.label}
           </Badge>
         ) : null}
+
+        {/* El menú de tres puntos. Es donde Instagram pone lo que no cabe en la
+            tarjeta, y aquí lo que hay dentro importa: silenciar, denunciar y
+            dejar de seguir son las tres salidas de alguien que se está sintiendo
+            incómodo, y tienen que estar en el sitio donde se buscan. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Opciones de la publicación de ${post.petName}`}
+          accessibilityState={{ expanded: showOptions }}
+          onPress={() => {
+            haptics.tap();
+            setShowOptions((value) => !value);
+          }}
+          style={({ pressed }) => ({
+            width: theme.touchTarget.min,
+            height: theme.touchTarget.min,
+            marginRight: -theme.space[3],
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.5 : 1,
+          })}
+        >
+          <Icon icon={Ellipsis} size="base" color={theme.colors.foreground} decorative />
+        </Pressable>
       </View>
+
+      {showOptions ? (
+        <View
+          style={{
+            marginHorizontal: theme.space[4],
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.surfaceSunken,
+            paddingHorizontal: theme.space[4],
+          }}
+        >
+          {['Silenciar a este perro', 'Dejar de seguir', 'Denunciar la publicación'].map(
+            (option) => (
+              <Pressable
+                key={option}
+                accessibilityRole="button"
+                accessibilityLabel={option}
+                onPress={() => {
+                  haptics.tap();
+                  setShowOptions(false);
+                }}
+                style={({ pressed }) => ({
+                  minHeight: theme.touchTarget.min,
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.5 : 1,
+                })}
+              >
+                <Text
+                  style={{
+                    color:
+                      option === 'Denunciar la publicación'
+                        ? theme.colors.destructive
+                        : theme.colors.foreground,
+                    fontFamily: fonts.body,
+                    fontSize: theme.fontSize.base,
+                  }}
+                >
+                  {option}
+                </Text>
+              </Pressable>
+            ),
+          )}
+        </View>
+      ) : null}
 
       {/* La foto. Doble toque para mover la cola, con el rastro cayendo desde
           donde tocó el dedo. */}
@@ -232,6 +308,11 @@ export function PostCard({
                 // Puesta se pinta en terracota, que es el acento de la marca. No
                 // en rojo: el rojo de esta aplicación significa perro perdido.
                 color={mine ? theme.colors.liveRing : theme.colors.foreground}
+                // Y se rellena, además de cambiar de color. Es el gesto de
+                // Instagram y funciona por una razón que no es la moda: el
+                // relleno se ve en una captura en blanco y negro, y el cambio
+                // de color no.
+                fill={mine ? theme.colors.liveRing : 'none'}
                 strokeWidth={mine ? 2.75 : 2}
                 decorative
               />
@@ -325,16 +406,59 @@ export function PostCard({
         </Pressable>
 
         <View style={{ flex: 1 }} />
-        <Text
-          style={{
-            color: theme.colors.mutedForeground,
-            fontFamily: fonts.body,
-            fontSize: theme.fontSize.xs,
-            paddingRight: theme.space[3],
+
+        {/* Guardar va solo a la derecha, separado del resto. Es la única acción
+            de esta fila que **no** ve nadie más: las otras cuatro publican algo
+            —una reacción, un comentario, un ladrido—, y esta se queda en tu
+            cuenta. Ponerla en el mismo grupo las haría parecer lo mismo. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: saved }}
+          accessibilityLabel={saved ? 'Quitar de guardados' : 'Guardar la publicación'}
+          accessibilityHint={saved ? undefined : 'Solo la ves tú'}
+          onPress={() => {
+            haptics.tap();
+            setSaved((value) => !value);
           }}
+          style={({ pressed }) => ({
+            minHeight: theme.touchTarget.min,
+            justifyContent: 'center',
+            paddingHorizontal: theme.space[3],
+            opacity: pressed ? 0.5 : 1,
+          })}
         >
-          {timeAgo(post.createdAt)}
-        </Text>
+          <Icon
+            icon={Bookmark}
+            size="base"
+            color={theme.colors.foreground}
+            fill={saved ? theme.colors.foreground : 'none'}
+            strokeWidth={saved ? 2.5 : 2}
+            decorative
+          />
+        </Pressable>
+      </View>
+
+      {/* El resumen, la firma y la entrada a los comentarios: el orden exacto de
+          Instagram, y no por copiarlo. Es el que responde en ese orden a «cuánta
+          gente», «de quién es» y «qué se está diciendo», que es como se lee una
+          publicación cuando se pasa el dedo deprisa. */}
+      <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[1] }}>
+        {totalReactions(post) > 0 ? (
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontFamily: fonts.bodyBold,
+              fontSize: theme.fontSize.sm,
+            }}
+          >
+            {totalReactions(post) === 1
+              ? '1 reacción'
+              : `${totalReactions(post)} reacciones`}
+            {post.barkCount > 0
+              ? ` · ${post.barkCount === 1 ? '1 ladrido' : `${post.barkCount} ladridos`}`
+              : ''}
+          </Text>
+        ) : null}
       </View>
 
       {/* Texto */}
@@ -351,6 +475,46 @@ export function PostCard({
           <Text style={{ fontFamily: fonts.bodyBold }}>{post.petName}</Text> {post.caption}
         </Text>
       ) : null}
+
+      <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[0.5] }}>
+        {post.comments.length > 0 && !showComments ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Ver los ${post.comments.length} comentarios`}
+            onPress={() => setShowComments(true)}
+            style={({ pressed }) => ({
+              minHeight: theme.touchTarget.min - 12,
+              justifyContent: 'center',
+              opacity: pressed ? 0.5 : 1,
+            })}
+          >
+            <Text
+              style={{
+                color: theme.colors.mutedForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.sm,
+              }}
+            >
+              {post.comments.length === 1
+                ? 'Ver el comentario'
+                : `Ver los ${post.comments.length} comentarios`}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {/* La hora abajo y en pequeño, no en la cabecera. Es el dato menos
+            importante de la tarjeta y arriba competía con el nombre. */}
+        <Text
+          style={{
+            color: theme.colors.mutedForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize.xs,
+          }}
+        >
+          {timeAgo(post.createdAt)}
+          {distanceLabel ? ` · a ${distanceLabel}` : ''}
+        </Text>
+      </View>
 
       {showComments ? (
         <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[3] }}>
