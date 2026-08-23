@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,6 +8,8 @@ import { distanceMeters, formatDistance } from '@coincide/core';
 import { Separator } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { MiniMap, radiusOverflows, type MapMarker } from '@/components/mini-map';
+import { SearchBar, SearchPanel } from '@/components/map-search';
+import { ReportSheet } from '@/components/report-sheet';
 import { Sheet, type SheetPosition } from '@/components/sheet';
 import { Body, Caption, Screen } from '@/components/ui';
 import { useWeatherState } from '@/lib/conditions';
@@ -28,11 +30,13 @@ import {
   Radar,
   Siren,
   Stethoscope,
+  TriangleAlert,
   Trees,
   Users,
   type LucideIcon,
 } from '@/lib/icons';
-import { useLiveAlerts } from '@/lib/safety';
+import { openAlert, useLiveAlerts } from '@/lib/safety';
+import { useActivePet } from '@/lib/active-pet';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -112,6 +116,7 @@ export default function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { location } = useWeatherState();
+  const pet = useActivePet();
   const alerts = useLiveAlerts(location);
 
   const [active, setActive] = useState<Set<LayerId>>(new Set(['places']));
@@ -122,14 +127,27 @@ export default function ExploreScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetPosition>('peek');
   const [showLayers, setShowLayers] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  /* Los últimos sitios buscados. En memoria y en el dispositivo: una lista de
+     sitios buscados es una lista de dónde ha estado alguien y por qué. */
+  const [recents, setRecents] = useState<string[]>([]);
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
 
   const zoom = ZOOM_STEPS[zoomIndex] ?? ZOOM_STEPS[1];
 
-  const markers = useMemo<MapMarker[]>(() => {
+  /* El constructor toma las capas como argumento, y eso existe por un fallo que
+     salió en la auditoría de capturas: buscar «veterinario» no encontraba nada
+     porque esa capa viene apagada, y el buscador sólo miraba lo que estaba
+     dibujado. Un buscador que no encuentra un veterinario **porque hay un
+     filtro puesto** no sirve, y menos en una urgencia. Ahora se construyen dos
+     listas: la que se dibuja, con las capas encendidas, y la que se busca, con
+     todas. Al elegir un resultado de una capa apagada, se enciende. */
+  const buildMarkers = useCallback(
+    (layers: ReadonlySet<LayerId>): MapMarker[] => {
     const list: MapMarker[] = [];
 
-    if (active.has('places')) {
+    if (layers.has('places')) {
       for (const place of Object.values(PLACES)) {
         list.push({
           id: place.id,
@@ -145,7 +163,7 @@ export default function ExploreScreen() {
       }
     }
 
-    if (active.has('water')) {
+    if (layers.has('water')) {
       for (const point of WATER_POINTS) {
         list.push({
           id: point.id,
@@ -162,7 +180,7 @@ export default function ExploreScreen() {
       }
     }
 
-    if (active.has('vets')) {
+    if (layers.has('vets')) {
       for (const service of SERVICES) {
         if (service.kind !== 'vet' && service.kind !== 'emergency_vet') continue;
         list.push({
@@ -196,7 +214,20 @@ export default function ExploreScreen() {
     }
 
     return list;
-  }, [active, alerts]);
+    },
+    [alerts],
+  );
+
+  const markers = useMemo(() => buildMarkers(active), [buildMarkers, active]);
+  /* Todo, aunque no se dibuje. El buscador mira aquí. */
+  const searchable = useMemo(
+    () => buildMarkers(new Set(LAYERS.map((layer) => layer.id))),
+    [buildMarkers],
+  );
+
+  /** De qué capa vino un resultado, para poder encenderla al elegirlo. */
+  const layerOf = (marker: MapMarker): LayerId | null =>
+    marker.tone === 'place' ? 'places' : marker.tone === 'water' ? 'water' : marker.tone === 'vet' ? 'vets' : null;
 
   /* Ordenados por lo lejos que están, que es el único orden que sirve andando.
      Y con la distancia calculada aquí y no dentro del mapa: el mapa dibuja, la
@@ -265,6 +296,43 @@ export default function ExploreScreen() {
             />
           ) : null}
 
+          {/* Buscar, flotando encima del mapa. Faltaba entera: el mapa enseñaba
+              lo que hubiera dentro del cuadro y no había forma de preguntar por
+              algo. */}
+          {!showLayers ? <SearchBar onOpen={() => setSearching(true)} topInset={insets.top} /> : null}
+
+          {/* Avisar de algo, en rojo y abajo a la derecha: la mano ya está ahí,
+              y el momento de usarlo es andando. El catálogo de peligros existía
+              desde el principio en el núcleo y no tenía puerta desde el mapa. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Avisar de un peligro aquí"
+            accessibilityHint="Perro suelto, cristales, asfalto que quema, cebos o procesionaria"
+            onPress={() => {
+              haptics.tap();
+              setReporting(true);
+            }}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              right: theme.space[3],
+              bottom: PEEK_HEIGHT + theme.space[3],
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.colors.destructive,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Icon
+              icon={TriangleAlert}
+              size="lg"
+              color={theme.colors.destructiveForeground}
+              decorative
+            />
+          </Pressable>
+
           {/* Los controles, encima del mapa. Es lo que lo convierte en una
               pantalla en vez de una tarjeta dentro de un documento. */}
           <View
@@ -273,6 +341,8 @@ export default function ExploreScreen() {
               // Sin cabecera que lo haga por ellos, los botones esquivan la
               // muesca a mano: si no, el de capas se mete debajo del reloj.
               top: insets.top + theme.space[3],
+              // Y quedan a la altura de la barra de búsqueda, que ocupa el resto
+              // de esa fila.
               right: theme.space[3],
               /* Seis píxeles entre botones y no ocho: con la hoja abierta el
                  mapa se queda en unos doscientos cincuenta de alto, y la
@@ -490,10 +560,16 @@ export default function ExploreScreen() {
                 ) : null}
 
                 <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[3] }}>
+                  {/* Este texto decía que no había proveedor de teselas
+                      conectado. Dejó de ser verdad al conectar OpenStreetMap, y
+                      un párrafo que explica una limitación que ya no existe es
+                      peor que no tenerlo: hace dudar de lo que sí se ve. Lo que
+                      queda es lo que sigue siendo cierto y no es evidente. */}
                   <Caption>
-                    Es un esquema, no un mapa de calles: no hay proveedor de teselas conectado y
-                    dibujar calles inventadas sería peor que no dibujarlas. Las posiciones, las
-                    distancias y los radios sí son reales.
+                    Las calles son de OpenStreetMap. Los círculos no: son alcance real calculado
+                    aquí —el de un lugar es donde se puede encender el radar, el de una alerta es a
+                    quién está avisando—. Sin conexión el mapa se queda en su esquema y esos
+                    números siguen siendo correctos.
                   </Caption>
                 </View>
 
@@ -538,6 +614,54 @@ export default function ExploreScreen() {
                 </View>
               </ScrollView>
             </Sheet>
+        ) : null}
+
+        {/* Avisar de algo: hoja al fondo, sobre el mapa y sobre la lista. */}
+        {reporting ? (
+          <ReportSheet
+            areaName={selected?.label ?? 'tu zona'}
+            onClose={() => setReporting(false)}
+            onReport={(scenario) => {
+              /* El aviso se abre **donde estás**, no donde se haya dejado el
+                 mapa: un peligro se reporta desde delante del peligro, y usar
+                 el centro del cuadro pondría el cristal a dos calles si alguien
+                 había arrastrado la vista. */
+              openAlert({
+                scenarioId: scenario.id,
+                ownerName: pet.ownerName,
+                point: location,
+                areaName: 'donde estás ahora',
+              });
+              setReporting(false);
+              setSheet('open');
+            }}
+          />
+        ) : null}
+
+        {/* El buscador, a pantalla completa y por encima del mapa. */}
+        {searching ? (
+          <SearchPanel
+            items={searchable.map((marker) => ({
+              id: marker.id,
+              label: marker.label,
+              kind: marker.kind,
+            }))}
+            recents={recents}
+            topInset={insets.top}
+            onClose={() => setSearching(false)}
+            onPick={(item) => {
+              setRecents((current) => [item.id, ...current.filter((id) => id !== item.id)].slice(0, 5));
+              /* Encender la capa del resultado. Sin esto, elegir un veterinario
+                 con su capa apagada cierra el buscador y no pasa nada visible,
+                 que es la peor respuesta posible a un toque. */
+              const found = searchable.find((marker) => marker.id === item.id);
+              const layer = found ? layerOf(found) : null;
+              if (layer) setActive((current) => new Set(current).add(layer));
+              setSelectedId(item.id);
+              setSearching(false);
+              setSheet('open');
+            }}
+          />
         ) : null}
       </View>
     </Screen>
