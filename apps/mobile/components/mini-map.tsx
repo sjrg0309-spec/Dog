@@ -42,6 +42,11 @@ export type MapMarker = {
 const SIZE = 300;
 const METERS_PER_DEGREE_LAT = 111_320;
 
+/** ¿Hay algún alcance que no cabe en el cuadro? La pantalla tiene que decirlo. */
+export function radiusOverflows(markers: MapMarker[], spanM: number): MapMarker[] {
+  return markers.filter((marker) => (marker.radiusM ?? 0) * 2 > spanM * 0.9);
+}
+
 export function MiniMap({
   center,
   markers,
@@ -133,6 +138,15 @@ export function MiniMap({
         if (!marker.radiusM) return null;
         const { x, y, pxPerMeter } = project(marker);
         const r = marker.radiusM * pxPerMeter;
+        // Un círculo más grande que el cuadro no se dibuja.
+        //
+        // Se veía en la primera captura: la alerta de petardos tiene 7 km de
+        // radio y el cuadro abarcaba 4, así que el disco tapaba la pantalla
+        // entera de rosa. Un color que lo cubre todo no informa de nada —deja
+        // de haber dentro y fuera— y además esconde los demás marcadores.
+        // Cuando pasa, queda el marcador y el aviso de abajo dice que hay que
+        // alejar el cuadro para ver el alcance.
+        if (r > SIZE * 0.9) return null;
         return (
           <View
             key={`r-${marker.id}`}

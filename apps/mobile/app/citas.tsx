@@ -437,17 +437,26 @@ function MatchCard({ entry, viewerName }: { entry: DiscoveryEntry; viewerName: s
         ))}
       </Row>
 
+      {/* Fila fija, no `Row`: `Row` envuelve, y con un resumen de horario largo
+          el icono se quedaba solo en su línea encima del texto. */}
       <View style={{ gap: theme.space[2], alignSelf: 'stretch' }}>
-        <Row gap={2}>
-          <Icon icon={Clock} size="sm" color={theme.colors.mutedForeground} decorative />
-          <Caption>{match.scheduleSummary ?? 'Sin horario en común declarado'}</Caption>
-        </Row>
-        {distanceLabel ? (
-          <Row gap={2}>
-            <Icon icon={MapPin} size="sm" color={theme.colors.mutedForeground} decorative />
-            <Caption>A {distanceLabel}</Caption>
-          </Row>
-        ) : null}
+        <Fact icon={Clock} text={match.scheduleSummary ?? 'Sin horario en común declarado'} />
+        {distanceLabel ? <Fact icon={MapPin} text={`A ${distanceLabel}`} /> : null}
+      </View>
+    </View>
+  );
+}
+
+/** Icono y texto en una línea que no se parte por el medio. */
+function Fact({ icon, text }: { icon: typeof Clock; text: string }) {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.space[2] }}>
+      <View style={{ paddingTop: 3 }}>
+        <Icon icon={icon} size="sm" color={theme.colors.mutedForeground} decorative />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Caption>{text}</Caption>
       </View>
     </View>
   );

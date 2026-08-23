@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
-import { MiniMap, type MapMarker } from '@/components/mini-map';
+import { MiniMap, radiusOverflows, type MapMarker } from '@/components/mini-map';
 import { Badge, Body, Caption, Card, Notice, Row, Screen } from '@/components/ui';
 import { useDeclaredConditions } from '@/lib/conditions';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Droplets,
   Fence,
+  Layers,
   Radar,
   Siren,
   Stethoscope,
@@ -134,6 +135,7 @@ export default function ExploreScreen() {
   }, [active, alerts]);
 
   const selected = markers.find((marker) => marker.id === selectedId) ?? null;
+  const overflowing = radiusOverflows(markers, spanM);
 
   const toggle = (id: LayerId) => {
     haptics.tap();
@@ -204,6 +206,26 @@ export default function ExploreScreen() {
               </Pressable>
             ))}
           </Row>
+
+          {overflowing.length > 0 ? (
+            // Fila fija y no `Row`: `Row` envuelve, y con un texto de varias
+            // líneas el icono se quedaba solo arriba, separado de lo que
+            // acompaña.
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.space[2] }}>
+              <View style={{ paddingTop: 3 }}>
+                <Icon icon={Layers} size="sm" color={theme.colors.mutedForeground} decorative />
+              </View>
+              <View style={{ flex: 1 }}>
+              <Caption>
+                {overflowing.length === 1
+                  ? '1 alerta avisa más lejos de lo que abarca este cuadro.'
+                  : `${overflowing.length} alertas avisan más lejos de lo que abarca este cuadro.`}{' '}
+                Su círculo no se dibuja porque un color que lo tapa todo deja de tener dentro y
+                fuera. Alejando el cuadro se ve el alcance completo.
+              </Caption>
+              </View>
+            </View>
+          ) : null}
 
           <Caption>
             Es un esquema, no un mapa de calles: no hay proveedor de teselas conectado y dibujar

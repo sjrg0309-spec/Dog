@@ -23,23 +23,40 @@ const OUT = new URL('../artifacts/screenshots/', import.meta.url).pathname;
  * escondería justo eso.
  */
 const ROUTES = [
-  { path: '/', name: 'app-descubrir' },
-  { path: '/', name: 'app-descubrir-kira', pet: 'Kira' },
+  { path: '/', name: 'app-feed' },
+  // La otra cara del feed. Sin esta captura, «Siguiendo» y «Cerca de mí»
+  // parecen el mismo feed con dos rótulos, que es justo lo que no son.
+  { path: '/', name: 'app-feed-siguiendo', scope: 'Siguiendo' },
+  { path: '/sos', name: 'app-sos' },
+  // El botón de pánico abierto: el catálogo de escenarios con su radio delante.
+  { path: '/sos', name: 'app-sos-escenarios', tap: 'Dar la alarma' },
+  { path: '/explorar', name: 'app-explorar' },
+  { path: '/perfil', name: 'app-perfil' },
+  // Modo Paseo encendido: el código y lo que enseña, que es la mitad de la
+  // decisión de privacidad de esa pantalla.
+  { path: '/perfil', name: 'app-perfil-modo-paseo', tap: 'Modo Paseo' },
+  // Kira: hocico chato y sensible al calor. Los avisos del código cambian, y la
+  // ficha médica también.
+  { path: '/perfil', name: 'app-perfil-kira', pet: 'Kira', tap: 'Modo Paseo' },
+  { path: '/mensajes', name: 'app-mensajes' },
+  { path: '/citas', name: 'app-citas' },
+  { path: '/descubrir', name: 'app-descubrir' },
+  { path: '/descubrir', name: 'app-descubrir-kira', pet: 'Kira' },
   // El caso que define de quién es la aplicación: a 34 grados no hay lista.
-  { path: '/', name: 'app-descubrir-calor', temperature: '34°' },
+  { path: '/descubrir', name: 'app-descubrir-calor', temperature: '34°' },
+  // Kira a 26 grados: el mismo día, la misma especie, y la aplicación contesta
+  // que no. Es lo que hace visible que decide por el animal.
+  { path: '/descubrir', name: 'app-descubrir-calor-kira', pet: 'Kira', temperature: '26°' },
   { path: '/radar', name: 'app-radar' },
   // El radar fuera de zona: es la regla nueva, y una captura solo desde dentro
   // del parque la escondería.
   { path: '/radar', name: 'app-radar-fuera', place: 'En casa' },
   { path: '/publicar', name: 'app-publicar' },
   { path: '/quedadas', name: 'app-quedadas' },
-  { path: '/quedadas', name: 'app-quedadas-kira', pet: 'Kira' },
   { path: '/espacios', name: 'app-espacios' },
   { path: '/comunidad', name: 'app-comunidad' },
-  // Kira a 26 grados: el mismo día, la misma especie, y la aplicación contesta
-  // que no. Es lo que hace visible que decide por el animal.
-  { path: '/', name: 'app-descubrir-calor-kira', pet: 'Kira', temperature: '26°' },
 ];
+
 
 const THEMES = [
   { name: 'claro', colorScheme: 'light' },
@@ -74,9 +91,15 @@ for (const theme of THEMES) {
 
     await page.goto(`${BASE}${route.path}`, { waitUntil: 'networkidle' });
     // La aplicación es una SPA: hay que esperar a que React pinte algo.
-    await page.waitForSelector('text=/Coincide|Descubrir|Radar|Quedadas|Espacios|Con quién/i', {
-      timeout: 15_000,
-    });
+    await page.waitForSelector(
+      'text=/Coincide|SOS|Explorar|Mensajes|Radar|Quedadas|Espacios|Con quién|Cita de juego/i',
+      { timeout: 15_000 },
+    );
+
+    if (route.scope) {
+      await page.getByRole('tab', { name: route.scope }).click();
+      await page.waitForTimeout(300);
+    }
 
     if (route.temperature) {
       await page.getByRole('radio', { name: route.temperature }).click();
@@ -93,6 +116,13 @@ for (const theme of THEMES) {
       // El selector es estado de React, no navegación: se espera al texto que
       // solo aparece cuando la pantalla ya se ha vuelto a pintar.
       await page.waitForTimeout(300);
+    }
+
+    // Lo último: un interruptor o un botón que abre lo que hay que enseñar. Va
+    // después del selector de mascota para que se abra sobre la correcta.
+    if (route.tap) {
+      await page.getByRole(route.tap === 'Modo Paseo' ? 'switch' : 'button', { name: route.tap }).click();
+      await page.waitForTimeout(400);
     }
 
     await page.screenshot({ path: `${OUT}${route.name}-${theme.name}.png`, fullPage: true });

@@ -308,7 +308,10 @@ export function scopePosts(
       if (!post.point) return null;
       const distance = distanceMeters(from, post.point);
       if (distance > radiusM) return null;
-      return { post, distanceLabel: formatDistance(distance) };
+      // Por debajo de cincuenta metros no se dice la distancia: «a 0 m» se lee
+      // como un dato roto, y de un sitio en el que ya estás lo que importa no
+      // es cuántos metros faltan.
+      return { post, distanceLabel: distance < 50 ? null : formatDistance(distance) };
     })
     .filter((entry): entry is ScopedPost => entry !== null);
 }
