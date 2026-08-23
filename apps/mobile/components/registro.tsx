@@ -1,26 +1,41 @@
 /**
- * El alta. La puerta de la aplicación.
+ * El alta. La puerta de la aplicación, con la forma de un registro de Instagram.
  *
  * Aquí no se entra a mirar: para registrarse hay que dar de alta a tu animal.
  * No es una pantalla que se pueda saltar navegando a otra ruta —no es una ruta:
  * es lo que se dibuja **en lugar de** la aplicación mientras no haya animal—,
  * porque una puerta que se esquiva escribiendo una dirección no es una puerta.
  *
- * ## Por qué se pide todo esto
+ * ## Por qué una pregunta por pantalla y no un formulario
  *
- * Cada campo hace algo, y la pantalla lo dice al lado:
+ * Es la forma que usa Instagram en su registro, y funciona por un motivo que se
+ * puede medir: un formulario largo se ve entero antes de empezar, y lo que se
+ * ve entero se abandona. Aquí cada pantalla pide **una cosa**, dice **por qué
+ * se pide**, y el botón de abajo no se enciende hasta que esa cosa está. Lo que
+ * antes era una lista de seis campos en gris —«falta por rellenar»— ahora es un
+ * paso que se cierra y otro que se abre.
  *
- *  - **Nombre, edad y talla** son con quién se junta y con quién no. La
+ * Y hay una ganancia que no es de estilo: el motivo cabe. En una pantalla con
+ * una sola pregunta, explicar que tres escalones de diferencia de talla son un
+ * veto duro no compite con nada. En un formulario, ese texto era el que se
+ * saltaba todo el mundo.
+ *
+ * La barra de arriba dice dónde estás sin números —como la de Instagram— y el
+ * atrás de cada paso vuelve al anterior en vez de tirar el alta entera.
+ *
+ * ## Lo que se pide, y por qué
+ *
+ *  - **Nombre, edad y talla** deciden con quién se junta y con quién no. La
  *    diferencia de talla de tres escalones es un veto duro del algoritmo, no
  *    una preferencia.
  *  - **Carácter** —energía y cómo juega— es el 65 % de la puntuación de
- *    afinidad. Sin esto no hay matching, solo una lista de perros cerca.
+ *    afinidad. Sin esto no hay emparejamiento, solo una lista de perros cerca.
  *  - **Horario** es la mitad del producto: cruzar horarios es lo que hace que
  *    esto sirva a las once de la noche, con la aplicación vacía.
  *  - **El chip es opcional**, y es la decisión que más se puede discutir. Hay
  *    animales adoptados hace años o de países donde no era obligatorio, y dejar
- *    fuera a sus tutores no protege a nadie. Lo que hace el chip es **abrir**
- *    lo que enseña gente en vez de sitios.
+ *    fuera a sus tutores no protege a nadie. El chip **abre** lo que enseña
+ *    gente en vez de sitios.
  *
  * ## Y lo que no se pide
  *
@@ -29,7 +44,7 @@
  * nunca de los cálculos de dónde quedar.
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import {
@@ -40,7 +55,6 @@ import {
   SHELTER_GATE_NOTE,
   SHELTER_REVIEW_NOTE,
   SHELTER_SCOPE_NOTE,
-  STEP_LABEL,
   missingShelterFields,
   missingSteps,
   validateShelterProfile,
@@ -49,11 +63,20 @@ import {
 import { formatMicrochip, validateMicrochip } from '@coincide/trackers';
 
 import { Icon } from './icon';
+import { Appear } from './motion';
 import { Body, Caption, Screen } from '@/components/ui';
 import { registerPet, registerShelter } from '@/lib/account';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { BadgeCheck, Check, CircleAlert, Lock, PawPrint, Siren } from '@/lib/icons';
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Check,
+  CircleAlert,
+  Lock,
+  PawPrint,
+  Siren,
+} from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
 const SIZES = [
@@ -95,296 +118,114 @@ const SLOTS = [
   { id: 'night', label: 'Noche', start: '22:00', end: '23:00' },
 ] as const;
 
-/**
- * Las dos puertas.
- *
- * Se eligen arriba del todo y no se esconde ninguna: quien rescata y no tiene
- * animal propio tiene que ver que hay sitio para ella antes de rellenar nada, y
- * quien tiene perro tiene que ver que la otra existe para entender por qué se
- * le pide lo que se le pide.
- */
+/** Un paso del alta: una pregunta, su motivo y cuándo se puede seguir. */
+type Step = {
+  id: string;
+  title: string;
+  why: string;
+  content: ReactNode;
+  ready: boolean;
+  /** Los pasos opcionales enseñan «Omitir» en vez de obligar. */
+  skippable?: boolean;
+  /** El último no dice «Siguiente». */
+  cta?: string;
+};
+
 export function Registro() {
-  const [door, setDoor] = useState<'tutor' | 'rescuer'>('tutor');
+  const [door, setDoor] = useState<'tutor' | 'rescuer' | null>(null);
+
+  if (door === null) return <Bienvenida onPick={setDoor} />;
+  if (door === 'tutor') return <AltaTutor onBack={() => setDoor(null)} />;
+  return <AltaProtectora onBack={() => setDoor(null)} />;
+}
+
+/**
+ * La bienvenida.
+ *
+ * Es la pantalla de «crear cuenta» de Instagram con el trabajo cambiado: allí
+ * elige entre entrar y registrarse; aquí elige **por qué puerta entra**, que es
+ * la decisión que gobierna todo lo demás.
+ *
+ * Las dos se ven a la vez y ninguna está escondida detrás de un «más opciones»:
+ * quien rescata y no tiene animal propio tiene que ver que hay sitio para ella
+ * antes de rellenar nada, y quien tiene perro tiene que ver que la otra existe
+ * para entender por qué se le pide lo que se le pide.
+ */
+function Bienvenida({ onPick }: { onPick: (door: 'tutor' | 'rescuer') => void }) {
   const theme = useTheme();
 
   return (
     <Screen>
       <View
         style={{
-          flexDirection: 'row',
-          gap: theme.space[2],
-          paddingHorizontal: theme.space[5],
-          paddingTop: theme.space[4],
+          flex: 1,
+          justifyContent: 'center',
+          gap: theme.space[6],
+          padding: theme.space[6],
         }}
       >
-        <Door
-          icon={PawPrint}
-          label="Tengo perro"
-          on={door === 'tutor'}
-          onPress={() => setDoor('tutor')}
-        />
-        <Door
-          icon={Siren}
-          label="Rescato, sin perro propio"
-          on={door === 'rescuer'}
-          onPress={() => setDoor('rescuer')}
-        />
+        <Appear>
+          <View style={{ alignItems: 'center', gap: theme.space[3] }}>
+            <Icon icon={PawPrint} size="xl" color={theme.colors.primary} decorative />
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayExtrabold,
+                fontSize: theme.fontSize['4xl'],
+                letterSpacing: -1,
+              }}
+            >
+              Coincide
+            </Text>
+            <Text
+              style={{
+                textAlign: 'center',
+                color: theme.colors.mutedForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.sm,
+                lineHeight: theme.fontSize.sm * 1.5,
+              }}
+            >
+              {GATE_NOTE}
+            </Text>
+          </View>
+        </Appear>
+
+        <Appear index={1} style={{ gap: theme.space[3] }}>
+          <BigButton
+            label="Dar de alta a mi perro"
+            icon={PawPrint}
+            onPress={() => onPick('tutor')}
+          />
+          <BigButton
+            label="Rescato y no tengo perro"
+            icon={Siren}
+            tone="outline"
+            onPress={() => onPick('rescuer')}
+          />
+          <Caption>
+            Protectoras, albergues, casas de acogida y quien alimenta colonias entran por la
+            segunda, enseñando el perfil público del colectivo.
+          </Caption>
+        </Appear>
       </View>
-      {door === 'tutor' ? <AltaTutor /> : <AltaProtectora />}
     </Screen>
   );
 }
 
-function Door({
-  icon,
-  label,
-  on,
-  onPress,
-}: {
-  icon: typeof PawPrint;
-  label: string;
-  on: boolean;
-  onPress: () => void;
-}) {
+/** El alta de un tutor, paso a paso. */
+function AltaTutor({ onBack }: { onBack: () => void }) {
   const theme = useTheme();
 
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: on }}
-      accessibilityLabel={label}
-      onPress={() => {
-        haptics.tap();
-        onPress();
-      }}
-      style={({ pressed }) => ({
-        flex: 1,
-        alignItems: 'center',
-        gap: theme.space[1],
-        minHeight: theme.touchTarget.comfortable,
-        paddingVertical: theme.space[3],
-        paddingHorizontal: theme.space[2],
-        borderRadius: theme.radius.lg,
-        borderWidth: on ? 2 : 1,
-        borderColor: on ? theme.colors.primary : theme.colors.border,
-        backgroundColor: pressed ? theme.colors.surfaceSunken : theme.colors.surface,
-      })}
-    >
-      <Icon
-        icon={icon}
-        size="lg"
-        color={on ? theme.colors.primary : theme.colors.mutedForeground}
-        decorative
-      />
-      <Text
-        style={{
-          textAlign: 'center',
-          color: on ? theme.colors.foreground : theme.colors.mutedForeground,
-          fontFamily: on ? fonts.displayBold : fonts.body,
-          fontSize: theme.fontSize.sm,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-/**
- * La puerta de quien rescata y no tiene animal propio.
- *
- * Protectoras, albergues, casas de acogida, quien alimenta colonias. Se pide el
- * perfil público del colectivo —la cuenta que ya tienen— y la cuenta queda
- * pendiente de que una persona lo mire.
- *
- * Lo que **no** abre esta puerta, ni siquiera aprobada, está escrito en la
- * pantalla: quién pasea ahora y los horarios de nadie. Rescatar no necesita
- * saber a qué hora sale cada vecino, y si esa lista se abriera enseñando un
- * enlace, enseñar un enlace sería la forma más barata de conseguirla.
- */
-function AltaProtectora() {
-  const theme = useTheme();
-  const [name, setName] = useState('');
-  const [profile, setProfile] = useState('');
-  const [activities, setActivities] = useState<string[]>([]);
-
-  const link = validateShelterProfile(profile);
-  const missing = missingShelterFields({ name, profile, activities });
-
-  return (
-    <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[6] }}>
-      <View style={{ gap: theme.space[2] }}>
-        <Text
-          accessibilityRole="header"
-          style={{
-            color: theme.colors.foreground,
-            fontFamily: fonts.displayExtrabold,
-            fontSize: theme.fontSize['3xl'],
-            letterSpacing: -0.5,
-          }}
-        >
-          Entrar como protectora
-        </Text>
-        <Body muted>{SHELTER_GATE_NOTE}</Body>
-      </View>
-
-      <Field label="Cómo os llamáis" why="El nombre con el que os conocen, el mismo del perfil.">
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Patitas del Sur"
-          placeholderTextColor={theme.colors.inputPlaceholder}
-          accessibilityLabel="Nombre del colectivo"
-          style={{
-            minHeight: theme.touchTarget.comfortable,
-            paddingHorizontal: theme.space[4],
-            borderRadius: theme.radius.md,
-            backgroundColor: theme.colors.input,
-            color: theme.colors.inputForeground,
-            fontFamily: fonts.body,
-            fontSize: theme.fontSize.base,
-          }}
-        />
-      </Field>
-
-      <Field
-        label="El perfil público"
-        why="Instagram, Facebook, TikTok, X o vuestra web. Tiene que ser el perfil entero, no una publicación: lo que se puede mirar es la cuenta."
-      >
-        <TextInput
-          value={profile}
-          onChangeText={setProfile}
-          placeholder="instagram.com/patitasdelsur"
-          placeholderTextColor={theme.colors.inputPlaceholder}
-          autoCapitalize="none"
-          keyboardType="url"
-          accessibilityLabel="Enlace al perfil del colectivo"
-          style={{
-            minHeight: theme.touchTarget.comfortable,
-            paddingHorizontal: theme.space[4],
-            borderRadius: theme.radius.md,
-            backgroundColor: theme.colors.input,
-            color: theme.colors.inputForeground,
-            fontFamily: fonts.body,
-            fontSize: theme.fontSize.base,
-          }}
-        />
-        {profile.trim() !== '' ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
-            <Icon
-              icon={link.ok ? BadgeCheck : CircleAlert}
-              size="base"
-              color={link.ok ? theme.colors.success : theme.colors.warning}
-              decorative
-            />
-            <Caption>
-              {link.ok
-                ? `${link.platform}${link.handle ? ` · @${link.handle}` : ''}. La forma está bien; que la cuenta sea vuestra lo mira una persona.`
-                : link.reason}
-            </Caption>
-          </View>
-        ) : null}
-      </Field>
-
-      <Field label="Qué hacéis" why="Decide qué avisos os llegan cuando la cuenta esté aprobada.">
-        <Chips
-          options={SHELTER_ACTIVITIES.map((activity) => ({ id: activity.id, label: activity.label }))}
-          selected={activities}
-          onPress={(id) =>
-            setActivities((current) =>
-              current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
-            )
-          }
-        />
-      </Field>
-
-      <View
-        style={{
-          gap: theme.space[2],
-          padding: theme.space[4],
-          borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          backgroundColor: theme.colors.surface,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
-          <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
-          <Text
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize.base,
-            }}
-          >
-            Distinta puerta, distinta habitación
-          </Text>
-        </View>
-        <Caption>{SHELTER_SCOPE_NOTE}</Caption>
-        <Caption>{SHELTER_REVIEW_NOTE}</Caption>
-      </View>
-
-      {missing.length > 0 ? (
-        <View style={{ gap: theme.space[1] }}>
-          <Caption>Falta:</Caption>
-          {missing.map((item) => (
-            <Caption key={item}>· {item}</Caption>
-          ))}
-        </View>
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: missing.length > 0 }}
-        accessibilityLabel="Enviar a revisión"
-        disabled={missing.length > 0}
-        onPress={() => {
-          if (!link.ok) return;
-          haptics.commit();
-          registerShelter({ name, profile, activities, normalizedProfile: link.normalized });
-        }}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: theme.space[2],
-          minHeight: theme.touchTarget.floating,
-          borderRadius: theme.radius.full,
-          backgroundColor: missing.length > 0 ? theme.colors.muted : theme.colors.primary,
-          opacity: pressed ? 0.85 : 1,
-        })}
-      >
-        <Icon
-          icon={Check}
-          size="lg"
-          color={missing.length > 0 ? theme.colors.mutedForeground : theme.colors.primaryForeground}
-          decorative
-        />
-        <Text
-          style={{
-            color:
-              missing.length > 0 ? theme.colors.mutedForeground : theme.colors.primaryForeground,
-            fontFamily: fonts.displayBold,
-            fontSize: theme.fontSize.lg,
-          }}
-        >
-          Enviar a revisión
-        </Text>
-      </Pressable>
-    </ScrollView>
-  );
-}
-
-function AltaTutor() {
-  const theme = useTheme();
-
+  const [index, setIndex] = useState(0);
   const [name, setName] = useState('');
   const [years, setYears] = useState('');
   const [months, setMonths] = useState('');
+  const [sex, setSex] = useState<'male' | 'female' | null>(null);
   const [size, setSize] = useState<string | null>(null);
   const [energy, setEnergy] = useState<string | null>(null);
   const [play, setPlay] = useState<string[]>([]);
-  const [sex, setSex] = useState<'male' | 'female'>('female');
   const [days, setDays] = useState<number[]>([]);
   const [slot, setSlot] = useState<string | null>(null);
   const [chip, setChip] = useState('');
@@ -404,102 +245,94 @@ function AltaTutor() {
     availability: days.length > 0 && slot !== null ? days.length : 0,
   };
 
-  const missing = missingSteps(draft);
   const chosenSlot = SLOTS.find((candidate) => candidate.id === slot);
   const chipCheck = chip.trim() === '' ? null : validateMicrochip(chip);
+  const complete = missingSteps(draft).length === 0;
 
-  return (
-    <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[6] }}>
-      <View style={{ gap: theme.space[2] }}>
-          <Icon icon={PawPrint} size="xl" color={theme.colors.primary} decorative />
-          <Text
-            accessibilityRole="header"
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: fonts.displayExtrabold,
-              fontSize: theme.fontSize['3xl'],
-              letterSpacing: -0.5,
-            }}
-          >
-            Da de alta a tu perro
-          </Text>
-          <Body muted>{GATE_NOTE}</Body>
+  const steps: Step[] = [
+    {
+      id: 'name',
+      title: 'Cómo se llama',
+      why: 'Es como te van a llamar a ti en el parque.',
+      ready: name.trim().length >= 2,
+      content: (
+        <Input
+          value={name}
+          onChange={setName}
+          placeholder="Nina"
+          label="Nombre de tu perro"
+          autoFocus
+        />
+      ),
+    },
+    {
+      id: 'age',
+      title: 'Qué edad tiene',
+      why: 'Por debajo del año es un cachorro, y hay tutores que piden no cruzarse con cachorros muy revoltosos. El algoritmo lo respeta.',
+      ready: ageMonths !== null && Number.isFinite(ageMonths) && ageMonths >= 0,
+      content: (
+        <View style={{ flexDirection: 'row', gap: theme.space[3] }}>
+          <NumberBox value={years} onChange={setYears} label="Años" />
+          <NumberBox value={months} onChange={setMonths} label="Meses" />
         </View>
-
-        <Field label="Cómo se llama" why="Es como te van a llamar a ti en el parque.">
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Nina"
-            placeholderTextColor={theme.colors.inputPlaceholder}
-            accessibilityLabel="Nombre de tu perro"
-            style={{
-              minHeight: theme.touchTarget.comfortable,
-              paddingHorizontal: theme.space[4],
-              borderRadius: theme.radius.md,
-              backgroundColor: theme.colors.input,
-              color: theme.colors.inputForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize.base,
-            }}
-          />
-        </Field>
-
-        <Field
-          label="Qué edad tiene"
-          why="Por debajo del año es un cachorro, y hay tutores que piden no cruzarse con cachorros muy revoltosos. El algoritmo lo respeta."
-        >
-          <View style={{ flexDirection: 'row', gap: theme.space[3] }}>
-            <NumberBox value={years} onChange={setYears} label="Años" />
-            <NumberBox value={months} onChange={setMonths} label="Meses" />
-          </View>
-        </Field>
-
-        <Field
-          label="Cuánto ocupa"
-          why="Tres escalones de diferencia es un veto duro: no es cuestión de carácter, es riesgo de lesión."
-        >
+      ),
+    },
+    {
+      id: 'sex',
+      title: 'Es macho o hembra',
+      why: 'Hay tutores que prefieren un sexo u otro para los encuentros, y el algoritmo lo tiene en cuenta.',
+      ready: sex !== null,
+      content: (
+        <Chips
+          options={[
+            { id: 'female', label: 'Hembra' },
+            { id: 'male', label: 'Macho' },
+          ]}
+          selected={sex ? [sex] : []}
+          onPress={(id) => setSex(id as 'male' | 'female')}
+        />
+      ),
+    },
+    {
+      id: 'size',
+      title: 'Cuánto ocupa',
+      why: 'Tres escalones de diferencia es un veto duro: no es cuestión de carácter, es riesgo de lesión.',
+      ready: size !== null,
+      content: <Chips options={SIZES} selected={size ? [size] : []} onPress={setSize} />,
+    },
+    {
+      id: 'energy',
+      title: 'Cuánta cuerda tiene',
+      why: 'Es el peso más grande de la afinidad: un perro de sofá con un velocista es la causa número uno de un mal encuentro.',
+      ready: energy !== null,
+      content: <Chips options={ENERGY} selected={energy ? [energy] : []} onPress={setEnergy} />,
+    },
+    {
+      id: 'play',
+      title: 'Cómo juega',
+      why: 'Marca todas las que valgan. A dos perros les basta una forma compartida de jugar, así que cuantas más pongas, más fácil es encontrarle a alguien.',
+      ready: play.length > 0,
+      content: (
+        <Chips
+          options={PLAY}
+          selected={play}
+          onPress={(id) =>
+            setPlay((current) =>
+              current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
+            )
+          }
+        />
+      ),
+    },
+    {
+      id: 'schedule',
+      title: 'Cuándo salís',
+      why: 'Es la mitad de la aplicación: cruzar horarios es lo que hace que sirva a las once de la noche, cuando no hay nadie conectado. Tu horario exacto no se publica; solo se dice con quién coincides.',
+      ready: days.length > 0 && slot !== null,
+      content: (
+        <View style={{ gap: theme.space[4] }}>
           <Chips
-            options={SIZES}
-            selected={size ? [size] : []}
-            onPress={(id) => setSize(id)}
-          />
-        </Field>
-
-        <Field
-          label="Cómo es"
-          why="Energía y forma de jugar son el 65 % de la afinidad. Sin esto no hay emparejamiento, solo una lista de perros cerca."
-        >
-          <Chips options={ENERGY} selected={energy ? [energy] : []} onPress={(id) => setEnergy(id)} />
-          <View style={{ height: theme.space[3] }} />
-          <Caption>Cómo juega. Puedes marcar varias.</Caption>
-          <Chips
-            options={PLAY}
-            selected={play}
-            onPress={(id) =>
-              setPlay((current) =>
-                current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
-              )
-            }
-          />
-        </Field>
-
-        <Field label="Es" why="Hay tutores que prefieren un sexo u otro para los encuentros, y el algoritmo lo tiene en cuenta.">
-          <Chips
-            options={[
-              { id: 'female', label: 'Hembra' },
-              { id: 'male', label: 'Macho' },
-            ]}
-            selected={[sex]}
-            onPress={(id) => setSex(id as 'male' | 'female')}
-          />
-        </Field>
-
-        <Field
-          label="Cuándo salís"
-          why="Es la mitad de la aplicación: cruzar horarios es lo que hace que sirva a las once de la noche, cuando no hay nadie conectado. Tu horario exacto no se publica; solo se dice con quién coincides."
-        >
-          <Chips
+            compact
             options={DAYS.map((day) => ({ id: String(day.id), label: day.label }))}
             selected={days.map(String)}
             onPress={(id) =>
@@ -510,7 +343,6 @@ function AltaTutor() {
               )
             }
           />
-          <View style={{ height: theme.space[3] }} />
           <Chips
             options={SLOTS.map((option) => ({
               id: option.id,
@@ -518,31 +350,25 @@ function AltaTutor() {
               hint: `${option.start}–${option.end}`,
             }))}
             selected={slot ? [slot] : []}
-            onPress={(id) => setSlot(id)}
+            onPress={setSlot}
           />
-        </Field>
-
-        <Field
-          label="El chip, si lo tiene"
-          why={CHIP_NOTE}
-          optional
-        >
-          <TextInput
+        </View>
+      ),
+    },
+    {
+      id: 'chip',
+      title: 'El chip, si lo tiene',
+      why: CHIP_NOTE,
+      ready: chipCheck?.valid === true,
+      skippable: true,
+      content: (
+        <View style={{ gap: theme.space[3] }}>
+          <Input
             value={chip}
-            onChangeText={setChip}
+            onChange={setChip}
             placeholder="941 000 012 345 678"
-            placeholderTextColor={theme.colors.inputPlaceholder}
-            keyboardType="number-pad"
-            accessibilityLabel="Código del microchip"
-            style={{
-              minHeight: theme.touchTarget.comfortable,
-              paddingHorizontal: theme.space[4],
-              borderRadius: theme.radius.md,
-              backgroundColor: theme.colors.input,
-              color: theme.colors.inputForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize.base,
-            }}
+            label="Código del microchip"
+            numeric
           />
           {chipCheck ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
@@ -559,19 +385,226 @@ function AltaTutor() {
               </Caption>
             </View>
           ) : null}
-        </Field>
+        </View>
+      ),
+    },
+    {
+      id: 'done',
+      title: `Listo${name.trim() ? `, ${name.trim()}` : ''}`,
+      why: 'Esto es lo que se guarda. Se puede cambiar entero después desde el perfil.',
+      ready: complete,
+      cta: 'Entrar',
+      content: (
+        <View style={{ gap: theme.space[4] }}>
+          <View
+            style={{
+              gap: theme.space[1],
+              padding: theme.space[4],
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.surface,
+            }}
+          >
+            <Summary label="Nombre" value={name.trim()} />
+            <Summary
+              label="Edad"
+              value={`${Number(years || 0)} años${Number(months || 0) > 0 ? ` y ${Number(months)} meses` : ''}`}
+            />
+            <Summary
+              label="Tamaño"
+              value={SIZES.find((option) => option.id === size)?.label ?? '—'}
+            />
+            <Summary
+              label="Carácter"
+              value={[
+                ENERGY.find((option) => option.id === energy)?.label,
+                ...play.map((id) => PLAY.find((option) => option.id === id)?.label),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            />
+            <Summary
+              label="Paseo"
+              value={`${days
+                .slice()
+                .sort((a, b) => ((a === 0 ? 7 : a) > (b === 0 ? 7 : b) ? 1 : -1))
+                .map((day) => DAYS.find((option) => option.id === day)?.label)
+                .join(' ')} · ${chosenSlot ? `${chosenSlot.start}–${chosenSlot.end}` : '—'}`}
+            />
+            <Summary
+              label="Chip"
+              value={chipCheck?.valid ? 'Declarado, sin verificar' : 'Sin chip'}
+            />
+          </View>
 
-        {/* Lo que se abre y lo que no. Se dice **antes** de entrar, no al chocar
-            con la primera puerta cerrada: una traba que se explica cuando ya
-            estás dentro se lee como un cobro. */}
+          {/* Lo que se abre y lo que no, **antes** de entrar y no al chocar con
+              la primera puerta cerrada: una traba que se explica cuando ya
+              estás dentro se lee como un cobro. */}
+          <View
+            style={{
+              gap: theme.space[2],
+              padding: theme.space[4],
+              borderRadius: theme.radius.lg,
+              backgroundColor: theme.colors.surfaceSunken,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+              <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.displayBold,
+                  fontSize: theme.fontSize.base,
+                }}
+              >
+                Los sitios se ven; las personas no
+              </Text>
+            </View>
+            <Caption>
+              Al entrar verás el mapa de parques, fuentes, sombra y veterinarios, y el feed del
+              vecindario. Quién está paseando ahora y a qué hora sale cada uno se abre al verificar
+              el chip con la cartilla, porque la cara, el sitio y la hora son justo lo que buscaría
+              quien anda mirando qué animal llevarse.
+            </Caption>
+            <Caption>{HONESTY_NOTE}</Caption>
+          </View>
+        </View>
+      ),
+    },
+  ];
+
+  const step = steps[index]!;
+  const last = index === steps.length - 1;
+
+  return (
+    <Wizard
+      steps={steps.length}
+      index={index}
+      step={step}
+      onBack={() => (index === 0 ? onBack() : setIndex(index - 1))}
+      onNext={() => {
+        if (!last) {
+          setIndex(index + 1);
+          return;
+        }
+        if (!chosenSlot || sex === null) return;
+        haptics.commit();
+        registerPet({
+          ...draft,
+          sex,
+          days,
+          startTime: chosenSlot.start,
+          endTime: chosenSlot.end,
+          microchipCode: chipCheck?.valid ? chipCheck.normalized : null,
+        });
+      }}
+      onSkip={() => setIndex(index + 1)}
+    />
+  );
+}
+
+/**
+ * La puerta de quien rescata y no tiene animal propio.
+ *
+ * Tres pasos, la misma forma. Lo que **no** abre esta puerta, ni siquiera
+ * aprobada, está escrito en el último: quién pasea ahora y los horarios de
+ * nadie. Rescatar no necesita saber a qué hora sale cada vecino, y si esa lista
+ * se abriera enseñando un enlace, enseñar un enlace sería la forma más barata
+ * de conseguirla.
+ */
+function AltaProtectora({ onBack }: { onBack: () => void }) {
+  const theme = useTheme();
+
+  const [index, setIndex] = useState(0);
+  const [name, setName] = useState('');
+  const [profile, setProfile] = useState('');
+  const [activities, setActivities] = useState<string[]>([]);
+
+  const link = validateShelterProfile(profile);
+  const missing = missingShelterFields({ name, profile, activities });
+
+  const steps: Step[] = [
+    {
+      id: 'name',
+      title: 'Cómo os llamáis',
+      why: 'El nombre con el que os conocen, el mismo del perfil.',
+      ready: name.trim().length >= 3,
+      content: (
+        <Input
+          value={name}
+          onChange={setName}
+          placeholder="Patitas del Sur"
+          label="Nombre del colectivo"
+          autoFocus
+        />
+      ),
+    },
+    {
+      id: 'profile',
+      title: 'El perfil público',
+      why: 'Instagram, Facebook, TikTok, X o vuestra web. Tiene que ser el perfil entero, no una publicación: lo que se puede mirar es la cuenta.',
+      ready: link.ok,
+      content: (
+        <View style={{ gap: theme.space[3] }}>
+          <Input
+            value={profile}
+            onChange={setProfile}
+            placeholder="instagram.com/patitasdelsur"
+            label="Enlace al perfil del colectivo"
+            url
+          />
+          {profile.trim() !== '' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+              <Icon
+                icon={link.ok ? BadgeCheck : CircleAlert}
+                size="base"
+                color={link.ok ? theme.colors.success : theme.colors.warning}
+                decorative
+              />
+              <Caption>
+                {link.ok
+                  ? `${link.platform}${link.handle ? ` · @${link.handle}` : ''}. La forma está bien; que la cuenta sea vuestra lo mira una persona.`
+                  : link.reason}
+              </Caption>
+            </View>
+          ) : null}
+        </View>
+      ),
+    },
+    {
+      id: 'activities',
+      title: 'Qué hacéis',
+      why: 'Decide qué avisos os llegan cuando la cuenta esté aprobada.',
+      ready: activities.length > 0,
+      content: (
+        <Chips
+          options={SHELTER_ACTIVITIES.map((activity) => ({
+            id: activity.id,
+            label: activity.label,
+          }))}
+          selected={activities}
+          onPress={(id) =>
+            setActivities((current) =>
+              current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
+            )
+          }
+        />
+      ),
+    },
+    {
+      id: 'done',
+      title: 'Lo miramos y os decimos',
+      why: SHELTER_REVIEW_NOTE,
+      ready: missing.length === 0,
+      cta: 'Enviar a revisión',
+      content: (
         <View
           style={{
             gap: theme.space[2],
             padding: theme.space[4],
             borderRadius: theme.radius.lg,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-            backgroundColor: theme.colors.surface,
+            backgroundColor: theme.colors.surfaceSunken,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
@@ -583,114 +616,308 @@ function AltaTutor() {
                 fontSize: theme.fontSize.base,
               }}
             >
-              Los sitios se ven; las personas no
+              Distinta puerta, distinta habitación
             </Text>
           </View>
-          <Caption>
-            Al entrar verás el mapa de parques, fuentes, sombra y veterinarios, y el feed del
-            vecindario. Quién está paseando ahora y a qué hora sale cada uno se abre al verificar el
-            chip con la cartilla, porque la cara, el sitio y la hora son justo lo que buscaría quien
-            anda mirando qué animal llevarse.
-          </Caption>
-          <Caption>{HONESTY_NOTE}</Caption>
+          <Caption>{SHELTER_SCOPE_NOTE}</Caption>
         </View>
+      ),
+    },
+  ];
 
-        {missing.length > 0 ? (
-          <View style={{ gap: theme.space[1] }}>
-            <Caption>Falta por rellenar:</Caption>
-            {missing.map((step) => (
-              <Caption key={step}>· {STEP_LABEL[step]}</Caption>
-            ))}
-          </View>
-        ) : null}
+  const step = steps[index]!;
+  const last = index === steps.length - 1;
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: missing.length > 0 }}
-          accessibilityLabel="Entrar"
-          accessibilityHint={
-            missing.length > 0 ? 'Faltan datos del alta' : 'Da de alta a tu perro y abre la aplicación'
-          }
-          disabled={missing.length > 0}
-          onPress={() => {
-            if (!chosenSlot) return;
-            haptics.commit();
-            registerPet({
-              ...draft,
-              sex,
-              days,
-              startTime: chosenSlot.start,
-              endTime: chosenSlot.end,
-              microchipCode: chipCheck?.valid ? chipCheck.normalized : null,
-            });
-          }}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: theme.space[2],
-            minHeight: theme.touchTarget.floating,
-            borderRadius: theme.radius.full,
-            backgroundColor:
-              missing.length > 0 ? theme.colors.muted : theme.colors.primary,
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <Icon
-            icon={Check}
-            size="lg"
-            color={
-              missing.length > 0 ? theme.colors.mutedForeground : theme.colors.primaryForeground
-            }
-            decorative
-          />
-          <Text
-            style={{
-              color:
-                missing.length > 0 ? theme.colors.mutedForeground : theme.colors.primaryForeground,
-              fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize.lg,
-            }}
-          >
-            Entrar
-          </Text>
-        </Pressable>
-    </ScrollView>
+  return (
+    <Wizard
+      steps={steps.length}
+      index={index}
+      step={step}
+      intro={index === 0 ? SHELTER_GATE_NOTE : undefined}
+      onBack={() => (index === 0 ? onBack() : setIndex(index - 1))}
+      onNext={() => {
+        if (!last) {
+          setIndex(index + 1);
+          return;
+        }
+        if (!link.ok) return;
+        haptics.commit();
+        registerShelter({ name, profile, activities, normalizedProfile: link.normalized });
+      }}
+      onSkip={() => setIndex(index + 1)}
+    />
   );
 }
 
-/** Un campo con su motivo al lado. El motivo no es relleno: es lo que hace que se rellene. */
-function Field({
-  label,
-  why,
-  optional = false,
-  children,
+/**
+ * El armazón de un paso.
+ *
+ * Barra de progreso arriba, atrás a la izquierda, una pregunta grande, su
+ * motivo, el control, y el botón abajo del todo **fijo**: en un registro, el
+ * botón que continúa no se busca con el dedo, está donde estaba en el paso
+ * anterior.
+ *
+ * El progreso va sin números por lo mismo que en Instagram: «paso 4 de 9» hace
+ * contar lo que queda, y una barra que avanza dice lo mismo sin invitar a
+ * abandonar. El lector de pantalla sí recibe la cuenta, que es donde hace falta.
+ */
+function Wizard({
+  steps,
+  index,
+  step,
+  intro,
+  onBack,
+  onNext,
+  onSkip,
 }: {
-  label: string;
-  why: string;
-  optional?: boolean;
-  children: React.ReactNode;
+  steps: number;
+  index: number;
+  step: Step;
+  intro?: string;
+  onBack: () => void;
+  onNext: () => void;
+  onSkip: () => void;
 }) {
   const theme = useTheme();
 
   return (
-    <View style={{ gap: theme.space[2] }}>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: theme.space[2] }}>
-        <Text
-          accessibilityRole="header"
+    <Screen>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.space[3],
+          paddingRight: theme.space[5],
+        }}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          onPress={() => {
+            haptics.tap();
+            onBack();
+          }}
+          style={({ pressed }) => ({
+            width: theme.touchTarget.min,
+            height: theme.touchTarget.min,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Icon icon={ArrowLeft} size="lg" decorative />
+        </Pressable>
+
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Paso ${index + 1} de ${steps}`}
           style={{
-            color: theme.colors.foreground,
-            fontFamily: fonts.displayBold,
-            fontSize: theme.fontSize.lg,
+            flex: 1,
+            height: 3,
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.colors.muted,
+            overflow: 'hidden',
           }}
         >
-          {label}
-        </Text>
-        {optional ? <Caption>opcional</Caption> : null}
+          <View
+            style={{
+              width: `${((index + 1) / steps) * 100}%`,
+              height: 3,
+              borderRadius: theme.radius.full,
+              backgroundColor: theme.colors.primary,
+            }}
+          />
+        </View>
       </View>
-      <Caption>{why}</Caption>
-      {children}
-    </View>
+
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          padding: theme.space[6],
+          paddingTop: theme.space[5],
+          gap: theme.space[5],
+        }}
+      >
+        {/* La clave cambia con el paso, así que la entrada se repite en cada
+            uno: es lo que hace que se lea como avanzar y no como un formulario
+            que se reescribe solo. Con movimiento reducido, nada de esto pasa. */}
+        <Appear key={step.id}>
+          <View style={{ gap: theme.space[3] }}>
+            {intro ? <Body muted>{intro}</Body> : null}
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayExtrabold,
+                fontSize: theme.fontSize['3xl'],
+                letterSpacing: -0.6,
+              }}
+            >
+              {step.title}
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.mutedForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.sm,
+                lineHeight: theme.fontSize.sm * 1.5,
+              }}
+            >
+              {step.why}
+            </Text>
+            <View style={{ paddingTop: theme.space[2] }}>{step.content}</View>
+          </View>
+        </Appear>
+      </ScrollView>
+
+      <View
+        style={{
+          gap: theme.space[2],
+          paddingHorizontal: theme.space[6],
+          paddingBottom: theme.space[6],
+          paddingTop: theme.space[3],
+        }}
+      >
+        <BigButton
+          label={step.cta ?? 'Siguiente'}
+          disabled={!step.ready}
+          onPress={() => {
+            haptics.tap();
+            onNext();
+          }}
+        />
+        {step.skippable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Omitir"
+            accessibilityHint="Puedes añadirlo después desde el perfil"
+            onPress={() => {
+              haptics.tap();
+              onSkip();
+            }}
+            style={({ pressed }) => ({
+              minHeight: theme.touchTarget.min,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text
+              style={{
+                color: theme.colors.mutedForeground,
+                fontFamily: fonts.bodyBold,
+                fontSize: theme.fontSize.sm,
+              }}
+            >
+              Omitir
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </Screen>
+  );
+}
+
+/** El botón de abajo: ancho entero y de una sola cosa, como en un registro. */
+function BigButton({
+  label,
+  icon,
+  tone = 'solid',
+  disabled = false,
+  onPress,
+}: {
+  label: string;
+  icon?: typeof PawPrint;
+  tone?: 'solid' | 'outline';
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const outline = tone === 'outline';
+  const foreground = disabled
+    ? theme.colors.mutedForeground
+    : outline
+      ? theme.colors.foreground
+      : theme.colors.primaryForeground;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.space[2],
+        minHeight: theme.touchTarget.comfortable + 4,
+        borderRadius: theme.radius.full,
+        borderWidth: outline ? 1 : 0,
+        borderColor: theme.colors.border,
+        backgroundColor: disabled
+          ? theme.colors.muted
+          : outline
+            ? 'transparent'
+            : theme.colors.primary,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      {icon ? <Icon icon={icon} size="base" color={foreground} decorative /> : null}
+      <Text
+        style={{
+          color: foreground,
+          fontFamily: fonts.displayBold,
+          fontSize: theme.fontSize.base,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Input({
+  value,
+  onChange,
+  placeholder,
+  label,
+  autoFocus = false,
+  numeric = false,
+  url = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  label: string;
+  autoFocus?: boolean;
+  numeric?: boolean;
+  url?: boolean;
+}) {
+  const theme = useTheme();
+
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChange}
+      placeholder={placeholder}
+      placeholderTextColor={theme.colors.inputPlaceholder}
+      accessibilityLabel={label}
+      autoFocus={autoFocus}
+      autoCapitalize={url ? 'none' : 'sentences'}
+      keyboardType={numeric ? 'number-pad' : url ? 'url' : 'default'}
+      style={{
+        minHeight: theme.touchTarget.comfortable,
+        paddingHorizontal: theme.space[4],
+        borderRadius: theme.radius.md,
+        backgroundColor: theme.colors.input,
+        color: theme.colors.inputForeground,
+        fontFamily: fonts.body,
+        fontSize: theme.fontSize.base,
+      }}
+    />
   );
 }
 
@@ -730,6 +957,43 @@ function NumberBox({
   );
 }
 
+function Summary({ label, value }: { label: string; value: string }) {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[3],
+        minHeight: theme.touchTarget.min - 12,
+      }}
+    >
+      <Text
+        style={{
+          flex: 1,
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.sm,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        style={{
+          flex: 2,
+          textAlign: 'right',
+          color: theme.colors.foreground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.sm,
+        }}
+      >
+        {value || '—'}
+      </Text>
+    </View>
+  );
+}
+
 /**
  * Fichas que se tocan.
  *
@@ -741,15 +1005,36 @@ function Chips({
   options,
   selected,
   onPress,
+  compact = false,
 }: {
   options: ReadonlyArray<{ id: string; label: string; hint?: string }>;
   selected: readonly string[];
   onPress: (id: string) => void;
+  /**
+   * Fichas de una letra, en una sola fila.
+   *
+   * Los siete días con el ancho normal se salían y «D» caía a una segunda
+   * fila, que rompe la lectura de una semana: se leen en línea o no se leen.
+   * Cuarenta y cuatro de ancho por siete más los huecos entra justo en la
+   * pantalla estrecha, y cuarenta y cuatro es además el suelo táctil, así que
+   * el ajuste no cuesta accesibilidad.
+   *
+   * Aquí lo elegido se marca **rellenando**, no con la marca de verificación:
+   * en una ficha de una letra no cabe, y el relleno es lo que sobrevive a una
+   * captura en gris igual de bien.
+   */
+  compact?: boolean;
 }) {
   const theme = useTheme();
 
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: compact ? theme.space[1] : theme.space[2],
+      }}
+    >
       {options.map((option) => {
         const on = selected.includes(option.id);
         return (
@@ -766,21 +1051,32 @@ function Chips({
             style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
+              justifyContent: compact ? 'center' : 'flex-start',
               gap: theme.space[1],
+              width: compact ? theme.touchTarget.min : undefined,
               minHeight: theme.touchTarget.min,
-              paddingHorizontal: theme.space[4],
+              paddingHorizontal: compact ? 0 : theme.space[4],
               borderRadius: theme.radius.full,
               borderWidth: on ? 2 : 1,
               borderColor: on ? theme.colors.primary : theme.colors.border,
-              backgroundColor: pressed ? theme.colors.surfaceSunken : theme.colors.surface,
+              backgroundColor:
+                compact && on
+                  ? theme.colors.primary
+                  : pressed
+                    ? theme.colors.surfaceSunken
+                    : theme.colors.surface,
             })}
           >
-            {on ? (
+            {on && !compact ? (
               <Icon icon={Check} size="sm" color={theme.colors.primary} decorative />
             ) : null}
             <Text
               style={{
-                color: on ? theme.colors.foreground : theme.colors.mutedForeground,
+                color: compact && on
+                  ? theme.colors.primaryForeground
+                  : on
+                    ? theme.colors.foreground
+                    : theme.colors.mutedForeground,
                 fontFamily: on ? fonts.bodyBold : fonts.body,
                 fontSize: theme.fontSize.sm,
               }}

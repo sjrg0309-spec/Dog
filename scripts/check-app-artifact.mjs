@@ -102,36 +102,84 @@ if (/no encontr|unmatched|not found/i.test(body.slice(0, 400))) {
  * texto solamente —un cartel se puede dejar puesto con la aplicación detrás—,
  * sino que **no exista la barra de pestañas**: si hay pestañas, hay aplicación.
  */
-if (!/Da de alta a tu perro/i.test(body)) {
+if (!/Coincide/i.test(body) || !/no se entra a mirar/i.test(body)) {
   problems.push('la aplicación no arrancó en el alta: la puerta no está puesta');
 }
 if (await page.getByRole('tab', { name: /Explorar/i }).count()) {
   problems.push('hay barra de pestañas antes de dar de alta a ningún animal');
 }
-if (!(await page.getByRole('tab', { name: /Rescato/i }).count())) {
+if (!(await page.getByRole('button', { name: /Rescato y no tengo perro/i }).count())) {
   problems.push('falta la segunda puerta: quien rescata y no tiene animal propio');
 }
 
-/* El alta, rellenada como la rellenaría alguien. Es también la única forma de
-   llegar al resto de la auditoría, así que si esto se rompe se dice claro. */
-await page.getByLabel('Nombre de tu perro').fill('Toby');
-await page.getByLabel('Años', { exact: true }).fill('3');
-for (const label of ['Mediano', 'Explorador', 'Persecución', 'Hembra', 'L', 'X', 'V', 'Mañana']) {
-  const chip = page.getByRole('button', { name: label, exact: true }).first();
-  if (!(await chip.count())) {
-    problems.push(`el alta no ofrece «${label}»`);
-    continue;
+/*
+ * El alta, paso a paso y como la haría alguien.
+ *
+ * Tiene la forma de un registro de Instagram —una pregunta por pantalla, barra
+ * de progreso, botón fijo abajo—, así que la auditoría **avanza**: rellena, da a
+ * Siguiente, y comprueba de paso lo que un formulario de una sola pantalla no
+ * podía comprobar, que es que el botón no se enciende hasta que el paso está.
+ */
+const next = async (label = 'Siguiente') => {
+  const button = page.getByRole('button', { name: label, exact: true }).first();
+  if (!(await button.count())) {
+    problems.push(`el alta no tiene botón «${label}»`);
+    return false;
   }
-  await chip.click();
+  await button.click();
+  await page.waitForTimeout(450);
+  return true;
+};
+
+const chip = async (label) => {
+  const target = page.getByRole('button', { name: label, exact: true }).first();
+  if (!(await target.count())) {
+    problems.push(`el alta no ofrece «${label}»`);
+    return;
+  }
+  await target.click();
+  await page.waitForTimeout(150);
+};
+
+await page.getByRole('button', { name: /Dar de alta a mi perro/i }).first().click();
+await page.waitForTimeout(600);
+
+/* El botón no se enciende con el paso a medias. Es la promesa que sustituye a
+   la lista de «falta por rellenar» del formulario anterior, así que se mira. */
+const blocked = await page
+  .getByRole('button', { name: 'Siguiente', exact: true })
+  .first()
+  .getAttribute('aria-disabled');
+if (blocked !== 'true') {
+  problems.push('el primer paso del alta deja seguir con el nombre vacío');
 }
 
-const enter = page.getByRole('button', { name: 'Entrar', exact: true }).first();
-if (!(await enter.count())) {
-  problems.push('el alta no tiene botón de entrar');
-} else {
-  await enter.click();
-  await page.waitForTimeout(1200);
+await page.getByLabel('Nombre de tu perro').fill('Toby');
+await next();
+await page.getByLabel('Años', { exact: true }).fill('3');
+await next();
+await chip('Hembra');
+await next();
+await chip('Mediano');
+await next();
+await chip('Explorador');
+await next();
+await chip('Persecución');
+await next();
+for (const day of ['L', 'X', 'V']) await chip(day);
+await chip('Mañana');
+await next();
+/* El chip es opcional y el paso lo dice con «Omitir». Se omite a propósito: así
+   la auditoría entra con una cuenta recién hecha, que es el estado en el que
+   hay que comprobar que el mapa de gente sigue cerrado. */
+await next('Omitir');
+
+const summary = (await page.locator('#root').innerText()).trim();
+if (!/Toby/.test(summary) || !/Mediano/i.test(summary)) {
+  problems.push('el resumen del alta no enseña lo que se acaba de rellenar');
 }
+await next('Entrar');
+await page.waitForTimeout(900);
 
 if (!(await page.getByRole('tab', { name: /Explorar/i }).count())) {
   problems.push('tras dar de alta al animal la aplicación no se abrió');
