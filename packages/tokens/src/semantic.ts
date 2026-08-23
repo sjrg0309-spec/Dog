@@ -5,7 +5,7 @@
  * reasignar este mapa; ningún componente debería necesitar tocarse.
  */
 
-import { amber, blue, green, live, neutral, red, shadow } from './primitives.js';
+import { amber, blue, bone, ink, red, sage, shadow, terracotta } from './primitives.js';
 
 export type SemanticTokens = {
   // Superficies
@@ -80,53 +80,53 @@ export type SemanticTokens = {
  * contraste del paquete los verifica; no son una estimación a ojo.
  */
 export const light: SemanticTokens = {
-  background: neutral[50],
-  foreground: neutral[900],
-  surface: neutral[0],
-  surfaceForeground: neutral[900],
-  surfaceElevated: neutral[0],
-  surfaceSunken: neutral[100],
+  background: bone[50],
+  foreground: ink[800],
+  surface: bone[0],
+  surfaceForeground: ink[800],
+  surfaceElevated: bone[0],
+  surfaceSunken: bone[100],
 
-  primary: green[600],
-  primaryForeground: neutral[0],
-  primaryHover: green[700],
-  primaryActive: green[800],
+  primary: sage[600],
+  primaryForeground: bone[0],
+  primaryHover: sage[700],
+  primaryActive: sage[800],
 
-  secondary: neutral[100],
-  secondaryForeground: neutral[800],
-  secondaryHover: neutral[200],
-  secondaryActive: neutral[300],
+  secondary: bone[100],
+  secondaryForeground: ink[800],
+  secondaryHover: bone[200],
+  secondaryActive: bone[300],
 
-  muted: neutral[100],
-  mutedForeground: neutral[600],
+  muted: bone[100],
+  mutedForeground: ink[600],
 
-  accent: green[100],
-  accentForeground: green[800],
+  accent: terracotta[100],
+  accentForeground: terracotta[800],
 
-  liveRing: live[600],
-  liveSurface: live[50],
-  liveForeground: live[800],
+  liveRing: terracotta[600],
+  liveSurface: terracotta[50],
+  liveForeground: terracotta[800],
 
   destructive: red[600],
-  destructiveForeground: neutral[0],
+  destructiveForeground: bone[0],
   destructiveHover: red[700],
-  success: green[700],
-  successForeground: neutral[0],
-  successSurface: green[50],
+  success: sage[700],
+  successForeground: bone[0],
+  successSurface: sage[50],
   warning: amber[700],
-  warningForeground: neutral[0],
+  warningForeground: bone[0],
   warningSurface: amber[100],
   information: blue[600],
-  informationForeground: neutral[0],
+  informationForeground: bone[0],
   informationSurface: blue[100],
 
-  border: neutral[200],
-  borderStrong: neutral[500],
-  input: neutral[0],
-  inputForeground: neutral[900],
-  inputPlaceholder: neutral[500],
-  focusRing: green[600],
-  overlay: 'oklch(21% 0.014 72 / 0.55)',
+  border: bone[200],
+  borderStrong: ink[500],
+  input: bone[0],
+  inputForeground: ink[800],
+  inputPlaceholder: ink[500],
+  focusRing: sage[600],
+  overlay: 'oklch(23.5% 0.034 281 / 0.55)',
 
   shadowSm: shadow.sm,
   shadowMd: shadow.md,
@@ -142,45 +142,49 @@ export const light: SemanticTokens = {
  * luminosidad porque la sombra casi no se percibe en oscuro.
  */
 export const dark: SemanticTokens = {
-  background: neutral[950],
-  foreground: neutral[50],
-  surface: neutral[900],
-  surfaceForeground: neutral[50],
-  surfaceElevated: neutral[800],
-  surfaceSunken: neutral[950],
+  background: ink[950],
+  foreground: bone[50],
+  surface: ink[900],
+  surfaceForeground: bone[50],
+  surfaceElevated: ink[800],
+  surfaceSunken: ink[950],
 
-  primary: green[400],
-  primaryForeground: green[900],
-  primaryHover: green[300],
-  primaryActive: green[200],
+  primary: sage[400],
+  primaryForeground: sage[900],
+  primaryHover: sage[300],
+  primaryActive: sage[200],
 
-  secondary: neutral[800],
-  secondaryForeground: neutral[100],
-  secondaryHover: neutral[700],
-  secondaryActive: neutral[600],
+  secondary: ink[800],
+  secondaryForeground: bone[100],
+  secondaryHover: ink[700],
+  secondaryActive: ink[600],
 
-  muted: neutral[800],
-  mutedForeground: neutral[400],
+  muted: ink[800],
+  mutedForeground: ink[300],
 
-  accent: green[900],
-  accentForeground: green[200],
+  accent: terracotta[900],
+  accentForeground: terracotta[200],
 
-  liveRing: live[400],
-  liveSurface: live[900],
-  liveForeground: live[200],
+  /**
+   * En oscuro el anillo sube al paso 300 y no al 400. A 400 la distancia con el
+   * rojo de extraviados caía a ΔE 0.071 en OKLab: dos colores que significan
+   * «está pasando algo» y «hay un perro perdido» a un pelo de pintarse igual.
+   */
+  liveRing: terracotta[300],
+  liveSurface: terracotta[900],
+  liveForeground: terracotta[200],
 
   destructive: red[400],
-  destructiveForeground: neutral[950],
+  destructiveForeground: ink[950],
   destructiveHover: red[300],
   /**
-   * En oscuro apuntaba al mismo escalón que `primary`, así que un estado que no
-   * se toca se pintaba con el color que en esta aplicación significa «esto se
-   * puede tocar». Sube un escalón: sigue siendo el mismo verde de la rampa y ya
-   * no se confunde con lo interactivo.
+   * Sube un escalón respecto a `primary` a propósito: si apuntaran al mismo
+   * paso, un estado que no se toca se pintaría con el color que en esta
+   * aplicación significa «esto se puede tocar».
    */
-  success: green[300],
-  successForeground: green[900],
-  successSurface: green[900],
+  success: sage[300],
+  successForeground: sage[900],
+  successSurface: sage[900],
   warning: amber[300],
   warningForeground: amber[900],
   warningSurface: amber[900],
@@ -188,13 +192,13 @@ export const dark: SemanticTokens = {
   informationForeground: blue[900],
   informationSurface: blue[900],
 
-  border: neutral[800],
-  borderStrong: neutral[500],
-  input: neutral[900],
-  inputForeground: neutral[50],
-  inputPlaceholder: neutral[400],
-  focusRing: green[300],
-  overlay: 'oklch(10% 0.010 72 / 0.70)',
+  border: ink[800],
+  borderStrong: ink[500],
+  input: ink[900],
+  inputForeground: bone[50],
+  inputPlaceholder: ink[400],
+  focusRing: sage[300],
+  overlay: 'oklch(10% 0.010 282 / 0.70)',
 
   shadowSm: '0 1px 2px oklch(0% 0 0 / 0.30)',
   shadowMd: '0 4px 14px oklch(0% 0 0 / 0.40)',

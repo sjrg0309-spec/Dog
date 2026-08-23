@@ -1,16 +1,16 @@
 /**
  * Tipografía de la aplicación móvil.
  *
- * Son las mismas dos familias que la web, y por la misma razón:
+ * Son las mismas dos familias que la web, y el reparto no es estético:
  *
+ *  - **Plus Jakarta Sans** para titulares y etiquetas de interfaz. Es la familia
+ *    que pide la especificación visual. De las dos que nombra —Plus Jakarta Sans
+ *    o Inter— se toma esta, porque Inter está en la lista de bloqueantes del
+ *    proyecto desde el primer día.
  *  - **Atkinson Hyperlegible** para el cuerpo, diseñada para legibilidad en baja
- *    visión. No es una elección estética: esta aplicación se lee de pie, en la
- *    calle, a contraluz y con una correa en la otra mano. Es justo la situación
- *    para la que se hizo esa fuente.
- *  - **Bricolage Grotesque** para los titulares, con carácter suficiente para
- *    que la aplicación no parezca una plantilla.
- *
- * Inter no aparece por decisión explícita.
+ *    visión. El texto largo de esta aplicación —los pasos de una alerta, la
+ *    ficha médica— se lee de pie, en la calle, a contraluz y con una correa en
+ *    la otra mano. Es justo la situación para la que se hizo esa fuente.
  */
 
 import {
@@ -18,17 +18,17 @@ import {
   AtkinsonHyperlegible_700Bold,
 } from '@expo-google-fonts/atkinson-hyperlegible';
 import {
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_700Bold,
-  BricolageGrotesque_800ExtraBold,
-} from '@expo-google-fonts/bricolage-grotesque';
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 export const FONT_MAP = {
   AtkinsonHyperlegible_400Regular,
   AtkinsonHyperlegible_700Bold,
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_700Bold,
-  BricolageGrotesque_800ExtraBold,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
 };
 
 /**
@@ -41,7 +41,7 @@ export const FONT_MAP = {
 export const fonts = {
   body: 'AtkinsonHyperlegible_400Regular',
   bodyBold: 'AtkinsonHyperlegible_700Bold',
-  displaySemibold: 'BricolageGrotesque_600SemiBold',
-  displayBold: 'BricolageGrotesque_700Bold',
-  displayExtrabold: 'BricolageGrotesque_800ExtraBold',
+  displaySemibold: 'PlusJakartaSans_600SemiBold',
+  displayBold: 'PlusJakartaSans_700Bold',
+  displayExtrabold: 'PlusJakartaSans_800ExtraBold',
 } as const;

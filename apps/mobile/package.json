@@ -19,7 +19,7 @@
     "@coincide/tokens": "workspace:*",
     "@coincide/trackers": "workspace:*",
     "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
-    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/metro-runtime": "^4.0.1",
     "@react-navigation/native": "^7.3.17",
     "debug": "^4.4.3",

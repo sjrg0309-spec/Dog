@@ -66,6 +66,29 @@ export function contrastRatio(foreground: string, background: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+/**
+ * Distancia perceptual entre dos colores, en OKLab.
+ *
+ * El ratio WCAG mide luminancia, así que dice que la salvia y la terracota son
+ * «el mismo color» cuando solo comparten claridad: son matices opuestos y
+ * cualquiera los distingue. Para «¿se pueden confundir dos colores que
+ * significan cosas distintas?» la métrica correcta es la distancia euclídea en
+ * OKLab, que sí ve el matiz.
+ *
+ * Referencia: ~0.02 es el umbral de diferencia apenas perceptible; a partir de
+ * 0.10 son colores claramente distintos.
+ */
+export function oklabDistance(a: string, b: string): number {
+  const toLab = (value: string) => {
+    const { l, c, h } = parseOklch(value);
+    const rad = (h * Math.PI) / 180;
+    return { l, a: c * Math.cos(rad), b: c * Math.sin(rad) };
+  };
+  const x = toLab(a);
+  const y = toLab(b);
+  return Math.hypot(x.l - y.l, x.a - y.a, x.b - y.b);
+}
+
 /** ¿Está el color dentro de la gama sRGB? Útil para no confiar en el recorte. */
 export function isInSrgbGamut(value: string, tolerance = 0.001): boolean {
   const { r, g, b } = oklchToLinearRgb(value);

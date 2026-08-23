@@ -53,9 +53,9 @@ importers:
       '@expo-google-fonts/atkinson-hyperlegible':
         specifier: ^0.4.1
         version: 0.4.1
-      '@expo-google-fonts/bricolage-grotesque':
-        specifier: ^0.4.1
-        version: 0.4.1
+      '@expo-google-fonts/plus-jakarta-sans':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@expo/metro-runtime':
         specifier: ^4.0.1
         version: 4.0.1(react-native@0.76.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))
@@ -1171,8 +1171,8 @@ packages:
   '@expo-google-fonts/atkinson-hyperlegible@0.4.1':
     resolution: {integrity: sha512-Xr1XAguU7oEVHy28WxCBmdjPT2BNwH5lFZF2adHb9Cy6qtNgXwDzeAgvESkoq4mQmYW5RzqJZknqQxrTkEm0Xw==}
 
-  '@expo-google-fonts/bricolage-grotesque@0.4.1':
-    resolution: {integrity: sha512-uijLLg+thOrFgw+gXtYA3dQJTBqqqleabcNFpamaYXqUUcbFe0J18C+4nfL0CyGzSJUicxUBLY4Zv7jdHmTGMA==}
+  '@expo-google-fonts/plus-jakarta-sans@0.4.2':
+    resolution: {integrity: sha512-6LYVmVGwjQvH+uzzWlVc9+oMj4lkNQ41aymVDjO+x8aFk8kCye20wOyLomYMZaMezA++Uf1mZRCw3W3Fy/hxEA==}
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
@@ -7154,7 +7154,7 @@ snapshots:
 
   '@expo-google-fonts/atkinson-hyperlegible@0.4.1': {}
 
-  '@expo-google-fonts/bricolage-grotesque@0.4.1': {}
+  '@expo-google-fonts/plus-jakarta-sans@0.4.2': {}
 
   '@expo/bunyan@4.0.1':
     dependencies:

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
-import { Atkinson_Hyperlegible, Bricolage_Grotesque } from 'next/font/google';
+import { Atkinson_Hyperlegible, Plus_Jakarta_Sans } from 'next/font/google';
 
 import '@coincide/tokens/tokens.css';
 import './globals.css';
@@ -19,8 +19,13 @@ const body = Atkinson_Hyperlegible({
   variable: '--font-body',
 });
 
-/** Display: con carácter suficiente para no parecer una plantilla. */
-const display = Bricolage_Grotesque({
+/**
+ * Display: Plus Jakarta Sans, la familia que pide la especificación visual.
+ * De las dos que nombra —Plus Jakarta Sans o Inter— se toma esta: Inter está en
+ * la lista de bloqueantes del proyecto.
+ */
+const display = Plus_Jakarta_Sans({
+  weight: ['600', '700', '800'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-display',

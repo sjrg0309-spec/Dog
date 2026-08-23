@@ -18,7 +18,7 @@ const tokens = readFileSync(here('../packages/tokens/dist/tokens.css'), 'utf8');
  * Las tipografías, incrustadas.
  *
  * Son las mismas que usa la aplicación —Atkinson Hyperlegible para el cuerpo,
- * pensada para leerse de pie y a contraluz, y Bricolage Grotesque para los
+ * pensada para leerse de pie y a contraluz, y Plus Jakarta Sans para los
  * titulares— y viajan dentro del fichero en lugar de pedirse a un servidor.
  * Así la página se ve igual esté donde esté, y se puede comprobar aquí mismo
  * en vez de confiar en que el visor las cargue.
@@ -26,8 +26,8 @@ const tokens = readFileSync(here('../packages/tokens/dist/tokens.css'), 'utf8');
 const FONTS = [
   ['Atkinson Hyperlegible', 400, 'normal', '@expo-google-fonts+atkinson-hyperlegible@0.4.1/node_modules/@expo-google-fonts/atkinson-hyperlegible/400Regular/AtkinsonHyperlegible_400Regular.ttf'],
   ['Atkinson Hyperlegible', 700, 'normal', '@expo-google-fonts+atkinson-hyperlegible@0.4.1/node_modules/@expo-google-fonts/atkinson-hyperlegible/700Bold/AtkinsonHyperlegible_700Bold.ttf'],
-  ['Bricolage Grotesque', 600, 'normal', '@expo-google-fonts+bricolage-grotesque@0.4.1/node_modules/@expo-google-fonts/bricolage-grotesque/600SemiBold/BricolageGrotesque_600SemiBold.ttf'],
-  ['Bricolage Grotesque', 800, 'normal', '@expo-google-fonts+bricolage-grotesque@0.4.1/node_modules/@expo-google-fonts/bricolage-grotesque/800ExtraBold/BricolageGrotesque_800ExtraBold.ttf'],
+  ['Plus Jakarta Sans', 600, 'normal', '@expo-google-fonts+plus-jakarta-sans@0.4.2/node_modules/@expo-google-fonts/plus-jakarta-sans/600SemiBold/PlusJakartaSans_600SemiBold.ttf'],
+  ['Plus Jakarta Sans', 800, 'normal', '@expo-google-fonts+plus-jakarta-sans@0.4.2/node_modules/@expo-google-fonts/plus-jakarta-sans/800ExtraBold/PlusJakartaSans_800ExtraBold.ttf'],
 ];
 
 const faces = FONTS.map(([family, weight, style, path]) => {

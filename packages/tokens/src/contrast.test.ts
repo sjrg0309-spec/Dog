@@ -8,9 +8,16 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { contrastRatio, isInSrgbGamut, oklchToHex, parseOklch, themeToHex } from './contrast.js';
+import {
+  contrastRatio,
+  isInSrgbGamut,
+  oklabDistance,
+  oklchToHex,
+  parseOklch,
+  themeToHex,
+} from './contrast.js';
 import { dark, light, type SemanticTokens } from './semantic.js';
-import { amber, blue, green, live, neutral, red } from './primitives.js';
+import { amber, blue, bone, ink, red, sage, terracotta } from './primitives.js';
 
 /** AA: 4.5 para cuerpo, 3.0 para texto grande y componentes de interfaz. */
 const AA_TEXT = 4.5;
@@ -97,18 +104,20 @@ describe.each(themes)('tema %s', (_name, theme) => {
 });
 
 describe('distinción entre estados que no debe apoyarse solo en el color', () => {
-  it('el verde primario y el ámbar en vivo tienen luminancias distintas', () => {
+  it('la salvia primaria y la terracota en vivo tienen luminancias distintas', () => {
     // Además del icono y el texto que siempre acompañan al estado, los dos
     // colores se separan también por claridad, que es lo que sobrevive a una
     // deficiencia de visión del color.
-    const ratio = contrastRatio(green[600], live[600]);
-    expect(ratio).toBeGreaterThan(1.3);
+    expect(contrastRatio(sage[600], terracotta[600])).toBeGreaterThan(1.3);
   });
 });
 
-describe('la rampa neutra es monótona', () => {
+describe.each([
+  ['hueso', bone],
+  ['carbón', ink],
+])('la rampa %s es monótona', (_name, ramp) => {
   it('la claridad decrece al subir el número de paso', () => {
-    const steps = Object.entries(neutral)
+    const steps = Object.entries(ramp)
       .map(([key, value]) => [Number(key), parseOklch(value).l] as const)
       .sort((a, b) => a[0] - b[0]);
 
@@ -124,7 +133,7 @@ describe('la rampa neutra es monótona', () => {
 describe('las rampas primitivas caben en sRGB', () => {
   // Un color fuera de gama se recorta de forma impredecible según el navegador,
   // así que el contraste medido dejaría de corresponderse con lo que se ve.
-  const ramps = { neutral, green, live, red, blue, amber };
+  const ramps = { bone, ink, sage, terracotta, red, blue, amber };
 
   it.each(Object.entries(ramps))('la rampa %s está dentro de gama', (name, ramp) => {
     for (const [step, value] of Object.entries(ramp)) {
@@ -166,8 +175,8 @@ describe('conversión a hexadecimal para React Native', () => {
       return ((value >> 16) & 255) * 0.2126 + ((value >> 8) & 255) * 0.7152 + (value & 255) * 0.0722;
     };
 
-    expect(luminance(oklchToHex(neutral[50]))).toBeGreaterThan(luminance(oklchToHex(neutral[500])));
-    expect(luminance(oklchToHex(neutral[500]))).toBeGreaterThan(luminance(oklchToHex(neutral[950])));
+    expect(luminance(oklchToHex(bone[50]))).toBeGreaterThan(luminance(oklchToHex(ink[500])));
+    expect(luminance(oklchToHex(ink[500]))).toBeGreaterThan(luminance(oklchToHex(ink[950])));
   });
 });
 
@@ -219,4 +228,75 @@ describe('los colores de estado se distinguen entre sí', () => {
       }
     });
   }
+});
+
+
+/**
+ * Los anclajes de PAWNET, exactos.
+ *
+ * La especificación llega en hexadecimal y el proyecto trabaja en OKLCH. La
+ * conversión se hizo una vez; este test es el que impide que se pierda por el
+ * camino en el siguiente ajuste de rampa.
+ */
+describe('anclajes de la paleta PAWNET', () => {
+  const anchors: Array<[string, string, string]> = [
+    ['terracota', terracotta[500], '#e07a5f'],
+    ['salvia', sage[400], '#81b29a'],
+    ['hueso', bone[50], '#faf7f2'],
+    ['ámbar', amber[300], '#f2cc8f'],
+    ['carbón', ink[800], '#2b2d42'],
+  ];
+
+  it.each(anchors)('%s cae exactamente en el hexadecimal de la especificación', (_n, token, hex) => {
+    expect(oklchToHex(token)).toBe(hex);
+  });
+});
+
+/**
+ * Colores que significan cosas distintas tienen que verse distintos.
+ *
+ * El ratio WCAG no sirve para esto: mide luminancia, así que dos matices
+ * opuestos con la misma claridad le salen «iguales». La métrica es la distancia
+ * en OKLab, que sí ve el matiz.
+ *
+ * Existe porque la paleta de PAWNET traía el fallo dentro: terracota `#E07A5F`
+ * está en matiz 36 y el rojo de extraviados `#E76F51` en matiz 35. Un grado. El
+ * color de marca y el aviso de perro perdido se habrían pintado igual, y ningún
+ * test de contraste lo habría notado.
+ */
+describe('significados que no pueden confundirse', () => {
+  /** Por debajo de esto dejan de leerse como dos colores. */
+  const MIN_DISTANCE = 0.1;
+
+  const pairs = [
+    ['el color de marca', 'primary', 'el estado en vivo', 'liveRing'],
+    ['el estado en vivo', 'liveRing', 'el aviso de extraviado', 'destructive'],
+    ['el color de marca', 'primary', 'el aviso de extraviado', 'destructive'],
+  ] as const;
+
+  for (const [name, theme] of themes) {
+    it.each(pairs)(`%s y %s se distinguen en tema ${name}`, (_la, a, _lb, b) => {
+      expect(oklabDistance(theme[a], theme[b])).toBeGreaterThanOrEqual(MIN_DISTANCE);
+    });
+  }
+});
+
+/**
+ * Hueso arriba y carbón abajo: la pareja de superficie y texto de PAWNET.
+ *
+ * Es lo único de la especificación que se toma tal cual y sin ajustar, porque
+ * es lo único que ya pasaba AA con margen: 12.62 sobre el fondo.
+ */
+describe('hueso y carbón', () => {
+  it('el texto sobre el fondo va muy por encima del mínimo, no rozándolo', () => {
+    expect(contrastRatio(light.foreground, light.background)).toBeGreaterThanOrEqual(10);
+    expect(contrastRatio(dark.foreground, dark.background)).toBeGreaterThanOrEqual(10);
+  });
+
+  it('las superficies son cálidas y el texto frío, no al revés', () => {
+    // Matiz 81 en las superficies, 280 en el texto. Si alguien las iguala, la
+    // paleta pierde justo lo que la distingue de una plantilla gris.
+    expect(parseOklch(light.background).h).toBeCloseTo(81, 0);
+    expect(parseOklch(light.foreground).h).toBeCloseTo(280, 0);
+  });
 });
