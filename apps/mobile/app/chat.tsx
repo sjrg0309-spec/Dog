@@ -211,7 +211,7 @@ export default function ChatScreen() {
                     style={{
                       color: theme.colors.mutedForeground,
                       fontFamily: fonts.bodyBold,
-                      fontSize: 11,
+                      fontSize: theme.fontSize['2xs'],
                     }}
                   >
                     {group.day}
@@ -403,7 +403,7 @@ function ChatHeader({
           style={{
             color: alert ? theme.colors.destructiveForeground : theme.colors.mutedForeground,
             fontFamily: fonts.body,
-            fontSize: 11,
+            fontSize: theme.fontSize['2xs'],
             opacity: alert ? 0.85 : 1,
           }}
         >
@@ -448,7 +448,7 @@ function Bubble({
           style={{
             color: tintColor(theme, authorTint(message.authorId)),
             fontFamily: fonts.bodyBold,
-            fontSize: 13,
+            fontSize: theme.fontSize.xs,
             marginBottom: 1,
           }}
         >
@@ -482,7 +482,7 @@ function Bubble({
             fontFamily: fonts.body,
             // La hora de un mensaje es el sitio clásico donde se cuela un
             // cuerpo de nueve o diez. Once es el mínimo de las dos guías.
-            fontSize: 11,
+            fontSize: theme.fontSize['2xs'],
             opacity: mine ? 0.7 : 1,
           }}
         >

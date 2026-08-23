@@ -94,7 +94,7 @@ export function ReelGrid({ onOpen }: { onOpen: (id: string) => void }) {
                   }}
                 >
                   <Icon icon={Video} size="sm" color="#fff" decorative />
-                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}>
                     {reel.durationS}s
                   </Text>
                 </View>
@@ -120,7 +120,7 @@ export function ReelGrid({ onOpen }: { onOpen: (id: string) => void }) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[1] }}>
                   <Icon icon={Thermometer} size="sm" color="#fff" decorative />
                   <Text
-                    style={{ color: 'rgba(255,255,255,0.9)', fontFamily: fonts.body, fontSize: 11 }}
+                    style={{ color: 'rgba(255,255,255,0.9)', fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] }}
                   >
                     {reel.recordedIn.temperatureC} °C
                   </Text>

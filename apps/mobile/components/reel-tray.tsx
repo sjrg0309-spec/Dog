@@ -140,7 +140,7 @@ export function ReelTray({ onOpen }: { onOpen: (id: string) => void }) {
                     backgroundColor: 'rgba(0,0,0,0.55)',
                   }}
                 >
-                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+                  <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}>
                     {reel.durationS}s
                   </Text>
                 </View>
@@ -176,7 +176,7 @@ export function ReelTray({ onOpen }: { onOpen: (id: string) => void }) {
                   style={{
                     color: 'rgba(255,255,255,0.9)',
                     fontFamily: fonts.body,
-                    fontSize: 11,
+                    fontSize: theme.fontSize['2xs'],
                     lineHeight: 14,
                   }}
                 >

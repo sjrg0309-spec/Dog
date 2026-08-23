@@ -100,7 +100,7 @@ export function MeetupCard({
                   style={{
                     color: active ? theme.colors.primaryForeground : theme.colors.mutedForeground,
                     fontFamily: active ? fonts.bodyBold : fonts.body,
-                    fontSize: 11,
+                    fontSize: theme.fontSize['2xs'],
                   }}
                 >
                   {label}

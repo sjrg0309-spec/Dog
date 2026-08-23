@@ -205,7 +205,7 @@ export function ReportSheet({
               style={{
                 color: theme.colors.foreground,
                 fontFamily: fonts.displayBold,
-                fontSize: 13,
+                fontSize: theme.fontSize.xs,
               }}
             >
               {scenario.label}
@@ -214,7 +214,7 @@ export function ReportSheet({
                 Es la diferencia entre avisar a la manzana y avisar al distrito,
                 y quien pulsa tiene derecho a saberlo **antes**. */}
             <Text
-              style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: 11 }}
+              style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] }}
             >
               Avisa a {radiusLabel(scenario.initialRadiusM)}
               {scenario.growthPerHourM > 0 ? ', y crece' : ''}
@@ -224,7 +224,7 @@ export function ReportSheet({
       </View>
 
       <Text
-        style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: 11 }}
+        style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] }}
       >
         ¿Se ha perdido un perro? Eso no se avisa desde aquí: va en SOS, que pide chip y teléfono y
         avisa mucho más lejos.

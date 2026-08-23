@@ -12,6 +12,7 @@ import { SearchBar, SearchPanel } from '@/components/map-search';
 import { ReportSheet } from '@/components/report-sheet';
 import { Sheet, type SheetPosition } from '@/components/sheet';
 import { Body, Caption, Screen } from '@/components/ui';
+import { useBackDismiss } from '@/lib/back';
 import { useWeatherState } from '@/lib/conditions';
 import { spanMeters } from '@/lib/tiles';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
@@ -133,6 +134,15 @@ export default function ExploreScreen() {
      sitios buscados es una lista de dónde ha estado alguien y por qué. */
   const [recents, setRecents] = useState<string[]>([]);
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
+
+  /* El botón atrás de Android cierra lo que esté abierto encima del mapa, y no
+     la pestaña. Van por separado y no en un solo manejador porque React Native
+     atiende al último registrado primero: así, si alguna vez se solapan dos, se
+     cierra la de arriba. Los cierres van en `useCallback` porque el gancho los
+     usa de dependencia. */
+  useBackDismiss(searching, useCallback(() => setSearching(false), []));
+  useBackDismiss(reporting, useCallback(() => setReporting(false), []));
+  useBackDismiss(showLayers, useCallback(() => setShowLayers(false), []));
 
   const zoom = ZOOM_STEPS[zoomIndex] ?? ZOOM_STEPS[1];
 
@@ -464,7 +474,7 @@ export default function ExploreScreen() {
                     flex: 1,
                     color: theme.colors.mutedForeground,
                     fontFamily: fonts.body,
-                    fontSize: 11,
+                    fontSize: theme.fontSize['2xs'],
                   }}
                 >
                   Las alertas no se apagan: un aviso que se esconde sin querer no sirve.
@@ -780,7 +790,7 @@ function NearbyRow({
           style={{
             color: theme.colors.mutedForeground,
             fontFamily: fonts.body,
-            fontSize: 12,
+            fontSize: theme.fontSize.xs,
           }}
         >
           {marker.kind}
@@ -791,7 +801,7 @@ function NearbyRow({
         style={{
           color: theme.colors.mutedForeground,
           fontFamily: fonts.bodyBold,
-          fontSize: 12,
+          fontSize: theme.fontSize.xs,
           fontVariant: ['tabular-nums'],
         }}
       >
@@ -967,7 +977,7 @@ function Destination({
           style={{
             color: theme.colors.mutedForeground,
             fontFamily: fonts.body,
-            fontSize: 12,
+            fontSize: theme.fontSize.xs,
           }}
         >
           {detail}

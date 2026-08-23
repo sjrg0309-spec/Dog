@@ -390,7 +390,7 @@ function HeaderAction({
                 // Once y no diez: es el suelo de tamaño de texto que fijan Apple
                 // y Material, y el globo de no leídos es de las cosas que más se
                 // miran de refilón.
-                fontSize: 11,
+                fontSize: theme.fontSize['2xs'],
                 lineHeight: 13,
               }}
             >

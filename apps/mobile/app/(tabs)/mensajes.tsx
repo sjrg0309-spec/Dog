@@ -198,7 +198,7 @@ export default function MessagesScreen() {
                   style={{
                     color: active ? theme.colors.accentForeground : theme.colors.mutedForeground,
                     fontFamily: active ? fonts.bodyBold : fonts.body,
-                    fontSize: 13,
+                    fontSize: theme.fontSize.xs,
                   }}
                 >
                   {option.label}
@@ -330,7 +330,7 @@ function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void })
               style={{
                 color: unread ? theme.colors.primary : theme.colors.mutedForeground,
                 fontFamily: unread ? fonts.bodyBold : fonts.body,
-                fontSize: 11,
+                fontSize: theme.fontSize['2xs'],
               }}
             >
               {clockTime(last.at)}
@@ -406,7 +406,7 @@ function ThreadRow({ thread, onPress }: { thread: Thread; onPress: () => void })
                 style={{
                   color: theme.colors.primaryForeground,
                   fontFamily: fonts.bodyBold,
-                  fontSize: 11,
+                  fontSize: theme.fontSize['2xs'],
                 }}
               >
                 {thread.unread}

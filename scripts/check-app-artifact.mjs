@@ -196,6 +196,50 @@ for (const tab of TABS) {
 }
 
 /*
+ * Cerrar lo que está abierto encima, con el teclado.
+ *
+ * Tres capas se abren sobre el mapa —buscador, aviso y lista de capas— y hasta
+ * ahora ninguna atendía al gesto de «deshaz esto»: en Android el botón atrás
+ * sacaba de la pestaña entera en vez de cerrar la capa, y en web Escape no
+ * hacía nada.
+ *
+ * **Aquí sólo se puede comprobar la mitad, y conviene decir cuál.** Este
+ * contenedor no tiene emulador de Android, así que el botón físico no se toca
+ * en ninguna prueba; lo que sí se ejecuta es la rama de web —Escape— que es el
+ * mismo gancho, la misma condición y el mismo cierre. Que el atajo de teclado
+ * cierre el buscador no demuestra que el botón atrás lo cierre en un teléfono;
+ * demuestra que el gancho está montado, conectado al estado correcto y que
+ * cerrar no rompe la pantalla. Lo otro necesita un teléfono.
+ */
+{
+  const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
+  if (await mapTab.count()) {
+    await mapTab.click();
+    await page.waitForTimeout(600);
+
+    const bar = page.getByLabel(/Buscar un sitio en el mapa/i).first();
+    if (!(await bar.count())) {
+      problems.push('no se encontró la barra de búsqueda del mapa');
+    } else {
+      await bar.click();
+      await page.waitForTimeout(500);
+      const field = page.getByPlaceholder(/Buscar parques/i).first();
+      if (!(await field.count())) {
+        problems.push('la barra de búsqueda no llegó a abrir el buscador');
+      } else {
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+        const stillOpen = await page.getByPlaceholder(/Buscar parques/i).count();
+        if (stillOpen) problems.push('Escape no cerró el buscador del mapa');
+        const after = (await page.locator('#root').innerText()).trim();
+        if (after.length < 80) problems.push('cerrar el buscador dejó la pantalla vacía');
+        console.log(`Escape cierra el buscador del mapa: ${stillOpen ? 'NO' : 'sí'}`);
+      }
+    }
+  }
+}
+
+/*
  * La única petición que sale del fichero es la del tiempo, y tiene que salir.
  *
  * Esta comprobación cambió de signo cuando el clima pasó a ser automático:

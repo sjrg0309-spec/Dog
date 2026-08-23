@@ -211,7 +211,7 @@ export function SearchPanel<T extends Searchable>({
                     style={{
                       color: theme.colors.foreground,
                       fontFamily: fonts.bodyBold,
-                      fontSize: 13,
+                      fontSize: theme.fontSize.xs,
                     }}
                   >
                     {category.label}
@@ -286,7 +286,7 @@ function SectionLabel({ icon, children }: { icon: LucideIcon; children: string }
     >
       <Icon icon={icon} size="sm" color={theme.colors.mutedForeground} decorative />
       <Text
-        style={{ color: theme.colors.mutedForeground, fontFamily: fonts.bodyBold, fontSize: 12 }}
+        style={{ color: theme.colors.mutedForeground, fontFamily: fonts.bodyBold, fontSize: theme.fontSize.xs }}
       >
         {children}
       </Text>
@@ -324,7 +324,7 @@ function ResultRow<T extends Searchable>({ item, onPress }: { item: T; onPress: 
       </Text>
       <Text
         numberOfLines={1}
-        style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: 12 }}
+        style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: theme.fontSize.xs }}
       >
         {item.kind}
       </Text>

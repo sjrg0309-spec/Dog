@@ -15,6 +15,22 @@
  *     cumplen. Un control de treinta píxeles se ve bien en una captura y se
  *     falla con el dedo, sobre todo andando por la calle, que es donde se usa
  *     esto.
+ *  3. **Ningún tamaño de texto escrito a mano.** Las dos guías no hablan de
+ *     números sueltos sino de una **escala**: Apple tiene once estilos con
+ *     nombre, Material quince, y en ambas el tamaño se elige de una lista
+ *     cerrada. Un número escrito directamente en un componente no está en
+ *     ninguna lista: es una decisión tomada por una pantalla, en una tarde,
+ *     sin saber qué hacen las otras veintidós.
+ *
+ * **Cómo se rompió la tercera, que es la interesante.** Al escribirla salieron
+ * veintisiete tamaños fuera de escala, y no estaban repartidos al azar:
+ * veintitrés eran `11` y cuatro eran `13`. La escala iba `12, 15, 17…`, así que
+ * el escalón por debajo de 12 —el que Apple llama Caption 2 y Material
+ * `labelSmall`— sencillamente no existía. Y **un escalón que no está en la
+ * escala no se salta: se improvisa**, veintitrés veces, cada una por su cuenta.
+ * El arreglo no fue reescribir veintitrés sitios: fue añadir el escalón que
+ * faltaba (`2xs`) y doblar los cuatro `13` al `xs` que ya había, porque cuatro
+ * usos no justifican un peldaño nuevo.
  *
  * **Por qué esto es un test y no una revisión.** Las dos reglas se incumplen de
  * una en una y nunca a propósito: alguien baja un rótulo a diez para que quepa
@@ -52,6 +68,21 @@ const MIN_TOUCH_TARGET = 44;
    raíz del paquete, así que apunta al mismo sitio. */
 const ROOT = `${process.cwd()}/`;
 
+/**
+ * La escala, leída del código y no copiada aquí.
+ *
+ * Se lee con una expresión regular en vez de importar `lib/theme`, porque ese
+ * módulo importa `react-native` y este test corre en Node pelado. Es menos
+ * elegante y tiene una ventaja: si alguien añade un escalón a la escala, la
+ * regla lo acepta sola; si alguien lo mete a mano en un componente, no.
+ */
+function scale(): number[] {
+  const source = readFileSync(join(ROOT, 'lib/theme.ts'), 'utf8');
+  const block = /export const fontSize = \{([\s\S]*?)\n\} as const;/.exec(source);
+  if (!block?.[1]) throw new Error('No se encontró la escala en lib/theme.ts');
+  return [...block[1].matchAll(/:\s*(\d+)\s*,/g)].map((match) => Number(match[1]));
+}
+
 function sources(): string[] {
   const found: string[] = [];
   const walk = (dir: string) => {
@@ -69,21 +100,34 @@ function sources(): string[] {
 const relative = (path: string) => path.slice(ROOT.length);
 
 describe('tamaño de texto', () => {
-  it('ningún rótulo baja de 11 pt', () => {
+  it('la escala entera llega al mínimo de 11 pt', () => {
+    /* El suelo se comprueba **en la escala**, no en cada pantalla: es el único
+       sitio donde se decide un tamaño, así que es el único que hay que mirar.
+       Si el suelo se cumple aquí, se cumple en toda la aplicación. */
+    expect(scale().filter((size) => size < MIN_FONT_SIZE)).toEqual([]);
+  });
+
+  it('ninguna pantalla escribe un tamaño a mano', () => {
     const offenders: string[] = [];
     for (const file of sources()) {
       readFileSync(file, 'utf8')
         .split('\n')
         .forEach((line, index) => {
           const match = /fontSize:\s*(\d+)\b/.exec(line);
-          if (match && Number(match[1]) < MIN_FONT_SIZE) {
-            offenders.push(`${relative(file)}:${index + 1} → ${match[1]} pt`);
-          }
+          if (!match) return;
+          const size = Number(match[1]);
+          const known = scale().includes(size);
+          offenders.push(
+            `${relative(file)}:${index + 1} → ${size}${
+              known ? ' (está en la escala: úsalo por su nombre)' : ' (no está en la escala)'
+            }`,
+          );
         });
     }
-    expect(offenders, `Texto por debajo de ${MIN_FONT_SIZE} pt:\n${offenders.join('\n')}`).toEqual(
-      [],
-    );
+    expect(
+      offenders,
+      `Tamaños escritos a mano en vez de tomados de theme.fontSize:\n${offenders.join('\n')}`,
+    ).toEqual([]);
   });
 });
 

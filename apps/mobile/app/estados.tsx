@@ -481,7 +481,7 @@ function StoryMedia({ story, width, height }: { story: Story; width: number; hei
           }}
         >
           <Icon icon={story.kind === 'video' ? Video : Sparkles} size="sm" color="#fff" decorative />
-          <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+          <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}>
             {story.kind === 'video' ? 'Vídeo · ilustración generada' : 'Ilustración generada'}
           </Text>
         </View>

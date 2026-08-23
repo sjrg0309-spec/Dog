@@ -687,7 +687,7 @@ function PostImage({
         }}
       >
         <Icon icon={Sparkles} size="sm" color="#fff" decorative />
-        <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+        <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}>
           Ilustración generada
         </Text>
       </View>

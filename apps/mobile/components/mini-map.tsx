@@ -302,7 +302,7 @@ export function MiniMap({
             style={{
               color: theme.colors.foreground,
               fontFamily: fonts.bodyBold,
-              fontSize: 12,
+              fontSize: theme.fontSize.xs,
             }}
           >
             Sin las calles, de momento
@@ -311,7 +311,7 @@ export function MiniMap({
             style={{
               color: theme.colors.mutedForeground,
               fontFamily: fonts.body,
-              fontSize: 11,
+              fontSize: theme.fontSize['2xs'],
             }}
           >
             No llegan las imágenes del mapa. Las posiciones, las distancias y los radios que ves
@@ -514,7 +514,7 @@ export function MiniMap({
                   style={{
                     color: theme.colors.foreground,
                     fontFamily: fonts.bodyBold,
-                    fontSize: 11,
+                    fontSize: theme.fontSize['2xs'],
                     textAlign: 'center',
                   }}
                 >

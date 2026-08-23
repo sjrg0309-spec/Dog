@@ -73,6 +73,17 @@ export const radius = {
  * calle, que es donde se usa esto.
  */
 export const fontSize = {
+  /**
+   * El suelo, y el escalón que faltaba.
+   *
+   * Apple lo llama Caption 2 y Material `labelSmall`: las dos plataformas lo
+   * ponen en once y las dos dicen que por debajo no se baja. Faltaba en esta
+   * escala, así que cada vez que hacía falta un rótulo diminuto —la hora de un
+   * mensaje, un contador, la atribución del mapa— alguien escribía el número a
+   * mano. Veintitrés sitios, cada uno decidido por su cuenta. Un escalón que no
+   * existe en la escala no se salta: se improvisa.
+   */
+  '2xs': 11,
   xs: 12,
   sm: 15,
   base: 17,

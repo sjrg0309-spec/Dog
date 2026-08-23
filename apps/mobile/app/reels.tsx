@@ -186,7 +186,7 @@ function ReelPage({
           }}
         >
           <Icon icon={active ? Video : Play} size="sm" color="#fff" decorative />
-          <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: 11 }}>
+          <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}>
             {reel.durationS} s · ilustración generada{active ? '' : ' · en pausa'}
           </Text>
         </View>

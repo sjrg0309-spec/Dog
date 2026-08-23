@@ -63,7 +63,7 @@ export default function TabsLayout() {
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.mutedForeground,
-        tabBarLabelStyle: { fontFamily: fonts.body, fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] },
       }}
     >
       <Tabs.Screen
@@ -101,7 +101,7 @@ export default function TabsLayout() {
             backgroundColor: theme.colors.destructive,
             color: theme.colors.destructiveForeground,
             fontFamily: fonts.bodyBold,
-            fontSize: 11,
+            fontSize: theme.fontSize['2xs'],
           },
           tabBarAccessibilityLabel:
             criticalNearby > 0

@@ -18,7 +18,7 @@
  * teléfono sería un gesto nativo aquí lo mueve el navegador.
  */
 
-import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 
@@ -44,6 +44,56 @@ const walk = async (dir, base = '') => {
   }
   return files;
 };
+
+/**
+ * El empaquetado no puede ser más viejo que el código.
+ *
+ * Este guion **no exporta**: coge lo que `expo export` haya dejado en
+ * `dist-web` y lo mete en un fichero. Y ahí hay una trampa que ya mordió una
+ * vez: si se toca el código y se empaqueta sin volver a exportar, esto termina
+ * sin quejarse, imprime su resumen de siempre y produce un fichero **con el
+ * código anterior**. Todo lo que venga después audita la versión vieja, así que
+ * el fallo aparece disfrazado del arreglo que no funciona — se pierde una vuelta
+ * entera buscando en el sitio equivocado, que fue exactamente lo que pasó al
+ * añadir el cierre con Escape.
+ *
+ * La comprobación es tonta y basta: si algún fuente es más nuevo que el bundle,
+ * se para y se dice qué hay que ejecutar. Una fecha no prueba que el contenido
+ * corresponda, pero el caso que se quiere atrapar —tocar y no exportar— siempre
+ * la mueve.
+ */
+const SOURCES = ['app', 'components', 'lib'];
+{
+  const bundleDir = new URL('../apps/mobile/dist-web/_expo/static/js/web/', import.meta.url).pathname;
+  const bundles = await readdir(bundleDir);
+  const times = await Promise.all(bundles.map(async (name) => (await stat(join(bundleDir, name))).mtimeMs));
+  const built = Math.max(...times);
+
+  const newest = async (dir) => {
+    const entries = await readdir(dir, { withFileTypes: true });
+    let latest = 0;
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      const when = entry.isDirectory()
+        ? await newest(full)
+        : (await stat(full)).mtimeMs;
+      if (when > latest) latest = when;
+    }
+    return latest;
+  };
+
+  const root = new URL('../apps/mobile/', import.meta.url).pathname;
+  const stale = [];
+  for (const dir of SOURCES) {
+    if ((await newest(join(root, dir))) > built) stale.push(dir);
+  }
+  if (stale.length) {
+    throw new Error(
+      `el empaquetado es más viejo que ${stale.join(', ')}: ` +
+        'ejecuta `npx expo export --platform web --output-dir dist-web` en apps/mobile antes de empaquetar',
+    );
+  }
+}
 
 const indexHtml = await readFile(join(DIST, 'index.html'), 'utf8');
 const bundlePath = indexHtml.match(/src="\/(_expo\/[^"]+\.js)"/)?.[1];

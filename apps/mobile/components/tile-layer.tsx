@@ -171,7 +171,7 @@ export function TileLayer({
         {/* Once, no nueve. La atribución es letra pequeña por obligación de la
             licencia, y eso no la exime del mínimo de tamaño: una condición
             legal que no se puede leer tampoco se cumple. */}
-        <Text style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: 11 }}>
+        <Text style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] }}>
           {TILE_ATTRIBUTION}
         </Text>
       </View>
