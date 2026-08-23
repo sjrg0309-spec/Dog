@@ -110,6 +110,9 @@ export {
   /** El cuadrado con el «+» de la cabecera del feed: publicar. */
   SquarePlus,
   Check,
+  /** El desplegable de los pasos de rescate. */
+  ChevronDown,
+  ChevronUp,
   Undo2,
   SquarePen,
   Search,

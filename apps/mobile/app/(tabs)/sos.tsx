@@ -6,11 +6,13 @@ import { Icon } from '@/components/icon';
 import { Badge, Body, Button, Caption, Card, Notice, Row, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { useWeatherState } from '@/lib/conditions';
-import { MY_PETS } from '@/lib/demo-data';
+import { MY_PETS, PLACES } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   CircleCheck,
   Eye,
   Locate,
@@ -27,8 +29,19 @@ import {
   useAllAlerts,
   type LiveAlert,
 } from '@/lib/safety';
+import { useHazardZones } from '@/lib/rescue';
 import { useTheme } from '@/lib/theme';
-import { SAFETY_DISCLAIMER, SAFETY_SCENARIOS, type SafetyScenario } from '@coincide/core';
+import {
+  EVIDENCE_CHECKLIST,
+  REPORTING_CHANNELS_NOTE,
+  RESCUE_DISCLAIMER,
+  RESCUE_SCENARIOS,
+  SAFETY_DISCLAIMER,
+  SAFETY_SCENARIOS,
+  describeZone,
+  type RescueScenario,
+  type SafetyScenario,
+} from '@coincide/core';
 
 /**
  * SOS.
@@ -155,6 +168,8 @@ export default function SosScreen() {
               ))}
             </View>
           ) : null}
+
+          <RescueSection />
 
           <Notice>
             <Caption>{SAFETY_DISCLAIMER}</Caption>
@@ -745,5 +760,207 @@ function ResolvedRow({ live }: { live: LiveAlert }) {
         </Caption>
       </View>
     </View>
+  );
+}
+
+/**
+ * Rescate: cuando el que necesita ayuda es un animal que no es tuyo.
+ *
+ * El resto de esta pantalla protege al perro de su tutor. Esto es lo otro, y en
+ * Latinoamérica es la mitad del problema: quien se encuentra un animal
+ * envenenado en un parque casi nunca es su dueño, y quien sale a buscarlo suele
+ * ser una rescatista sin refugio, sin presupuesto y coordinándose por WhatsApp.
+ * Lo que le falta no es voluntad, es enterarse a tiempo y saber qué hacer en
+ * los primeros minutos.
+ *
+ * Tres bloques, y el orden es el de la urgencia:
+ *
+ *  1. **Los sitios marcados**, que es lo único que cuenta el patrón. Envenenar
+ *     un parque no es un suceso: quien lo hace vuelve. Una alerta que caduca en
+ *     horas cuenta cada visita por separado y pierde justo lo que había que ver.
+ *  2. **Qué hacer**, por situación. En un envenenamiento el margen se cuenta en
+ *     minutos y el paso que casi nadie sabe —no provocar el vómito— es el que
+ *     más daño evita.
+ *  3. **Qué reunir para denunciar**, porque un post no abre un expediente.
+ *
+ * Y lo que **no** hay: ningún sitio donde escribir de quién se sospecha. Ni
+ * nombre, ni matrícula, ni texto libre. No es un campo pendiente de añadir —es
+ * la garantía: acusaciones de maltrato animal publicadas en el teléfono de todo
+ * un barrio han terminado en agresiones a personas que después no tenían nada
+ * que ver, y confiar en moderar textos es confiar en llegar a tiempo. Si el
+ * campo no existe, la acusación no se puede escribir.
+ */
+function RescueSection() {
+  const theme = useTheme();
+  const zones = useHazardZones();
+  const [open, setOpen] = useState<string | null>(null);
+
+  return (
+    <View style={{ gap: theme.space[4] }}>
+      <View style={{ gap: theme.space[1] }}>
+        <Text
+          accessibilityRole="header"
+          style={{
+            color: theme.colors.foreground,
+            fontFamily: fonts.displayBold,
+            fontSize: theme.fontSize.xl,
+          }}
+        >
+          Rescate
+        </Text>
+        <Caption>
+          Cuando el animal que necesita ayuda no es el tuyo. Los avisos son sobre sitios y
+          situaciones, nunca sobre personas.
+        </Caption>
+      </View>
+
+      {zones.length > 0 ? (
+        <Card>
+          <Row>
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayBold,
+                fontSize: theme.fontSize.base,
+              }}
+            >
+              Sitios marcados
+            </Text>
+            <Badge tone="warning">{String(zones.length)}</Badge>
+          </Row>
+          {zones.map((zone) => (
+            <View key={`${zone.placeId}-${zone.scenarioId}`} style={{ gap: 2 }}>
+              <Body>{placeNameOf(zone.placeId)}</Body>
+              <Caption>{describeZone(zone)}</Caption>
+            </View>
+          ))}
+          <Caption>
+            Un sitio se marca con tres personas distintas, no con tres avisos: contando avisos,
+            cualquiera vaciaría de gente el parque que quisiera repitiendo el formulario. Y la
+            marca caduca sola al mes — un cebo en marzo no hace peligroso el parque en septiembre.
+          </Caption>
+        </Card>
+      ) : null}
+
+      <View style={{ gap: theme.space[2] }}>
+        {RESCUE_SCENARIOS.map((scenario) => (
+          <RescueCard
+            key={scenario.id}
+            scenario={scenario}
+            open={open === scenario.id}
+            onToggle={() => setOpen(open === scenario.id ? null : scenario.id)}
+          />
+        ))}
+      </View>
+
+      <Card>
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontFamily: fonts.displayBold,
+            fontSize: theme.fontSize.base,
+          }}
+        >
+          Para que una denuncia se sostenga
+        </Text>
+        {EVIDENCE_CHECKLIST.map((item) => (
+          <Row key={item} gap={2}>
+            <Icon icon={Check} size="sm" color={theme.colors.mutedForeground} decorative />
+            <Caption>{item}</Caption>
+          </Row>
+        ))}
+        {/* El hueco, marcado como hueco. Un teléfono sacado de memoria sería lo
+            peor que puede hacer esta pantalla: alguien con un animal
+            envenenado delante llamando a un número que no contesta. */}
+        <Caption>{REPORTING_CHANNELS_NOTE}</Caption>
+      </Card>
+
+      <Notice>
+        <Caption>{RESCUE_DISCLAIMER}</Caption>
+      </Notice>
+    </View>
+  );
+}
+
+function placeNameOf(placeId: string): string {
+  return Object.values(PLACES).find((place) => place.id === placeId)?.name ?? 'Tu zona';
+}
+
+function RescueCard({
+  scenario,
+  open,
+  onToggle,
+}: {
+  scenario: RescueScenario;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const theme = useTheme();
+  const critical = scenario.severity === 'critical';
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      accessibilityLabel={scenario.label}
+      accessibilityHint={open ? 'Cerrar los pasos' : 'Ver qué hacer'}
+      onPress={() => {
+        haptics.tap();
+        onToggle();
+      }}
+      style={({ pressed }) => ({
+        gap: theme.space[2],
+        minHeight: theme.touchTarget.min,
+        padding: theme.space[4],
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: critical ? theme.colors.destructive : theme.colors.border,
+        backgroundColor: pressed ? theme.colors.surfaceSunken : theme.colors.surface,
+      })}
+    >
+      <Row>
+        <Text
+          style={{
+            flex: 1,
+            color: theme.colors.foreground,
+            fontFamily: fonts.displayBold,
+            fontSize: theme.fontSize.sm,
+          }}
+        >
+          {scenario.label}
+        </Text>
+        <Icon
+          icon={open ? ChevronUp : ChevronDown}
+          size="base"
+          color={theme.colors.mutedForeground}
+          decorative
+        />
+      </Row>
+      <Caption>{scenario.description}</Caption>
+
+      {open ? (
+        <View style={{ gap: theme.space[2], paddingTop: theme.space[1] }}>
+          {scenario.steps.map((step, index) => (
+            <View key={step} style={{ flexDirection: 'row', gap: theme.space[2] }}>
+              {/* Numerados porque **el orden es el contenido**: en un
+                  envenenamiento, ir al veterinario va antes que buscar la
+                  muestra, y hacerlo al revés cuesta minutos que no hay. */}
+              <Text
+                style={{
+                  color: theme.colors.mutedForeground,
+                  fontFamily: fonts.bodyBold,
+                  fontSize: theme.fontSize['2xs'],
+                  fontVariant: ['tabular-nums'],
+                  minWidth: 14,
+                }}
+              >
+                {index + 1}
+              </Text>
+              <Caption>{step}</Caption>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </Pressable>
   );
 }
