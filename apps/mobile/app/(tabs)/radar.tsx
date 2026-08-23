@@ -30,6 +30,7 @@ import { fonts } from '@/lib/fonts';
 import { petHasMeetups, speciesOf, walkingNow } from '@/lib/data';
 import { PLACES } from '@/lib/demo-data';
 import { speciesName } from '@/lib/labels';
+import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { useTheme } from '@/lib/theme';
 import { recordWalk, useWalks } from '@/lib/walks';
 
@@ -70,6 +71,7 @@ export default function RadarScreen() {
 
   const router = useRouter();
   const walks = useWalks(pet.id);
+  const ghost = useGhostMode();
 
   /* Hace falta guardar **cuándo empezó**, no solo hasta cuándo dura: sin eso,
      al cerrar el check-in no hay forma de saber cuánto se estuvo fuera, que es
@@ -208,6 +210,29 @@ export default function RadarScreen() {
               dos kilómetros han recibido un aviso.
             </Caption>
             <Button label="Hemos terminado" variant="outline" onPress={checkOut} />
+          </Card>
+        ) : ghost ? (
+          /* Con el modo fantasma puesto no se ofrece salir, y no es una
+             pantalla de error: el tutor lo ha pedido. Se dice qué está apagado
+             y se deja el interruptor al lado, que es lo que separa una decisión
+             de un bloqueo.
+             El botón de check-in **no está**, no está en gris: es la misma
+             regla que con un veto de bienestar, y por el mismo motivo —un
+             control desactivado invita a buscar cómo activarlo—. */
+          <Card>
+            <Row>
+              <Heading>Estáis invisibles</Heading>
+              <Badge tone="warning">Modo fantasma</Badge>
+            </Row>
+            <Body muted>
+              {pet.name} no aparece en el mapa de nadie y no puede hacer check-in. Los demás sí se
+              siguen viendo: esconderte no te cuesta la función.
+            </Body>
+            <Button
+              label="Volver a aparecer"
+              variant="outline"
+              onPress={() => setGhostMode(false)}
+            />
           </Card>
         ) : here === null ? (
           <OutsideArea />

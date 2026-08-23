@@ -72,6 +72,21 @@ export type SemanticTokens = {
    */
   chartTrack: string;
 
+  /**
+   * El halo de actividad del mapa: cuánta gente hay en un sitio ahora.
+   *
+   * Es cálido y el resto del mapa es frío, y eso no es gusto: sobre un parque
+   * verde, un halo verde se lee como **más parque**. El primer intento lo puso
+   * en el color de «en vivo» —que semánticamente era lo correcto— y en la
+   * captura salió una papilla de dos verdes. Medirlo desmintió el diagnóstico
+   * fácil: la distancia entre los dos tokens era 0,230, muy por encima del
+   * mínimo del proyecto. Lo que se confundía no eran los colores sino **dos
+   * discos translúcidos apilados**, así que el halo pasó a sustituir el relleno
+   * del parque en vez de sumarse a él, y de paso a un matiz que ningún terreno
+   * tiene.
+   */
+  mapHeat: string;
+
   // Bordes y controles
   border: string;
   borderStrong: string;
@@ -138,6 +153,7 @@ export const light: SemanticTokens = {
   informationSurface: blue[100],
 
   chartTrack: ink[400],
+  mapHeat: amber[500],
 
   border: bone[200],
   borderStrong: ink[500],
@@ -211,7 +227,13 @@ export const dark: SemanticTokens = {
   informationForeground: blue[900],
   informationSurface: blue[900],
 
+  /* El mismo paso que en claro, y no el que suele tocar en oscuro. El
+     escalón 300 es exactamente `warning` en este tema —el test lo cazó a la
+     primera con una distancia de cero— y además el halo no es texto ni
+     superficie: se compone translúcido sobre el mapa, así que lo que tiene que
+     hacer es ser cálido y separarse, no adaptar su claridad al fondo. */
   chartTrack: ink[500],
+  mapHeat: amber[500],
 
   border: ink[800],
   borderStrong: ink[500],

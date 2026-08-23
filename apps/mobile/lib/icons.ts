@@ -73,6 +73,10 @@ export {
   Siren,
   ShieldAlert,
   Eye,
+  /** Su pareja, para el modo fantasma. El estado se dice además con la
+      etiqueta y con `active`, no solo cambiando el dibujo: un ojo tachado y un
+      ojo abierto se distinguen mal a veinte píxeles y de un vistazo. */
+  EyeOff,
   Flame,
   Wind,
   TreePine,

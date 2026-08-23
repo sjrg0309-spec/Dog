@@ -31,6 +31,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { Avatar } from './avatar';
 import { Icon } from './icon';
 import { TileLayer } from './tile-layer';
 import { fonts } from '@/lib/fonts';
@@ -54,9 +55,29 @@ export type MapMarker = {
   detail: string;
   icon: LucideIcon;
   /** `alert` se pinta en rojo y siempre encima de todo lo demás. */
-  tone: 'place' | 'water' | 'vet' | 'alert';
+  tone: 'place' | 'water' | 'vet' | 'alert' | 'friend';
   /** Radio en metros a dibujar alrededor. Cero: sin círculo. */
   radiusM?: number;
+  /**
+   * Quién es, cuando el marcador es un animal.
+   *
+   * Con esto el marcador deja de ser un punto de color y pasa a ser **su
+   * cara**, que es lo que hace que el mapa de Snapchat se lea de un vistazo:
+   * no hay que tocar nada para saber quién hay en el parque. Los retratos ya
+   * existían —son los mismos del feed y de los mensajes, deterministas por
+   * identificador—, así que la cara del mapa es la misma cara de todas
+   * partes. Un mapa donde alguien tiene otro aspecto que en el feed no sirve
+   * para reconocer a nadie, que es lo único que hace.
+   */
+  petId?: string;
+  /**
+   * Cuánta gente hay aquí ahora, para el halo de actividad.
+   *
+   * Es el equivalente honesto del mapa de calor de Snapchat: dice **dónde está
+   * pasando algo** sin decir quién está dónde. Un halo sobre un parque es
+   * información agregada del sitio; un punto por persona sería otra cosa.
+   */
+  heat?: number;
 };
 
 /** Cada cuánto cae una línea de la retícula del respaldo, en metros. */
@@ -133,12 +154,17 @@ export function MiniMap({
         ? theme.colors.information
         : tone === 'vet'
           ? theme.colors.warning
-          : theme.colors.primary;
+          : tone === 'friend'
+            ? theme.colors.liveRing
+            : theme.colors.primary;
 
-  // Las alertas al final del array para que queden dibujadas encima.
-  const ordered = [...markers].sort(
-    (a, b) => Number(a.tone === 'alert') - Number(b.tone === 'alert'),
-  );
+  /* Orden de pintado: primero los sitios, luego las caras, y las alertas
+     siempre las últimas. Las caras van por encima de los iconos porque son lo
+     que se viene a mirar, y por debajo de las alertas porque un aviso de cebos
+     tapado por un retrato es un aviso que no se ha dado. */
+  const layerRank = (tone: MapMarker['tone']) =>
+    tone === 'alert' ? 2 : tone === 'friend' ? 1 : 0;
+  const ordered = [...markers].sort((a, b) => layerRank(a.tone) - layerRank(b.tone));
 
   /* La retícula en metros y no en fracciones del cuadro: así una casilla mide
      siempre lo mismo sobre el terreno y el paso de una escala a otra se ve como
@@ -238,6 +264,43 @@ export function MiniMap({
         height={height}
         onUnavailable={onUnavailable}
       />
+
+      {/* El velo sobre las teselas: lo que hace que el mapa calle.
+          Esto es la mitad de por qué el mapa de Snapchat se lee tan rápido, y
+          es lo que menos se nota: su cartografía está deliberadamente apagada
+          —pocos rótulos, colores lavados— para que lo único con contraste
+          fuerte sean las caras. Sobre el estilo estándar de OpenStreetMap, que
+          es vivo y lleno de rótulos, un retrato de cuarenta píxeles compite
+          con un parque verde chillón y con el nombre de tres calles.
+          Se hace con un velo del color de fondo y no cambiando de proveedor de
+          teselas a propósito: los cinco que se probaron están bloqueados desde
+          este contenedor, así que un estilo nuevo no se podría comprobar y
+          además hay que atribuirlo distinto. Un velo es una capa nuestra, se ve
+          en la captura, y funciona igual con cualquier proveedor detrás.
+          Desaparece cuando no hay imágenes: apagar el respaldo, que ya es
+          tenue, lo dejaría en nada. */}
+      {tilesDown ? null : (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            backgroundColor: theme.colors.background,
+            /* Más fuerte en oscuro, y por una limitación que conviene decir:
+               las teselas de OpenStreetMap son **siempre claras**. No hay tema
+               oscuro que valga contra un mapa que llega ya pintado, así que un
+               velo del 34 % dejaba la cartografía brillando muy por encima del
+               cromo y la pantalla parecía a medio cargar. Un mapa nocturno de
+               verdad necesita un estilo de teselas oscuro —eso es cambiar de
+               proveedor, con su atribución— y desde este contenedor no se puede
+               comprobar ninguno. Apagarlo es lo que sí está en nuestra mano. */
+            opacity: theme.isDark ? 0.55 : 0.34,
+          }}
+        />
+      )}
 
       {/* Retícula: da escala sin fingir que son calles. Sólo cuando no hay
           imágenes — encima de un mapa de verdad sería una reja sobre la calle.
@@ -364,7 +427,16 @@ export function MiniMap({
               // Un aro encierra un área igual de bien y no apaga nada.
               borderWidth: alert ? 2 : 0,
               borderColor: toneColor(marker.tone),
-              backgroundColor: alert ? 'transparent' : toneColor(marker.tone),
+              /* Y desaparece donde hay halo. Dos discos translúcidos sobre el
+                 mismo sitio no se leen como dos capas: se leen como una mancha
+                 sucia, y en la captura el halo de actividad sobre el verde del
+                 parque salió exactamente así. Medir los tokens no lo explicaba
+                 —se separan de sobra— porque lo que se confundía era el
+                 resultado de componerlos, no los colores de partida. Donde hay
+                 gente manda el halo; la forma del parque la sigue diciendo su
+                 linde, que se dibuja aparte. */
+              backgroundColor:
+                alert || (marker.heat ?? 0) >= 2 ? 'transparent' : toneColor(marker.tone),
               // La mancha de un lugar se aclara cuando hay mapa debajo: ahí el
               // parque ya sale verde y con su forma real, así que la mancha
               // deja de tener que dibujarlo y pasa a solo señalarlo. Encima del
@@ -372,6 +444,51 @@ export function MiniMap({
               opacity: alert ? 0.7 : tilesDown ? 0.3 : 0.18,
             }}
           />
+        );
+      })}
+
+      {/* El halo de actividad: dónde está pasando algo.
+          Es el mapa de calor de Snapchat, con la diferencia que importa: mide
+          **el sitio**, no a las personas. Tres círculos concéntricos en vez de
+          un degradado radial porque React Native no tiene degradados sin SVG y
+          esto se dibuja igual de bien con tres vistas.
+
+          Va **después de la mancha del parque y antes de las caras**, y ese
+          orden costó una captura: dibujado antes, la mancha verde del parque lo
+          tapaba entero y el halo no existía en pantalla aunque el código lo
+          pintara. Detrás de las caras porque un halo encima de un retrato lo
+          apaga, y el retrato es lo que se viene a mirar. */}
+      {ordered.map((marker) => {
+        if (!marker.heat || marker.heat < 2) return null;
+        const { x, y } = projectPoint(marker);
+        const base = Math.min(120, 46 + marker.heat * 16);
+        return (
+          <View key={`h-${marker.id}`} pointerEvents="none">
+            {[1, 0.66, 0.4].map((ratio, index) => {
+              const r = base * ratio;
+              return (
+                <View
+                  key={ratio}
+                  style={{
+                    position: 'absolute',
+                    left: x - r,
+                    top: y - r,
+                    width: r * 2,
+                    height: r * 2,
+                    borderRadius: r,
+                    backgroundColor: theme.colors.mapHeat,
+                    /* Flojo a propósito y creciente hacia dentro. Este mapa ya
+                       aprendió una vez que cualquier película sobre un disco
+                       grande tiñe lo que hay debajo —por eso la alerta es un
+                       aro sin relleno—, así que el halo se queda pequeño (nunca
+                       más de 120 px) y translúcido: señala un sitio, no lo
+                       pinta. */
+                    opacity: 0.12 + index * 0.07,
+                  }}
+                />
+              );
+            })}
+          </View>
         );
       })}
 
@@ -455,6 +572,10 @@ export function MiniMap({
         const selected = marker.id === selectedId;
         const color = toneColor(marker.tone);
         const dot = selected ? 34 : 28;
+        const face = marker.petId !== undefined;
+        // La cara es más grande que el punto porque tiene que reconocerse, no
+        // solo verse: un retrato de veintiocho píxeles es una mancha de color.
+        const puck = face ? (selected ? 48 : 42) : dot;
 
         return (
           <Pressable
@@ -469,40 +590,71 @@ export function MiniMap({
             }}
             style={{
               position: 'absolute',
-              // El área táctil son 44; el punto visible, 28. El resto es margen
-              // invisible para que se pueda acertar con el dedo.
-              left: x - 22,
-              top: y - 22,
-              width: 44,
+              // El área táctil son 44 como suelo; cuando la cara es más grande
+              // manda la cara. El resto es margen invisible para acertar con el
+              // dedo sin que el dibujo crezca.
+              left: x - Math.max(22, puck / 2),
+              top: y - Math.max(22, puck / 2),
+              width: Math.max(44, puck),
               alignItems: 'center',
             }}
           >
-            <View style={{ height: 44, justifyContent: 'center' }}>
-              <View
-                style={{
-                  width: dot,
-                  height: dot,
-                  borderRadius: dot / 2,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: color,
-                  borderWidth: selected ? 3 : 2,
-                  borderColor: theme.colors.background,
-                }}
-              >
-                <Icon icon={marker.icon} size="sm" color={theme.colors.background} decorative />
-              </View>
+            <View style={{ height: Math.max(44, puck), justifyContent: 'center' }}>
+              {face ? (
+                /* La ficha de una cara: retrato dentro de un aro del color del
+                   fondo, como los Bitmoji de Snapchat. El aro no es adorno —es
+                   lo que separa la cara de lo que haya debajo, y sin él un
+                   perro claro sobre una acera clara desaparece—. El aro exterior
+                   va en el color de «en vivo», que en esta aplicación significa
+                   una sola cosa y aquí significa exactamente eso. */
+                <View
+                  style={{
+                    width: puck,
+                    height: puck,
+                    borderRadius: puck / 2,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme.colors.background,
+                    borderWidth: selected ? 3 : 2,
+                    borderColor: color,
+                  }}
+                >
+                  <Avatar id={marker.petId!} name={marker.label} size={puck - 8} />
+                </View>
+              ) : (
+                <View
+                  style={{
+                    width: dot,
+                    height: dot,
+                    borderRadius: dot / 2,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: color,
+                    borderWidth: selected ? 3 : 2,
+                    borderColor: theme.colors.background,
+                  }}
+                >
+                  <Icon icon={marker.icon} size="sm" color={theme.colors.background} decorative />
+                </View>
+              )}
             </View>
 
-            {/* El nombre debajo del punto, solo en el que está elegido. En
-                todos a la vez sería una alfombra de texto solapado; en ninguno,
-                un mapa de puntos de colores que hay que ir tocando a ciegas. */}
-            {selected ? (
+            {/* El nombre debajo del punto, en el elegido **y siempre en las
+                caras**. Con los iconos, todos los rótulos a la vez serían una
+                alfombra de texto solapado; con las caras el nombre es medio
+                dato —saber que hay alguien sin saber quién no sirve de nada— y
+                son pocas por definición: los que están fuera ahora, no el
+                callejero entero. */}
+            {selected || face ? (
               <View
                 pointerEvents="none"
                 style={{
                   maxWidth: 132,
-                  marginTop: -2,
+                  /* Pegado al punto, y despegado de la cara. Con el mismo −2
+                     para los dos, el rótulo de una cara —que es doce píxeles
+                     más grande— se metía dentro del retrato y tapaba el hocico
+                     justo del perro que nombra. */
+                  marginTop: face ? 2 : -2,
                   paddingHorizontal: 6,
                   paddingVertical: 2,
                   borderRadius: theme.radius.sm,

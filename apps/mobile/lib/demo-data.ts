@@ -237,7 +237,14 @@ export const OTHER_PETS: DemoPet[] = [
     home: { lat: 40.4079, lng: -3.696 },
     location: { lat: 40.4089, lng: -3.6952 },
     walkingUntilMinutes: 40,
-    placeName: PLACES.berlin.name,
+    /* Parque Central, que es donde de verdad está.
+       Aquí ponía Parque Berlín, a cinco kilómetros de estas coordenadas, y la
+       incoherencia era invisible porque `placeName` solo se usaba como rótulo
+       en una lista: decía «Parque Berlín» y nadie podía comprobarlo. Se vio al
+       colocar las caras del mapa en su sitio, que es cuando el rótulo pasó a
+       tener que cuadrar con una posición. Hay un test que ya no deja que se
+       vuelvan a separar. */
+    placeName: PLACES.central.name,
   },
   {
     id: '20000000-0000-4000-8000-000000000004',

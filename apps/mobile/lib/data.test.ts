@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { findSpecies } from '@coincide/core';
+import { distanceMeters, findSpecies } from '@coincide/core';
 
 import {
   bark,
@@ -633,6 +633,43 @@ describe('sin saber qué tiempo hace', () => {
     const result = discover(nina, null);
     expect(result.safetyVetoed).toBe(0);
     expect(result.restingNearby).toBe(0);
+  });
+});
+
+/**
+ * Quién está fuera, y dónde dice que está.
+ *
+ * `placeName` empezó siendo un rótulo suelto —una cadena que se pintaba en una
+ * lista y que nadie podía contrastar con nada—, y así se quedó con Parque
+ * Berlín escrito encima de unas coordenadas que estaban a cinco kilómetros, en
+ * Parque Central. No rompía ninguna pantalla: decía un nombre, y un nombre
+ * siempre se pinta bien.
+ *
+ * Dejó de ser inocuo al poner las caras en el mapa, porque entonces el rótulo
+ * decide **dónde se dibuja** a ese perro. Un tutor que cruza el barrio a un
+ * parque en el que no hay nadie no vuelve a fiarse de la pantalla, y el fallo
+ * que lo causó se lee perfectamente en el código.
+ */
+describe('quién está fuera y dónde', () => {
+  const places = Object.values(PLACES);
+
+  it('cada perro que está fuera dice un sitio que existe', () => {
+    for (const pet of walkingNow('dog')) {
+      expect(places.some((place) => place.name === pet.placeName)).toBe(true);
+    }
+  });
+
+  it('y ese sitio es donde de verdad está, no otro a cinco kilómetros', () => {
+    /* Se comprueba con la misma distancia que usa la aplicación, y contra el
+       radio del propio sitio: un parque es un área, así que estar «en» él es
+       caber dentro, no coincidir con su centro. */
+    for (const pet of walkingNow('dog')) {
+      const place = places.find((candidate) => candidate.name === pet.placeName);
+      expect(place, `${pet.name} dice estar en un sitio que no existe`).toBeDefined();
+      const distance = distanceMeters(pet.location, place!);
+      expect(distance, `${pet.name} dice estar en ${place!.name} y está a ${Math.round(distance)} m`)
+        .toBeLessThanOrEqual(place!.radiusM);
+    }
   });
 });
 

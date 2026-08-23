@@ -336,6 +336,25 @@ describe('significados que no pueden confundirse', () => {
 });
 
 /**
+ * El halo de actividad del mapa.
+ *
+ * Comparte pantalla con cuatro significados que ya tienen color —el parque, la
+ * alerta, el veterinario y el agua— y encima se dibuja translúcido sobre todos
+ * ellos, así que tiene que separarse de los cuatro. El que más importa es el
+ * parque: son los dos únicos que ocupan la misma superficie, y confundirlos
+ * convierte «aquí hay cinco perros» en «aquí hay césped».
+ */
+describe('el halo de actividad del mapa', () => {
+  const rivals = ['primary', 'destructive', 'warning', 'information'] as const;
+
+  for (const [name, theme] of themes) {
+    it.each(rivals)(`se distingue de %s en tema ${name}`, (other) => {
+      expect(oklabDistance(theme.mapHeat, theme[other])).toBeGreaterThanOrEqual(0.1);
+    });
+  }
+});
+
+/**
  * La banda de referencia de los gráficos.
  *
  * Dos exigencias que se tiran la una de la otra, y por eso se miden las dos:

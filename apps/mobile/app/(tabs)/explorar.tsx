@@ -14,7 +14,9 @@ import { Sheet, type SheetPosition } from '@/components/sheet';
 import { Body, Caption, Screen } from '@/components/ui';
 import { useBackDismiss } from '@/lib/back';
 import { useWeatherState } from '@/lib/conditions';
+import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { spanMeters } from '@/lib/tiles';
+import { walkingNow } from '@/lib/data';
 import { PLACES, SERVICES, WATER_POINTS } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -32,6 +34,9 @@ import {
   Siren,
   Stethoscope,
   TriangleAlert,
+  Eye,
+  EyeOff,
+  PawPrint,
   Trees,
   Users,
   type LucideIcon,
@@ -64,9 +69,15 @@ import { useTheme } from '@/lib/theme';
  * enteras, no pestañas: se llega a ellas desde el sitio donde se piensa en ellas,
  * que es mirando el mapa.
  */
-type LayerId = 'places' | 'water' | 'vets';
+type LayerId = 'friends' | 'places' | 'water' | 'vets';
 
 const LAYERS: ReadonlyArray<{ id: LayerId; label: string; icon: LucideIcon; hint: string }> = [
+  {
+    id: 'friends',
+    label: 'Quién está fuera',
+    icon: PawPrint,
+    hint: 'Las caras de los perros que están paseando ahora, en su parque',
+  },
   {
     id: 'places',
     label: 'Pipicanes',
@@ -120,7 +131,7 @@ export default function ExploreScreen() {
   const pet = useActivePet();
   const alerts = useLiveAlerts(location);
 
-  const [active, setActive] = useState<Set<LayerId>>(new Set(['places']));
+  const [active, setActive] = useState<Set<LayerId>>(new Set(['friends', 'places']));
   /* Arranca en el nivel 15 —barrio, algo menos de dos kilómetros de ancho en
      Madrid—, que es donde un mapa de calles se lee y donde caben los sitios de
      alrededor sin que el círculo de una alerta se coma la pantalla. */
@@ -134,6 +145,14 @@ export default function ExploreScreen() {
      sitios buscados es una lista de dónde ha estado alguien y por qué. */
   const [recents, setRecents] = useState<string[]>([]);
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
+
+  /* Quién está fuera ahora, de la misma especie. Con el modo fantasma puesto
+     esta lista sigue llegando: apagarse a uno mismo no es dejar de ver a los
+     demás, que es lo que hace Snapchat y es lo correcto —esconderte no debería
+     costarte la función—. Lo que se apaga es tu presencia, y eso lo decide el
+     radar, no esta pantalla. */
+  const outNow = useMemo(() => walkingNow(pet.speciesId), [pet.speciesId]);
+  const ghost = useGhostMode();
 
   /* El botón atrás de Android cierra lo que esté abierto encima del mapa, y no
      la pestaña. Van por separado y no en un solo manejador porque React Native
@@ -157,6 +176,13 @@ export default function ExploreScreen() {
     (layers: ReadonlySet<LayerId>): MapMarker[] => {
     const list: MapMarker[] = [];
 
+    /* Cuántos hay fuera en cada sitio. Alimenta el halo de actividad, que es
+       lo único de esta pantalla que habla de varios a la vez. */
+    const crowd = new Map<string, number>();
+    for (const other of outNow) {
+      if (other.placeName) crowd.set(other.placeName, (crowd.get(other.placeName) ?? 0) + 1);
+    }
+
     if (layers.has('places')) {
       for (const place of Object.values(PLACES)) {
         list.push({
@@ -169,6 +195,48 @@ export default function ExploreScreen() {
           icon: place.kind === 'Área canina' ? Fence : Trees,
           tone: 'place',
           radiusM: place.radiusM,
+          heat: crowd.get(place.name) ?? 0,
+        });
+      }
+    }
+
+    /*
+     * Las caras, y aquí está la decisión que separa esto de copiar Snapchat.
+     *
+     * En el mapa de Snapchat tu Bitmoji está **en tu sitio exacto**, y eso es
+     * justo lo que esta aplicación lleva prometiendo desde el primer día que no
+     * va a hacer: el radar ancla al lugar y nunca a la persona, no hay un punto
+     * azul siguiendo a nadie. Copiarlo tal cual sería tirar la regla por una
+     * pantalla más bonita.
+     *
+     * Así que la cara se coloca **en el parque**, no en las coordenadas de
+     * quien pasea. Se pierde una cosa —saber en qué esquina del parque está— y
+     * se conserva todo lo demás: quién hay, dónde, y con quién coincides. Y
+     * como varios caen exactamente en el mismo punto, el corro de marcadores
+     * solapados que ya existía los abre en anillo alrededor del sitio, que
+     * además se lee como lo que es: un grupo en un parque.
+     *
+     * Lo que **no** aparece nunca aquí es el propio tutor. En el mapa de
+     * Snapchat te ves a ti mismo, y aquí eso sería enseñar en pantalla una
+     * posición que la aplicación no publica: el círculo del centro dice «estás
+     * aquí» y no lleva cara ni nombre.
+     */
+    if (layers.has('friends')) {
+      for (const other of outNow) {
+        const place = Object.values(PLACES).find((candidate) => candidate.name === other.placeName);
+        if (!place) continue;
+        list.push({
+          id: `pet-${other.id}`,
+          lat: place.lat,
+          lng: place.lng,
+          label: other.name,
+          kind: `Paseando en ${place.name}`,
+          detail: `${other.ownerName} y ${other.name} están fuera. Se apaga solo${
+            other.walkingUntilMinutes ? ` en ${other.walkingUntilMinutes} min` : ''
+          }.`,
+          icon: PawPrint,
+          tone: 'friend',
+          petId: other.id,
         });
       }
     }
@@ -225,7 +293,12 @@ export default function ExploreScreen() {
 
     return list;
     },
-    [alerts],
+    /* `outNow` va en las dependencias y no es opcional: sin él, la función se
+       quedaría con la lista de quién estaba fuera **la primera vez que se
+       montó la pantalla**, y las caras del mapa se congelarían mientras el
+       resto de la aplicación sigue actualizándose. El tipado no ve un cierre
+       obsoleto; el mapa tampoco falla, simplemente miente despacio. */
+    [alerts, outNow],
   );
 
   const markers = useMemo(() => buildMarkers(active), [buildMarkers, active]);
@@ -237,7 +310,15 @@ export default function ExploreScreen() {
 
   /** De qué capa vino un resultado, para poder encenderla al elegirlo. */
   const layerOf = (marker: MapMarker): LayerId | null =>
-    marker.tone === 'place' ? 'places' : marker.tone === 'water' ? 'water' : marker.tone === 'vet' ? 'vets' : null;
+    marker.tone === 'place'
+      ? 'places'
+      : marker.tone === 'water'
+        ? 'water'
+        : marker.tone === 'vet'
+          ? 'vets'
+          : marker.tone === 'friend'
+            ? 'friends'
+            : null;
 
   /* Ordenados por lo lejos que están, que es el único orden que sirve andando.
      Y con la distancia calculada aquí y no dentro del mapa: el mapa dibuja, la
@@ -361,6 +442,21 @@ export default function ExploreScreen() {
               gap: 6,
             }}
           >
+            {/* Modo fantasma, y va **aquí**: en el mapa, con un toque, a la
+                vista. Es lo mejor que tiene el mapa de Snapchat y lo que menos
+                se copia, porque no luce en una captura. Escondido en ajustes
+                sería un interruptor que nadie encuentra el día que hace falta,
+                y ese día es justo cuando alguien decide que hoy no quiere que
+                su barrio sepa a qué hora sale. */}
+            <MapButton
+              icon={ghost ? EyeOff : Eye}
+              label={ghost ? 'Salir del modo fantasma' : 'Modo fantasma: dejar de aparecer'}
+              active={ghost}
+              onPress={() => {
+                haptics.tap();
+                setGhostMode(!ghost);
+              }}
+            />
             <MapButton
               icon={Layers}
               label={showLayers ? 'Cerrar las capas' : 'Elegir qué se ve en el mapa'}
