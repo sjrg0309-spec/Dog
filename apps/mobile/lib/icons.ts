@@ -101,6 +101,8 @@ export {
   CalendarPlus,
   Bookmark,
   Plus,
+  /** El cuadrado con el «+» de la cabecera del feed: publicar. */
+  SquarePlus,
   Check,
   Undo2,
   SquarePen,

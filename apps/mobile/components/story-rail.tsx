@@ -62,10 +62,14 @@ export function StoryRail({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        // Doce píxeles entre burbujas y no dieciséis: con dieciséis entran
+        // cuatro retratos y medio en una pantalla de 390, y la mitad cortada es
+        // justo lo que dice «hay más» — pero con cuatro y medio la fila parece
+        // vacía. Con doce entran cinco y pico y la fila se lee como una fila.
         contentContainerStyle={{
           paddingHorizontal: theme.space[4],
-          gap: theme.space[4],
-          paddingVertical: theme.space[1],
+          gap: theme.space[3],
+          paddingVertical: theme.space[2],
         }}
       >
         {/* Tu estado. Con el «+» cuando no hay ninguno, y con anillo cuando sí:
@@ -187,17 +191,17 @@ function Bubble({
       accessibilityLabel={label}
       accessibilityHint={hint}
       onPress={onPress}
-      // El área táctil real es la burbuja entera más su rótulo: 76 × 92, por
+      // El área táctil real es la burbuja entera más su rótulo: 70 × 88, por
       // encima del mínimo de 44 que pide la guía.
       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
     >
-      <View style={{ alignItems: 'center', gap: theme.space[1], width: 76 }}>
+      <View style={{ alignItems: 'center', gap: theme.space[1], width: 70 }}>
         <View>
           {/* El pulso es el único movimiento continuo de la aplicación y solo
               lo lleva quien está fuera **ahora**. Por eso significa algo. */}
           <Pulse active={live === true}>
-            <StoryRing size={62} state={ring}>
-              <Avatar id={id} name={name} size={62} />
+            <StoryRing size={60} state={ring}>
+              <Avatar id={id} name={name} size={60} />
             </StoryRing>
           </Pulse>
 
@@ -222,12 +226,18 @@ function Bubble({
           ) : null}
 
           {/* EN VIVO va debajo y encima del retrato, como en Instagram. Lleva la
-              palabra escrita: el color solo no dice nada a quien no lo separa. */}
+              palabra escrita: el color solo no dice nada a quien no lo separa.
+
+              Va **medio dentro** del retrato y no colgando por debajo: con la
+              insignia fuera del círculo se comía el rótulo del nombre, y en la
+              captura «Rocky» aparecía tachado por su propia etiqueta de EN
+              VIVO. Metiéndola cuatro píxeles hacia dentro cae sobre la foto,
+              que es donde Instagram la pone, y el nombre queda libre. */}
           {live ? (
             <View
               style={{
                 position: 'absolute',
-                bottom: -6,
+                bottom: 4,
                 alignSelf: 'center',
                 paddingHorizontal: theme.space[2],
                 paddingVertical: 1,
@@ -254,7 +264,6 @@ function Bubble({
         <Text
           numberOfLines={1}
           style={{
-            marginTop: live ? theme.space[1] : 0,
             color: ring === 'unseen' ? theme.colors.foreground : theme.colors.mutedForeground,
             fontFamily: ring === 'unseen' ? fonts.bodyBold : fonts.body,
             fontSize: theme.fontSize.xs,

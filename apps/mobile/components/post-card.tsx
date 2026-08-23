@@ -25,6 +25,7 @@ import { useMemo, useRef, useState } from 'react';
 import {
   Image,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   useWindowDimensions,
@@ -47,7 +48,6 @@ import {
   Bone,
   Bookmark,
   Ellipsis,
-  MapPin,
   MessageCircle,
   PawPrint,
   Send,
@@ -119,11 +119,18 @@ export function PostCard({
     <View
       style={{
         backgroundColor: theme.colors.background,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.border,
-        paddingTop: theme.space[3],
-        paddingBottom: theme.space[4],
-        gap: theme.space[3],
+        // Abajo y no arriba, y de un pelo en vez de un píxel entero. Lo de
+        // «un pelo» es densidad: en una pantalla de 3×, «1» son tres píxeles
+        // físicos y la separación entre dos fotos deja de ser una separación
+        // para ser una raya. Lo de «abajo» es más tonto y más visible: con el
+        // borde arriba, la primera tarjeta pintaba su línea justo debajo de la
+        // que ya trae la fila de pestañas, y dos pelos separados por nada son
+        // exactamente el borde grueso que se estaba evitando.
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.colors.border,
+        paddingTop: theme.space[2],
+        paddingBottom: theme.space[3],
+        gap: theme.space[2],
       }}
     >
       {/* Autor */}
@@ -131,17 +138,17 @@ export function PostCard({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: theme.space[3],
+          gap: theme.space[2],
           paddingHorizontal: theme.space[4],
         }}
       >
-        <Avatar id={post.petId} name={post.petName} size={40} />
+        <Avatar id={post.petId} name={post.petName} size={34} />
         <View style={{ flex: 1 }}>
           <Text
             style={{
               color: theme.colors.foreground,
               fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize.base,
+              fontSize: theme.fontSize.sm,
             }}
           >
             {post.petName}
@@ -150,23 +157,22 @@ export function PostCard({
             // El lugar se toca y lleva al mapa. Un rótulo de ubicación que no
             // hace nada es decoración con forma de enlace, y engaña dos veces:
             // al dedo y al lector de pantalla, que lo anuncia como texto.
+            //
+            // En negrita, a quince y con chincheta competía con el nombre del
+            // perro: dos líneas del mismo peso, y la segunda encima pintada de
+            // color. Ahora es la subordinada que siempre fue —doce, sin
+            // negrita, sin icono—, y el color sigue diciendo que se toca.
             <Link href="/explorar" asChild>
               <Pressable
                 accessibilityRole="link"
                 accessibilityLabel={`Ver ${post.placeName} en el mapa`}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.space[1],
-                  opacity: pressed ? 0.5 : 1,
-                })}
+                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
               >
-                <Icon icon={MapPin} size="sm" color={theme.colors.primary} decorative />
                 <Text
                   style={{
                     color: theme.colors.primary,
-                    fontFamily: fonts.bodyBold,
-                    fontSize: theme.fontSize.sm,
+                    fontFamily: fonts.body,
+                    fontSize: theme.fontSize.xs,
                   }}
                 >
                   {post.placeName}
