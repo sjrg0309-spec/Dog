@@ -55,6 +55,13 @@ export const SEED_IDS = {
     nocturna: '50000000-0000-4000-8000-000000000004',
     sombra: '50000000-0000-4000-8000-000000000005',
   },
+  posts: {
+    ninaPelota: '60000000-0000-4000-8000-000000000001',
+    tobyCharco: '60000000-0000-4000-8000-000000000002',
+    rockySombra: '60000000-0000-4000-8000-000000000003',
+    ninaKira: '60000000-0000-4000-8000-000000000004',
+    kiraSombra: '60000000-0000-4000-8000-000000000005',
+  },
   communities: {
     chamberi: '80000000-0000-4000-8000-000000000001',
     nocturnos: '80000000-0000-4000-8000-000000000002',
@@ -91,6 +98,7 @@ export async function seed(db: Db): Promise<void> {
         public.booking_participants, public.spot_bookings, public.spots,
         public.playdate_feedback, public.playdate_rsvps, public.live_presence,
         public.playdates, public.geofences, public.tracker_pings,
+        public.post_comments, public.post_likes, public.posts,
         public.tracker_devices, public.device_tokens, public.pet_availability,
         public.pets, public.friendships, public.places, public.profiles
       restart identity cascade;
@@ -288,6 +296,62 @@ export async function seed(db: Db): Promise<void> {
         ('Peluquería Canina El Nudo','groomer', public.make_point(40.4099,-3.6951),
          'Calle de Ejemplo 21, Madrid','+34910000004','{dog}', false, null, $2)`,
       [P.sara, P.lucia],
+    );
+
+    // --- Publicaciones ------------------------------------------------------
+    // `image_path` es la clave del objeto en el almacenamiento, no la imagen.
+    // En un despliegue real apunta al bucket; aquí las rutas existen para que el
+    // feed tenga forma y para que la aplicación pueda enseñar el hueco con su
+    // texto alternativo en lugar de una foto de archivo que no es de nadie.
+    await db.query(
+      `insert into public.posts (id, pet_id, author_id, image_path, image_alt, caption, place_id, created_at)
+       values
+        ($1,$6,$9,'posts/nina-pelota.jpg',
+         'Nina, border collie blanca y negra, con una pelota en la boca sobre la hierba',
+         'Cuarenta minutos y no ha soltado la pelota ni una vez. Mañana a las siete, como siempre.',
+         $12, now() - interval '3 hours'),
+        ($2,$7,$10,'posts/toby-charco.jpg',
+         'Toby, mestizo marrón, empapado saliendo de un charco',
+         'Ha encontrado el único charco del parque. Obviamente.',
+         $12, now() - interval '9 hours'),
+        ($3,$8,$11,'posts/rocky-sombra.jpg',
+         'Rocky, galgo español, tumbado a la sombra de un árbol',
+         'A esta hora ya no hay nadie y se está mejor. Los martes y jueves salimos a las once.',
+         $13, now() - interval '1 day'),
+        ($4,$6,$9,'posts/nina-kira.jpg',
+         'Nina y Kira sentadas juntas en un banco del parque',
+         'Salen juntas y vuelven juntas, aunque una tarda el triple.',
+         $12, now() - interval '2 days'),
+        ($5,$14,$10,'posts/kira-sombra.jpg',
+         'Kira, bulldog francés, jadeando a la sombra',
+         'Hoy media hora y a casa. La app no me dejaba ni eso a mediodía y tenía razón.',
+         $13, now() - interval '3 days')`,
+      [
+        SEED_IDS.posts.ninaPelota, SEED_IDS.posts.tobyCharco, SEED_IDS.posts.rockySombra,
+        SEED_IDS.posts.ninaKira, SEED_IDS.posts.kiraSombra,
+        A.nina, A.toby, A.rocky,
+        P.marta, P.carlos, P.diego,
+        L.central, L.retiro,
+        A.kira,
+      ],
+    );
+
+    await db.query(
+      `insert into public.post_likes (post_id, profile_id) values
+        ($1,$6), ($1,$7), ($2,$5), ($3,$5), ($4,$6), ($4,$7)`,
+      [
+        SEED_IDS.posts.ninaPelota, SEED_IDS.posts.tobyCharco,
+        SEED_IDS.posts.rockySombra, SEED_IDS.posts.ninaKira,
+        P.marta, P.carlos, P.diego,
+      ],
+    );
+
+    await db.query(
+      `insert into public.post_comments (post_id, author_id, body) values
+        ($1,$3,'Nosotros salimos a esa hora también. Nos vemos mañana.'),
+        ($1,$4,'Esa pelota le va a durar dos días.'),
+        ($2,$3,'Buena idea lo de las once. En verano no se puede antes.')`,
+      [SEED_IDS.posts.ninaPelota, SEED_IDS.posts.rockySombra, P.carlos, P.diego],
     );
 
     // --- Radar, collares y notificaciones -----------------------------------

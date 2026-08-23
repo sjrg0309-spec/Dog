@@ -122,6 +122,10 @@ function RootTabs() {
             ),
           }}
         />
+        {/* Publicar no es un destino permanente sino una acción, así que vive en
+            la barra de navegación del feed y no ocupa una sexta pestaña. Cinco
+            es el máximo que cabe sin que los rótulos empiecen a partirse. */}
+        <Tabs.Screen name="publicar" options={{ href: null }} />
       </Tabs>
     </>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { NavBar, useScrolled } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
@@ -21,7 +21,11 @@ import {
 import { assessWelfare } from '@coincide/core';
 
 import { useActivePet } from '@/lib/active-pet';
-import { useDeclaredConditions } from '@/lib/conditions';
+import { setLocation, useDeclaredConditions } from '@/lib/conditions';
+import { RADAR_AREA_NOTE, petFriendlyPlaces, placeAt } from '@/lib/geofence';
+import { Icon } from '@/components/icon';
+import { MapPin } from '@/lib/icons';
+import { fonts } from '@/lib/fonts';
 import { petHasMeetups, speciesOf, walkingNow } from '@/lib/data';
 import { PLACES } from '@/lib/demo-data';
 import { speciesName } from '@/lib/labels';
@@ -56,6 +60,10 @@ export default function RadarScreen() {
   const social = petHasMeetups(pet);
   const others = walkingNow(pet.speciesId);
   const declared = useDeclaredConditions();
+
+  // La zona manda antes que el bienestar: si no se puede encender el radar
+  // aquí, la temperatura da igual.
+  const here = placeAt(declared.location);
 
   const [activeUntil, setActiveUntil] = useState<Date | null>(null);
 
@@ -112,6 +120,8 @@ export default function RadarScreen() {
           <Title>Fuera ahora</Title>
         </View>
 
+        <WhereAmI />
+
         <ConditionsControl />
 
         {activeUntil ? (
@@ -121,7 +131,8 @@ export default function RadarScreen() {
               <Badge tone="live">En vivo</Badge>
             </Row>
             <Body>
-              {pet.name} aparece en {PLACES.central.name} hasta las {formatTime(activeUntil)}.
+              {pet.name} aparece en {here?.name ?? PLACES.central.name} hasta las{' '}
+              {formatTime(activeUntil)}.
             </Body>
             <Caption>
               Se apaga solo a esa hora. Los tutores con un animal compatible de la misma especie a
@@ -133,6 +144,8 @@ export default function RadarScreen() {
               onPress={() => setActiveUntil(null)}
             />
           </Card>
+        ) : here === null ? (
+          <OutsideArea />
         ) : welfare.level === 'stop' ? (
           // No se enseña el botón en gris ni con un aviso al lado: no está.
           // Un control desactivado invita a buscar cómo activarlo.
@@ -199,12 +212,120 @@ export default function RadarScreen() {
         <Notice>
           <Body>Lo que se comparte es el lugar, no tú.</Body>
           <Caption>
-            El radar te sitúa en el punto del check-in, nunca en tus coordenadas exactas, y la
-            ubicación que se guarda para avisar a otros va redondeada a un kilómetro. No hay ningún
-            punto azul siguiéndote.
+            El radar solo se enciende dentro de una zona pet-friendly y te sitúa en ella, nunca en
+            tus coordenadas. Eso ya no es una promesa de esta pantalla: la base de datos rechaza un
+            check-in fuera de zona, así que no depende de que el cliente se porte bien.
           </Caption>
         </Notice>
       </ScrollView>
     </Screen>
+  );
+}
+
+/**
+ * Dónde estás, y a qué distancia queda la zona más cercana.
+ *
+ * En la aplicación real esto sale del GPS y no se elige. Aquí se elige porque un
+ * prototipo que dice «no estás en una zona pet-friendly» y no te deja moverte no
+ * enseña la regla: enseña una pared.
+ */
+function WhereAmI() {
+  const theme = useTheme();
+  const declared = useDeclaredConditions();
+  const here = placeAt(declared.location);
+
+  const options = [
+    ...petFriendlyPlaces().map((place) => ({
+      key: place.id,
+      label: place.name,
+      location: { lat: place.lat, lng: place.lng },
+    })),
+    // Un punto que no cae en ninguna zona: es el caso que hay que poder ver.
+    { key: 'casa', label: 'En casa', location: { lat: 40.38, lng: -3.75 } },
+  ];
+
+  return (
+    <View style={{ gap: theme.space[2] }}>
+      <Caption>Dónde estás</Caption>
+      <Row gap={2}>
+        {options.map((option) => {
+          const active =
+            option.location.lat === declared.location.lat &&
+            option.location.lng === declared.location.lng;
+          return (
+            <Pressable
+              key={option.key}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+              onPress={() => setLocation(option.location)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.space[2],
+                minHeight: theme.touchTarget.min,
+                paddingHorizontal: theme.space[4],
+                borderRadius: theme.radius.full,
+                borderWidth: 1,
+                borderColor: active ? theme.colors.primary : theme.colors.border,
+                backgroundColor: active ? theme.colors.primary : 'transparent',
+              }}
+            >
+              <Text
+                style={{
+                  color: active ? theme.colors.primaryForeground : theme.colors.mutedForeground,
+                  fontFamily: active ? fonts.bodyBold : fonts.body,
+                  fontSize: theme.fontSize.sm,
+                }}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </Row>
+      <Row gap={2}>
+        <Icon
+          icon={MapPin}
+          size="sm"
+          color={here ? theme.colors.success : theme.colors.mutedForeground}
+          decorative
+        />
+        <Caption>
+          {here
+            ? `${here.name} · ${here.kind}. El radar funciona aquí.`
+            : 'Fuera de zona pet-friendly. El radar no se enciende.'}
+        </Caption>
+      </Row>
+    </View>
+  );
+}
+
+/**
+ * Fuera de zona.
+ *
+ * No es un error del que disculparse: es la regla funcionando. Se explica por
+ * qué y se enseña dónde sí, que es lo único accionable.
+ */
+function OutsideArea() {
+  const theme = useTheme();
+
+  return (
+    <Card>
+      <Row>
+        <Heading>El radar no funciona aquí</Heading>
+        <Badge tone="warning">Fuera de zona</Badge>
+      </Row>
+      <Body muted>{RADAR_AREA_NOTE}</Body>
+      <View style={{ gap: theme.space[1] }}>
+        {petFriendlyPlaces().map((place) => (
+          <Row key={place.id} gap={2}>
+            <Icon icon={MapPin} size="sm" color={theme.colors.mutedForeground} decorative />
+            <Caption>
+              {place.name} · {place.kind}
+            </Caption>
+          </Row>
+        ))}
+      </View>
+    </Card>
   );
 }

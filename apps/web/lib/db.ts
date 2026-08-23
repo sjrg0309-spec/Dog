@@ -237,6 +237,8 @@ export type PlaceRow = {
   id: string;
   name: string;
   kind: string;
+  radius_m: number;
+  allows_checkin: boolean;
   is_fenced: boolean | null;
   has_double_gate: boolean | null;
   has_water: boolean | null;
@@ -250,7 +252,8 @@ export type PlaceRow = {
 export function allPlaces() {
   return queryAsAnon<PlaceRow>(
     `select
-       p.id, p.name, p.kind, p.is_fenced, p.has_double_gate, p.has_water,
+       p.id, p.name, p.kind, p.radius_m, p.allows_checkin,
+       p.is_fenced, p.has_double_gate, p.has_water,
        p.has_shade, p.has_small_pet_area, p.admits_species,
        coalesce(
          (select array_agg(s.common_name order by s.common_name)
@@ -314,5 +317,51 @@ export function servicesNear(lat = 40.4168, lng = -3.7038, radiusMeters = 40000)
        ) as species_names
      from public.services_nearby($1, $2, null, null, $3) v`,
     [lat, lng, radiusMeters],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Publicaciones
+// ---------------------------------------------------------------------------
+
+export type PostRow = {
+  id: string;
+  pet_id: string;
+  pet_name: string;
+  author_name: string | null;
+  image_path: string;
+  image_alt: string;
+  caption: string | null;
+  place_name: string | null;
+  created_at: Date;
+  like_count: number;
+  comment_count: number;
+};
+
+/**
+ * El feed público.
+ *
+ * Sale de `public_posts`, que resuelve los contadores en la vista: una consulta
+ * por publicación para saber cuántos me gusta tiene es el camino más corto a un
+ * feed que tarda dos segundos.
+ */
+export function recentPosts(limit = 6) {
+  return queryAsAnon<PostRow>(
+    `select id, pet_id, pet_name, author_name, image_path, image_alt, caption,
+            place_name, created_at, like_count, comment_count
+     from public.public_posts
+     order by created_at desc
+     limit $1`,
+    [limit],
+  );
+}
+
+export type PostCommentRow = { id: string; body: string; created_at: Date };
+
+export function postComments(postId: string) {
+  return queryAsAnon<PostCommentRow>(
+    `select id, body, created_at from public.post_comments
+     where post_id = $1 order by created_at`,
+    [postId],
   );
 }

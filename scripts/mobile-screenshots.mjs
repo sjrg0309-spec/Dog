@@ -28,6 +28,10 @@ const ROUTES = [
   // El caso que define de quién es la aplicación: a 34 grados no hay lista.
   { path: '/', name: 'app-descubrir-calor', temperature: '34°' },
   { path: '/radar', name: 'app-radar' },
+  // El radar fuera de zona: es la regla nueva, y una captura solo desde dentro
+  // del parque la escondería.
+  { path: '/radar', name: 'app-radar-fuera', place: 'En casa' },
+  { path: '/publicar', name: 'app-publicar' },
   { path: '/quedadas', name: 'app-quedadas' },
   { path: '/quedadas', name: 'app-quedadas-kira', pet: 'Kira' },
   { path: '/espacios', name: 'app-espacios' },
@@ -76,6 +80,11 @@ for (const theme of THEMES) {
 
     if (route.temperature) {
       await page.getByRole('radio', { name: route.temperature }).click();
+      await page.waitForTimeout(300);
+    }
+
+    if (route.place) {
+      await page.getByRole('radio', { name: route.place }).click();
       await page.waitForTimeout(300);
     }
 

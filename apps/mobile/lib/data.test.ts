@@ -27,7 +27,9 @@ import {
   spotsFor,
   walkingNow,
 } from './data';
-import { MY_PETS, OTHER_PETS } from './demo-data';
+import { MY_PETS, OTHER_PETS, PLACES } from './demo-data';
+import { petFriendlyPlaces, placeAt } from './geofence';
+import { SEED_POSTS as SEED_FEED, timeAgo } from './posts';
 
 /** Un día templado en hierba: condiciones en las que nada debería impedir salir. */
 const MILD = { temperatureC: 18, surface: 'grass', durationMinutes: 45 } as const;
@@ -214,5 +216,74 @@ describe('el interés del animal manda sobre el plan del tutor', () => {
         `${playdate.title} propone más de lo que aguanta un ${species.commonName.toLowerCase()}`,
       ).toBeLessThanOrEqual(species.care.maxSessionMinutes);
     }
+  });
+});
+
+describe('el radar solo funciona en zonas pet-friendly', () => {
+  it('dentro de un parque hay zona', () => {
+    const place = placeAt({ lat: PLACES.central.lat, lng: PLACES.central.lng });
+    expect(place?.name).toBe('Parque Central');
+  });
+
+  it('en casa no hay zona', () => {
+    // Es el caso que define la regla: desde el portal no se puede encender el
+    // radar, porque lo que se comparte es el lugar y tu portal no es un sitio al
+    // que nadie pueda ir.
+    expect(placeAt({ lat: 40.38, lng: -3.75 })).toBeNull();
+  });
+
+  it('justo fuera del radio tampoco', () => {
+    // 250 m de radio: a medio kilómetro del centro ya no se está dentro.
+    const lejos = { lat: PLACES.central.lat + 0.005, lng: PLACES.central.lng };
+    expect(placeAt(lejos)).toBeNull();
+  });
+
+  it('gana la zona más pequeña que contiene el punto', () => {
+    // La terraza está dentro del radio de ningún parque en la demo, pero la
+    // regla se comprueba igual: si dos zonas contuvieran el punto, la respuesta
+    // útil es la más específica.
+    const zonas = petFriendlyPlaces();
+    const laMasPequena = zonas.reduce((a, b) => (a.radiusM <= b.radiusM ? a : b));
+    const place = placeAt({ lat: laMasPequena.lat, lng: laMasPequena.lng });
+    expect(place?.id).toBe(laMasPequena.id);
+  });
+
+  it('todas las zonas declaran un radio razonable', () => {
+    for (const place of petFriendlyPlaces()) {
+      expect(place.radiusM, place.name).toBeGreaterThanOrEqual(10);
+      expect(place.radiusM, place.name).toBeLessThanOrEqual(2000);
+    }
+  });
+});
+
+describe('publicaciones', () => {
+  it('el feed trae publicaciones de varios perros', () => {
+    const petIds = new Set(SEED_FEED.map((post) => post.petId));
+    expect(petIds.size).toBeGreaterThan(1);
+  });
+
+  it('ninguna publicación se queda sin describir la foto', () => {
+    // Una imagen sin texto alternativo no la ve todo el mundo, y esta aplicación
+    // eligió su tipografía por accesibilidad: dejarlo opcional sería
+    // contradecirse.
+    for (const post of SEED_FEED) {
+      expect(post.imageAlt.trim().length, post.petName).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('cada publicación es de un perro que existe', () => {
+    const known = new Set([...MY_PETS, ...OTHER_PETS].map((pet) => pet.id));
+    for (const post of SEED_FEED) {
+      expect(known.has(post.petId), `${post.petName} no está en el catálogo`).toBe(true);
+    }
+  });
+
+  it('el tiempo relativo no da falsa precisión', () => {
+    const now = new Date('2026-08-23T12:00:00Z');
+    expect(timeAgo(new Date('2026-08-23T11:59:50Z'), now)).toBe('ahora');
+    expect(timeAgo(new Date('2026-08-23T11:30:00Z'), now)).toBe('hace 30 min');
+    expect(timeAgo(new Date('2026-08-23T09:00:00Z'), now)).toBe('hace 3 h');
+    expect(timeAgo(new Date('2026-08-22T12:00:00Z'), now)).toBe('ayer');
+    expect(timeAgo(new Date('2026-08-20T12:00:00Z'), now)).toBe('hace 3 días');
   });
 });

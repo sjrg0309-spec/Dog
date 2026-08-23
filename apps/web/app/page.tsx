@@ -2,7 +2,7 @@ import { WELFARE_DISCLAIMER } from '@coincide/core';
 import { Notice } from '@/components/notice';
 
 import { RadarRing } from '@/components/radar-ring';
-import { activeSpots, communitiesNear, servicesNear, upcomingPlaydates } from '@/lib/db';
+import { activeSpots, communitiesNear, recentPosts, servicesNear, upcomingPlaydates } from '@/lib/db';
 import {
   ENERGY_LABEL,
   SIZE_LABEL,
@@ -19,8 +19,8 @@ export const dynamic = 'force-dynamic';
 const ENGINES = [
   {
     eyebrow: 'Ahora mismo',
-    title: 'Radar en vivo',
-    body: '“Estoy en el Parque Central hasta las 19:00.” Quien tenga un animal compatible a dos kilómetros lo ve. El check-in caduca solo, así que nadie se queda visible en el mapa por olvidarse de apagarlo.',
+    title: 'Radar, solo en zonas pet-friendly',
+    body: 'El radar únicamente se enciende dentro de un parque, un área canina o una terraza que admite perros. Desde casa no se puede: lo que se comparte es el lugar, y tu portal no es un sitio al que nadie pueda ir. Y caduca solo, así que nadie se queda visible por olvido.',
   },
   {
     eyebrow: 'A cualquier hora',
@@ -40,11 +40,12 @@ const ENGINES = [
 ];
 
 export default async function HomePage() {
-  const [playdates, spots, communities, services] = await Promise.all([
+  const [playdates, spots, communities, services, posts] = await Promise.all([
     upcomingPlaydates(3),
     activeSpots(2),
     communitiesNear(),
     servicesNear(),
+    recentPosts(3),
   ]);
 
   const emergency = services.filter((entry) => entry.is_24h);
@@ -103,6 +104,51 @@ export default async function HomePage() {
               <p className="eyebrow">{engine.eyebrow}</p>
               <h3 className="card__title">{engine.title}</h3>
               <p className="card__meta">{engine.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      <section className="section" id="feed">
+        <div className="section__head">
+          <p className="eyebrow">El feed</p>
+          <h2>Fotos de perros que puedes identificar</h2>
+          <p className="lede">
+            Lo que distingue esto de una red social cualquiera: el perro de la foto está en el
+            catálogo, así que la aplicación puede decirte que el tuyo encaja con él al 92 % y en qué
+            parque coincidís. Una foto bonita sin eso no lleva a ninguna parte.
+          </p>
+        </div>
+
+        <div className="grid">
+          {posts.map((post) => (
+            <article className="card" key={post.id}>
+              {/* El hueco de la foto lleva su descripción, no un icono de rota.
+                  Estas publicaciones son de demostración y no traen imagen: meter
+                  fotos de archivo de perros que no son de nadie hace que todo se
+                  vea como una maqueta, y además esas fotos tienen dueño. */}
+              <div className="post__frame" role="img" aria-label={post.image_alt}>
+                <p>{post.image_alt}</p>
+                <span>Sin foto en la demostración</span>
+              </div>
+
+              <div className="row">
+                <h3 className="card__title">{post.pet_name}</h3>
+                {post.place_name ? <span className="badge">{post.place_name}</span> : null}
+              </div>
+
+              {post.caption ? <p className="card__meta">{post.caption}</p> : null}
+
+              <p className="card__meta">
+                {post.like_count === 1 ? '1 me gusta' : `${post.like_count} me gusta`}
+                {' · '}
+                {post.comment_count === 1
+                  ? '1 comentario'
+                  : `${post.comment_count} comentarios`}
+                {' · '}
+                {formatRelative(new Date(post.created_at))}
+              </p>
             </article>
           ))}
         </div>

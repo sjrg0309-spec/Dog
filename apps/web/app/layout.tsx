@@ -99,8 +99,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
 
             <nav className="site-nav" aria-label="Principal">
-              <Link className="site-nav__section" href="/#como-funciona">
-                Cómo funciona
+              <Link className="site-nav__section" href="/#feed">
+                Feed
               </Link>
               <Link href="/parques">Parques</Link>
               <Link className="site-nav__section" href="/#quedadas">

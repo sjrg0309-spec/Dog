@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { Link } from 'expo-router';
+import { Pressable } from 'react-native';
+
 import { ConditionsControl } from '@/components/conditions-control';
 import { FeedCard } from '@/components/feed-card';
 import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
+import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { PostCard } from '@/components/post-card';
 import { StoryRail } from '@/components/story-rail';
 import { WelfareNotice } from '@/components/welfare-notice';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
@@ -18,7 +23,9 @@ import {
   speciesOf,
   walkingNow,
 } from '@/lib/data';
+import { ImagePlus } from '@/lib/icons';
 import { SERVICE_KIND_LABEL, speciesName } from '@/lib/labels';
+import { useFeed } from '@/lib/posts';
 import { fonts } from '@/lib/fonts';
 import { useTheme } from '@/lib/theme';
 
@@ -38,6 +45,13 @@ import { useTheme } from '@/lib/theme';
  * Con una especie solitaria seleccionada la pantalla cambia de contenido, no se
  * queda vacía con una disculpa.
  */
+/** La banda, en corto: en una insignia no cabe «Con supervisión». */
+const BAND_SHORT: Record<string, string> = {
+  great: 'gran match',
+  good: 'buen match',
+  supervised: 'con supervisión',
+};
+
 export default function FeedScreen() {
   const theme = useTheme();
   const pet = useActivePet();
@@ -47,6 +61,21 @@ export default function FeedScreen() {
   const { entries, emptyReason, safetyVetoed, otherSpeciesNearby, welfare, restingNearby } =
     discover(pet, conditions);
   const { scrolled, onScroll } = useScrolled();
+  const feed = useFeed();
+
+  // Con quién encaja el perro del tutor, para poder decirlo en la publicación.
+  // Es lo que esta aplicación tiene y una red social genérica no: el perro de la
+  // foto está identificado.
+  const affinityByPet = new Map(
+    entries.map((entry) => [
+      entry.pet.id,
+      {
+        score: entry.match.affinity.score,
+        band: entry.match.affinity.band,
+        label: BAND_SHORT[entry.match.affinity.band] ?? '',
+      },
+    ]),
+  );
 
   const [checkedIn, setCheckedIn] = useState(false);
   const outNow = social ? walkingNow(pet.speciesId) : [];
@@ -66,7 +95,27 @@ export default function FeedScreen() {
 
   return (
     <Screen>
-      <NavBar title="Coincide" scrolled={scrolled} />
+      <NavBar
+        title="Coincide"
+        scrolled={scrolled}
+        trailing={
+          <Link href="/publicar" asChild>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Publicar una foto"
+              style={({ pressed }) => ({
+                width: theme.touchTarget.min,
+                height: theme.touchTarget.min,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.5 : 1,
+              })}
+            >
+              <Icon icon={ImagePlus} size="lg" decorative />
+            </Pressable>
+          </Link>
+        }
+      />
 
       <ScrollView
         onScroll={onScroll}
@@ -95,7 +144,9 @@ export default function FeedScreen() {
           ) : null}
         </View>
 
-        <LargeTitle subtitle={subtitle}>{title}</LargeTitle>
+        {/* Con el bienestar en «hoy no», el titular sigue mandando; con la lista
+            llena, el feed no necesita un título encima de cada cosa. */}
+        {stopped || !social ? <LargeTitle subtitle={subtitle}>{title}</LargeTitle> : null}
 
         {social ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
@@ -116,6 +167,41 @@ export default function FeedScreen() {
                 <EmptyState reason={emptyReason} speciesId={pet.speciesId} name={pet.name} />
               </View>
             ) : null}
+
+            {/* Las publicaciones primero: es lo que trae a alguien a abrir la
+                aplicación un día que no piensa salir. */}
+            {feed.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                viewerName={pet.ownerName}
+                affinity={affinityByPet.get(post.petId) ?? null}
+              />
+            ))}
+
+            {/* Y debajo, con quién puede salir: el motor, no el entretenimiento. */}
+            <View
+              style={{
+                paddingHorizontal: theme.space[4],
+                paddingTop: theme.space[8],
+                paddingBottom: theme.space[2],
+                gap: theme.space[1],
+              }}
+            >
+              <Text
+                accessibilityRole="header"
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.displayBold,
+                  fontSize: theme.fontSize.xl,
+                }}
+              >
+                Con quién puede salir {pet.name}
+              </Text>
+              <Caption>
+                Ordenado por temperamento, horarios y cercanía. Los tres van por separado.
+              </Caption>
+            </View>
 
             {entries.map((entry) => (
               <FeedCard key={entry.pet.id} entry={entry} viewerName={pet.name} />

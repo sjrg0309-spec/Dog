@@ -67,7 +67,8 @@ Para las especies que sí quedan, y el segundo es el que sostiene a los otros do
 
 | Motor | Responde a | Cuándo sirve |
 |---|---|---|
-| Radar en vivo | ¿Quién está fuera ahora? | Hora punta, cuando ya hay densidad |
+| **El feed** | ¿Qué han hecho hoy los perros del barrio? | Siempre, también los días que no se sale |
+| Radar en vivo | ¿Quién está fuera **en una zona pet-friendly**? | Hora punta, cuando ya hay densidad |
 | **Coincidencia de horarios** | ¿Con quién coincido siempre? | **A cualquier hora**, incluso con la app vacía |
 | Quedadas y espacios | Organicemos algo | Fin de semana, cumpleaños, ocasiones |
 
@@ -206,10 +207,10 @@ esquema y no en un documento:
 ## Verificación
 
 ```bash
-pnpm test          # 302 tests unitarios y de integración
+pnpm test          # 326 tests unitarios y de integración
 pnpm typecheck     # todos los paquetes y aplicaciones
 pnpm lint          # ESLint en la web, typecheck en el resto
-pnpm --filter @coincide/web e2e    # 56 casos en Chromium, dos viewports
+pnpm --filter @coincide/web e2e    # 62 casos en Chromium, dos viewports
 node scripts/screenshots.mjs        # capturas de la web en claro, oscuro y sistema
 node scripts/mobile-screenshots.mjs # capturas del móvil: los dos perros, y a 26 y 34 °C
 ```
@@ -230,7 +231,7 @@ puede registrar una cotorra argentina, que sí se puede una especie pendiente de
 que no se puede crear una quedada de gatos y que un hurón no puede apuntarse a una de perros. Un
 cliente móvil se desensambla en cinco minutos; un disparador en Postgres, no.
 
-Los 56 casos de navegador incluyen auditoría de accesibilidad con axe en las cuatro páginas,
+Los 62 casos de navegador incluyen auditoría de accesibilidad con axe en las cuatro páginas,
 recorrido de teclado, anillo de foco, conmutador de tema, movimiento reducido y ausencia de
 desbordamiento a 320 px.
 
@@ -282,3 +283,45 @@ código: el cuerpo estaba a 16, los chips de condiciones tenían 34 de alto, y `
 vez lo interactivo y la banda «Buen match» —que en tema oscuro era además idéntica a `success`, así
 que dos bandas distintas se pintaban iguales. Hay dos aserciones en los tokens para que ninguna de
 las dos vuelva sin que falle el build.
+
+
+---
+
+## El feed y el radar de zona
+
+**El feed son fotos, y la foto lleva el perro identificado.** Es lo que esta aplicación tiene y una
+red social genérica no: el animal de la imagen está en el catálogo, así que la tarjeta puede decir
+que el tuyo encaja con él al 92 % y en qué parque coincidís. Sin eso, un feed de perros es bonito y
+no lleva a ninguna parte.
+
+Tres decisiones del feed que no son estéticas:
+
+- **El texto alternativo de la foto es obligatorio**, con un `check` en el esquema. Una imagen sin
+  describir no la ve todo el mundo, y una aplicación que eligió Atkinson Hyperlegible por
+  accesibilidad no puede permitírselo.
+- **Solo se publica del animal propio**, y lo impide un disparador. Sin él, cualquiera podría colgar
+  una foto atribuida al perro de otro.
+- **Los contadores vienen resueltos en la vista.** Una consulta por publicación para saber cuántos
+  me gusta tiene es el camino más corto a un feed que tarda dos segundos.
+
+**El radar solo se enciende dentro de una zona pet-friendly**: un parque, un área canina o una
+terraza que admite perros. Un lugar deja de ser un punto con nombre y pasa a ser un área con radio,
+y `live_presence` tiene un disparador que rechaza cualquier check-in fuera de zona **y deduce el
+lugar del punto** en vez de dejar que lo declare el cliente.
+
+No es una restricción por gusto. Es lo que convierte el radar en algo distinto de una baliza
+personal:
+
+1. **Deja de decir «estoy aquí» y pasa a decir «estoy en el Parque Central».** La regla de
+   privacidad que la aplicación ya tenía —anclar al lugar, nunca a la persona— deja de ser una
+   convención de la interfaz y pasa a ser algo que la base de datos garantiza.
+2. **Un aviso solo llega donde se puede ir.** Enterarse de que hay un perro compatible en el patio
+   cerrado de un particular no sirve de nada.
+3. **Filtra el ruido sin pedir nada.** Nadie tiene que acordarse de apagar el check-in al llegar a
+   casa, porque desde casa no se puede encender.
+
+Sobre las fotos de la demostración: **no hay ninguna**, y es deliberado. Meter imágenes de archivo
+de perros que no son de nadie hace que todo se vea como una maqueta, y además esas fotos tienen
+dueño. Lo que hay es el hueco con su descripción, y la subida funciona de verdad: eliges una foto de
+tu dispositivo y aparece en el feed. La subida a almacenamiento de objetos no está conectada —no hay
+proyecto desplegado— y la pantalla lo dice en lugar de aparentar que se guardó en algún sitio.

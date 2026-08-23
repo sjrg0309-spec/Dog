@@ -617,6 +617,42 @@ a.card:hover {
 }
 
 /* --------------------------------------------------------------------------
+   El hueco de una foto de publicación.
+
+   Cuando no hay imagen se enseña **su descripción**, no un icono de foto rota:
+   el texto alternativo es obligatorio en el esquema justamente para que este
+   hueco tenga algo que decir.
+   -------------------------------------------------------------------------- */
+
+.post__frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--co-space-2);
+  /* Sin imagen no hay hueco que reservar: la relación fija existe para que el
+     feed no dé saltos mientras carga una foto, y aquí no hay ninguna que
+     cargar. Un cuadrado vacío con una línea de texto se come la tarjeta. */
+  padding: var(--co-space-6);
+  border-radius: var(--co-radius-md);
+  background: var(--co-surface-sunken);
+  border: 1px solid var(--co-border);
+  text-align: center;
+}
+
+.post__frame p {
+  color: var(--co-muted-foreground);
+  font-size: var(--co-font-size-sm);
+  max-width: 30ch;
+}
+
+.post__frame span {
+  font-size: var(--co-font-size-xs);
+  font-weight: var(--co-font-weight-semibold);
+  color: var(--co-muted-foreground);
+}
+
+/* --------------------------------------------------------------------------
    Menú desplegable (Radix). Los estilos son nuestros; el comportamiento —foco
    atrapado, Escape, flechas, devolución del foco al cerrar— es suyo.
    -------------------------------------------------------------------------- */

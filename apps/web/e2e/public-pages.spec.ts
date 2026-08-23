@@ -283,3 +283,38 @@ test('el catálogo de especies ya no existe', async ({ page }) => {
   const response = await page.goto('/especies');
   expect(response?.status()).toBe(404);
 });
+
+/**
+ * El feed y la regla de zona.
+ *
+ * Son las dos cosas nuevas y las dos tienen que ser visibles sin cuenta: el feed
+ * porque es lo que trae a alguien, y la regla del radar porque explica por qué
+ * este radar no es una baliza personal.
+ */
+test('la portada enseña el feed con las fotos identificadas', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(
+    page.getByRole('heading', { name: /Fotos de perros que puedes identificar/ }),
+  ).toBeVisible();
+
+  // Cada hueco de foto lleva su descripción como nombre accesible: sin foto
+  // sigue habiendo algo que leer, que es justo para lo que sirve el alt.
+  const frames = page.locator('#feed [role="img"]');
+  await expect(frames.first()).toHaveAttribute('aria-label', /.{10,}/);
+});
+
+test('la portada explica que el radar solo funciona en zonas pet-friendly', async ({ page }) => {
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Radar, solo en zonas pet-friendly' }),
+  ).toBeVisible();
+  await expect(page.getByText(/Desde casa no se puede/i)).toBeVisible();
+});
+
+test('los parques declaran su radio de zona', async ({ page }) => {
+  await page.goto('/parques');
+
+  await expect(page.getByText(/Zona pet-friendly · radio de \d+ m/).first()).toBeVisible();
+  await expect(page.getByText(/El radar solo se enciende dentro de estas zonas/)).toBeVisible();
+});

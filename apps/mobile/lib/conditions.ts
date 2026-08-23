@@ -22,9 +22,26 @@ import type { Conditions, Surface } from '@coincide/core';
 /** Una tarde de julio en Madrid: el caso que hace visible el problema. */
 const DEFAULT_TEMPERATURE_C = 22;
 
-type State = { temperatureC: number; surface: Surface };
+type State = {
+  temperatureC: number;
+  surface: Surface;
+  /**
+   * Dónde está el tutor.
+   *
+   * En la aplicación real sale del GPS. Aquí se elige, porque un prototipo que
+   * dice «no estás en una zona pet-friendly» y no deja moverte no enseña la
+   * regla: enseña una pared.
+   */
+  location: { lat: number; lng: number };
+};
 
-let state: State = { temperatureC: DEFAULT_TEMPERATURE_C, surface: 'grass' };
+const DEFAULT_LOCATION = { lat: 40.4098, lng: -3.6939 };
+
+let state: State = {
+  temperatureC: DEFAULT_TEMPERATURE_C,
+  surface: 'grass',
+  location: DEFAULT_LOCATION,
+};
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -49,6 +66,12 @@ export function setTemperature(temperatureC: number): void {
 export function setSurface(surface: Surface): void {
   if (surface === state.surface) return;
   state = { ...state, surface };
+  emit();
+}
+
+export function setLocation(location: { lat: number; lng: number }): void {
+  if (location.lat === state.location.lat && location.lng === state.location.lng) return;
+  state = { ...state, location };
   emit();
 }
 

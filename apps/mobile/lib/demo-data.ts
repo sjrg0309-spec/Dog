@@ -38,11 +38,49 @@ export type DemoPet = MatchablePet & {
   placeName: string | null;
 };
 
+/**
+ * Las zonas pet-friendly.
+ *
+ * Un lugar no es un punto con nombre sino un **área**: un parque son cientos de
+ * metros y una terraza, veinte. El radar solo se enciende dentro de una de
+ * ellas, así que el radio no es un detalle del mapa sino la regla.
+ */
 export const PLACES = {
-  central: { id: '30000000-0000-4000-8000-000000000001', name: 'Parque Central' },
-  retiro: { id: '30000000-0000-4000-8000-000000000002', name: 'Parque del Retiro' },
-  berlin: { id: '30000000-0000-4000-8000-000000000004', name: 'Parque Berlín' },
+  central: {
+    id: '30000000-0000-4000-8000-000000000001',
+    name: 'Parque Central',
+    kind: 'Área canina',
+    lat: 40.4098,
+    lng: -3.6939,
+    radiusM: 250,
+  },
+  retiro: {
+    id: '30000000-0000-4000-8000-000000000002',
+    name: 'Parque del Retiro',
+    kind: 'Parque',
+    lat: 40.4153,
+    lng: -3.6844,
+    radiusM: 250,
+  },
+  berlin: {
+    id: '30000000-0000-4000-8000-000000000004',
+    name: 'Parque Berlín',
+    kind: 'Parque',
+    lat: 40.4562,
+    lng: -3.6764,
+    radiusM: 250,
+  },
+  cafe: {
+    id: '30000000-0000-4000-8000-000000000003',
+    name: 'Café Con Perro',
+    kind: 'Terraza que admite perros',
+    lat: 40.4211,
+    lng: -3.7038,
+    radiusM: 30,
+  },
 } as const;
+
+export type DemoPlace = (typeof PLACES)[keyof typeof PLACES];
 
 const weekdayMorning = (placeId: string): Availability[] =>
   [1, 2, 3, 4, 5].map((weekday) => ({

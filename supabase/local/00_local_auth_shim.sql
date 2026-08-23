@@ -31,13 +31,23 @@ create table if not exists auth.users (
   created_at timestamptz not null default now()
 );
 
+/**
+ * El identificador del usuario de la petición, o null si no hay sesión.
+ *
+ * El `nullif` va **antes** del cast, no después. Escrito al revés —castear la
+ * cadena vacía a json y luego mirar si el resultado es nulo— revienta con
+ * «invalid input syntax for type json» en cuanto una política legible por `anon`
+ * llama a esta función, porque para `anon` el GUC está vacío. La implementación
+ * real de Supabase lo hace en este orden justamente por eso, y un shim más
+ * estricto que producción hace fallar en local políticas que allí funcionan.
+ */
 create or replace function auth.uid()
 returns uuid
 language sql
 stable
 as $$
   select nullif(
-    current_setting('request.jwt.claims', true)::json ->> 'sub',
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub',
     ''
   )::uuid;
 $$;

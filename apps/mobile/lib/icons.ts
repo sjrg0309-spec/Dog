@@ -31,6 +31,13 @@ export {
   Ban,
   Thermometer,
   Timer,
+  // Feed
+  Heart,
+  MessageCircle,
+  Send,
+  Camera,
+  ImagePlus,
+  ImageOff,
   // Acciones
   Hand,
   CalendarPlus,

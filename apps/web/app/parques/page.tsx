@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+import { Notice } from '@/components/notice';
+
 import { allPlaces } from '@/lib/db';
 import { triState, triStateLabel } from '@/lib/format';
 
@@ -42,9 +44,13 @@ export default async function PlacesPage() {
             </div>
 
             <p className="card__meta">
+              {place.allows_checkin
+                ? `Zona pet-friendly · radio de ${place.radius_m} m`
+                : 'No admite check-in'}
+              {' · '}
               {place.upcoming_playdates === 1
-                ? '1 quedada próxima aquí'
-                : `${place.upcoming_playdates} quedadas próximas aquí`}
+                ? '1 quedada próxima'
+                : `${place.upcoming_playdates} quedadas próximas`}
             </p>
 
             <ul className="checklist">
@@ -67,6 +73,14 @@ export default async function PlacesPage() {
           </article>
         ))}
       </div>
+      <Notice tone="warning">
+        <p>
+          <strong>El radar solo se enciende dentro de estas zonas.</strong> No es una limitación de
+          la aplicación sino lo que hace que el radar no sea una baliza personal: dice «estoy en el
+          Parque Central», no «estoy en estas coordenadas». La base de datos rechaza un check-in
+          fuera de zona, así que no depende de que el cliente se porte bien.
+        </p>
+      </Notice>
     </div>
   );
 }
