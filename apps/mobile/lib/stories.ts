@@ -53,6 +53,13 @@ export type Story = {
   viewers: string[];
 };
 
+/**
+ * Hace N horas, pero sin salirse del día.
+ *
+ * Un estado caduca a las 24 horas, así que su hora **tiene** que ser relativa a
+ * ahora o la semilla se vaciaría sola según a qué hora se abriera la aplicación.
+ * Es el único sitio donde no se puede anclar a una hora de paseo fija.
+ */
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000);
 const expiring = (createdAt: Date) => new Date(createdAt.getTime() + STORY_TTL_MS);
 

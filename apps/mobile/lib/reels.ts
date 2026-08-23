@@ -61,7 +61,18 @@ export type Reel = {
   commentCount: number;
 };
 
-const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000);
+/** Anclado a una hora de paseo real: el cielo del dibujo sale de aquí. */
+const atHour = (daysAgo: number, hour: number, minute: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(hour, minute, 0, 0);
+  // Si la hora del paseo todavía no ha llegado hoy, la fecha caería en el
+  // futuro y la tarjeta diría «ahora» para algo que no ha pasado. Se retrocede
+  // un día. Sin esto, abrir la aplicación a las seis de la mañana ponía en el
+  // feed un paseo de las siete y cuarenta.
+  if (date.getTime() > Date.now()) date.setDate(date.getDate() - 1);
+  return date;
+};
 
 let reels: Reel[] = [
   {
@@ -75,7 +86,7 @@ let reels: Reel[] = [
     placeName: 'Parque Central',
     durationS: 14,
     soundName: 'Sonido original · Toby',
-    createdAt: hoursAgo(5),
+    createdAt: atHour(0, 18, 10),
     recordedIn: { temperatureC: 19, surface: 'grass' },
     reactions: 24,
     reactedByMe: false,
@@ -94,7 +105,7 @@ let reels: Reel[] = [
     placeName: 'Parque Berlín',
     durationS: 9,
     soundName: 'Sonido original · Rocky',
-    createdAt: hoursAgo(20),
+    createdAt: atHour(1, 23, 15),
     recordedIn: { temperatureC: 21, surface: 'earth' },
     reactions: 11,
     reactedByMe: true,
@@ -115,7 +126,7 @@ let reels: Reel[] = [
     placeName: null,
     durationS: 11,
     soundName: 'Sonido original · Bruno',
-    createdAt: hoursAgo(30),
+    createdAt: atHour(1, 14, 30),
     recordedIn: { temperatureC: 33, surface: 'asphalt' },
     reactions: 58,
     reactedByMe: false,

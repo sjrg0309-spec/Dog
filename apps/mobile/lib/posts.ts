@@ -102,7 +102,28 @@ export type PostComment = {
   createdAt: Date;
 };
 
-const hoursAgo = (hours: number): Date => new Date(Date.now() - hours * 3_600_000);
+/**
+ * La hora de una publicación, anclada a una hora de paseo real.
+ *
+ * Antes era «hace N horas» sin más, y eso tenía un efecto que solo se vio al
+ * dibujar: como el cielo de la ilustración sale de la hora, y las horas
+ * relativas caían todas de madrugada, **el feed entero salía de noche**.
+ *
+ * Anclarlas no es maquillaje: esta aplicación gira alrededor de a qué hora sale
+ * cada perro, así que una publicación de las 7:15 y otra de las 23:10 son dos
+ * cosas distintas del producto y tienen que verse distintas.
+ */
+const atHour = (daysAgo: number, hour: number, minute: number): Date => {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(hour, minute, 0, 0);
+  // Si la hora del paseo todavía no ha llegado hoy, la fecha caería en el
+  // futuro y la tarjeta diría «ahora» para algo que no ha pasado. Se retrocede
+  // un día. Sin esto, abrir la aplicación a las seis de la mañana ponía en el
+  // feed un paseo de las siete y cuarenta.
+  if (date.getTime() > Date.now()) date.setDate(date.getDate() - 1);
+  return date;
+};
 
 /** Los puntos de los lugares de la semilla, para poder medir el «cerca de mí». */
 const PLACE_POINTS = {
@@ -134,7 +155,7 @@ export const SEED_POSTS: Post[] = [
     caption:
       'Cuarenta minutos y no ha soltado la pelota ni una vez. Mañana a las siete, como siempre.',
     placeName: 'Parque Central',
-    createdAt: hoursAgo(3),
+    createdAt: atHour(0, 7, 40),
     point: PLACE_POINTS.central,
     reactions: { lick: 2, wag: 5 },
     myReaction: null,
@@ -146,13 +167,13 @@ export const SEED_POSTS: Post[] = [
         id: 'c1',
         authorName: 'Carlos M.',
         body: 'Nosotros salimos a esa hora también. Nos vemos mañana.',
-        createdAt: hoursAgo(2),
+        createdAt: atHour(0, 8, 5),
       },
       {
         id: 'c2',
         authorName: 'Diego S.',
         body: 'Esa pelota le va a durar dos días.',
-        createdAt: hoursAgo(1),
+        createdAt: atHour(0, 9, 30),
       },
     ],
   },
@@ -166,7 +187,7 @@ export const SEED_POSTS: Post[] = [
     imageAlt: 'Toby, mestizo marrón, empapado saliendo de un charco',
     caption: 'Ha encontrado el único charco del parque. Obviamente.',
     placeName: 'Parque Central',
-    createdAt: hoursAgo(9),
+    createdAt: atHour(0, 18, 25),
     point: PLACE_POINTS.central,
     reactions: { lick: 1, wag: 0 },
     myReaction: 'lick',
@@ -186,7 +207,7 @@ export const SEED_POSTS: Post[] = [
     caption:
       'A esta hora ya no hay nadie y se está mejor. Los martes y jueves salimos a las once.',
     placeName: 'Parque del Retiro',
-    createdAt: hoursAgo(24),
+    createdAt: atHour(1, 23, 10),
     point: PLACE_POINTS.retiro,
     reactions: { lick: 0, wag: 1 },
     myReaction: null,
@@ -198,7 +219,7 @@ export const SEED_POSTS: Post[] = [
         id: 'c3',
         authorName: 'Carlos M.',
         body: 'Buena idea lo de las once. En verano no se puede antes.',
-        createdAt: hoursAgo(20),
+        createdAt: atHour(1, 23, 40),
       },
     ],
   },
@@ -213,7 +234,7 @@ export const SEED_POSTS: Post[] = [
     caption:
       'Hoy media hora y a casa. La app no me dejaba ni eso a mediodía y tenía razón.',
     placeName: 'Parque del Retiro',
-    createdAt: hoursAgo(72),
+    createdAt: atHour(3, 13, 5),
     point: PLACE_POINTS.retiro,
     reactions: { lick: 3, wag: 1 },
     myReaction: 'wag',
@@ -234,7 +255,7 @@ export const SEED_POSTS: Post[] = [
     imageAlt: 'Bruno, pastor alemán cachorro, sentado bajo una farola',
     caption: 'Primera semana saliendo de noche. Aquí a las once no hay nadie y él va más tranquilo.',
     placeName: 'Parque Berlín',
-    createdAt: hoursAgo(14),
+    createdAt: atHour(1, 6, 20),
     point: PLACE_POINTS.berlin,
     reactions: { lick: 1, wag: 2 },
     myReaction: null,

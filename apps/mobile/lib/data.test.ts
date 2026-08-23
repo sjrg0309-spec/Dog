@@ -24,7 +24,7 @@ import {
   SEED_POSTS,
   totalReactions,
 } from './posts';
-import { buildPortrait, buildScene, sceneToSvg } from './artwork';
+import { buildPortrait, buildScene, sceneToSvg, timeOfDay } from './artwork';
 import { REPORT_REASONS, reelWarning, reelsSnapshot } from './reels';
 import {
   groupStories,
@@ -569,5 +569,35 @@ describe('ilustración generada', () => {
   it('el retrato del avatar es estable y propio de cada animal', () => {
     expect(sceneToSvg(buildPortrait(NINA, 64))).toBe(sceneToSvg(buildPortrait(NINA, 64)));
     expect(sceneToSvg(buildPortrait(NINA, 64))).not.toBe(sceneToSvg(buildPortrait(TOBY, 64)));
+  });
+});
+
+/**
+ * Ninguna publicación puede estar en el futuro.
+ *
+ * Las horas de la semilla están ancladas a horas de paseo reales —7:40, 18:25,
+ * 23:10— para que el cielo de la ilustración varíe. El efecto secundario es que
+ * abrir la aplicación antes de esa hora ponía la publicación por delante del
+ * reloj, y la tarjeta decía «ahora» para algo que no había pasado.
+ */
+describe('las horas de la semilla', () => {
+  it('ninguna publicación ni ningún reel están por delante del reloj', () => {
+    const now = Date.now();
+    for (const post of SEED_POSTS) {
+      expect(post.createdAt.getTime(), post.id).toBeLessThanOrEqual(now);
+      for (const comment of post.comments) {
+        expect(comment.createdAt.getTime(), comment.id).toBeLessThanOrEqual(now);
+      }
+    }
+    for (const reel of reelsSnapshot()) {
+      expect(reel.createdAt.getTime(), reel.id).toBeLessThanOrEqual(now);
+    }
+  });
+
+  it('cubren las cuatro franjas del día, que es lo que hace variar el dibujo', () => {
+    const times = new Set(SEED_POSTS.map((post) => timeOfDay(post.createdAt)));
+    // Con todas a la misma hora el feed entero saldría del mismo color, que es
+    // exactamente lo que pasaba con las horas relativas.
+    expect(times.size).toBeGreaterThanOrEqual(3);
   });
 });
