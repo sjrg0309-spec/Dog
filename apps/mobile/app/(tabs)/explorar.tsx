@@ -1,13 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { distanceMeters, formatDistance } from '@coincide/core';
 
 import { Separator } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { MiniMap, radiusOverflows, type MapMarker } from '@/components/mini-map';
-import { ReelGrid } from '@/components/reel-grid';
 import { Sheet, type SheetPosition } from '@/components/sheet';
 import { Body, Caption, Screen } from '@/components/ui';
 import { useWeatherState } from '@/lib/conditions';
@@ -110,10 +110,10 @@ function nearLabel(meters: number): string {
 export default function ExploreScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { location } = useWeatherState();
   const alerts = useLiveAlerts(location);
 
-  const [view, setView] = useState<'map' | 'reels'>('map');
   const [active, setActive] = useState<Set<LayerId>>(new Set(['places']));
   /* Arranca en el nivel 15 —barrio, algo menos de dos kilómetros de ancho en
      Madrid—, que es donde un mapa de calles se lee y donde caben los sitios de
@@ -240,19 +240,12 @@ export default function ExploreScreen() {
 
   return (
     <Screen>
-      <ExploreTabs view={view} onChange={setView} />
-
-      {view === 'reels' ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: theme.space[10] }}>
-          <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[3] }}>
-            <Caption>
-              Vídeo corto de perros de tu zona. Cada uno dice en qué condiciones se grabó.
-            </Caption>
-          </View>
-          <ReelGrid onOpen={(id) => router.push(`/reels?id=${id}`)} />
-        </ScrollView>
-      ) : (
-        <View style={{ flex: 1 }} onLayout={onCanvasLayout}>
+      {/* Sin barra encima. El mapa arranca en el borde de arriba y los controles
+          flotan sobre él, esquivando el área segura: es lo que hacen Google Maps
+          y Waze, y es lo que se pierde en cuanto se le pone una cabecera. Los
+          cuarenta y ocho píxeles que ocupaba el conmutador Mapa/Reels son
+          ahora mapa. */}
+      <View style={{ flex: 1 }} onLayout={onCanvasLayout}>
           {canvas.width > 0 ? (
             <MiniMap
               center={location}
@@ -268,6 +261,7 @@ export default function ExploreScreen() {
               width={canvas.width}
               height={canvas.height}
               bottomInset={PEEK_HEIGHT}
+              topInset={insets.top}
             />
           ) : null}
 
@@ -276,7 +270,9 @@ export default function ExploreScreen() {
           <View
             style={{
               position: 'absolute',
-              top: theme.space[3],
+              // Sin cabecera que lo haga por ellos, los botones esquivan la
+              // muesca a mano: si no, el de capas se mete debajo del reloj.
+              top: insets.top + theme.space[3],
               right: theme.space[3],
               /* Seis píxeles entre botones y no ocho: con la hoja abierta el
                  mapa se queda en unos doscientos cincuenta de alto, y la
@@ -329,7 +325,7 @@ export default function ExploreScreen() {
             <View
               style={{
                 position: 'absolute',
-                top: theme.space[3],
+                top: insets.top + theme.space[3],
                 left: theme.space[3],
                 right: 60,
                 gap: theme.space[2],
@@ -542,78 +538,9 @@ export default function ExploreScreen() {
                 </View>
               </ScrollView>
             </Sheet>
-          ) : null}
-        </View>
-      )}
+        ) : null}
+      </View>
     </Screen>
-  );
-}
-
-/**
- * Mapa y reels, las dos formas de descubrir que tiene esta aplicación: una
- * geográfica y otra de contenido.
- *
- * Van como dos palabras subrayadas en la barra y no como un segmentado de dos
- * píldoras: el segmentado ocupaba una franja entera debajo del título, y en una
- * pantalla cuyo contenido es un mapa a sangre cada franja se le quita al mapa.
- */
-function ExploreTabs({
-  view,
-  onChange,
-}: {
-  view: 'map' | 'reels';
-  onChange: (view: 'map' | 'reels') => void;
-}) {
-  const theme = useTheme();
-  const options = [
-    { id: 'map' as const, label: 'Mapa', hint: 'Lugares, agua, veterinarios y alertas' },
-    { id: 'reels' as const, label: 'Reels', hint: 'Vídeo corto de tu zona' },
-  ];
-
-  return (
-    <View
-      accessibilityRole="tablist"
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        height: 48,
-        paddingHorizontal: theme.space[4],
-        backgroundColor: theme.colors.background,
-      }}
-    >
-      {options.map((option) => {
-        const active = option.id === view;
-        return (
-          <Pressable
-            key={option.id}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            accessibilityHint={option.hint}
-            onPress={() => {
-              haptics.tap();
-              onChange(option.id);
-            }}
-            style={{
-              height: 48,
-              justifyContent: 'center',
-              paddingRight: theme.space[5],
-              borderBottomWidth: 2,
-              borderBottomColor: active ? theme.colors.foreground : 'transparent',
-            }}
-          >
-            <Text
-              style={{
-                color: active ? theme.colors.foreground : theme.colors.mutedForeground,
-                fontFamily: active ? fonts.displayBold : fonts.displaySemibold,
-                fontSize: theme.fontSize.base,
-              }}
-            >
-              {option.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
   );
 }
 

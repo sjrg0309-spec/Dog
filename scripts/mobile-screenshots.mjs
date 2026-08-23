@@ -38,7 +38,8 @@ const ROUTES = [
   // El botón de pánico abierto: el catálogo de escenarios con su radio delante.
   { path: '/sos', name: 'app-sos-escenarios', tap: 'Dar la alarma' },
   { path: '/explorar', name: 'app-explorar' },
-  { path: '/explorar', name: 'app-explorar-reels', tap: 'Reels' },
+  // Los reels dejaron de vivir en Explorar: ahora son la tercera cara del feed.
+  { path: '/', name: 'app-feed-reels', scope: 'Reels' },
   { path: '/perfil', name: 'app-perfil' },
   { path: '/perfil', name: 'app-perfil-ficha', tap: 'Ficha médica' },
   { path: '/perfil', name: 'app-perfil-guardados', tap: 'Guardados' },

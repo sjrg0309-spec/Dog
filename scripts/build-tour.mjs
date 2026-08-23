@@ -28,7 +28,7 @@ const SCREENS = [
   { path: '/sos', name: 'SOS', note: 'Doce escenarios, cada uno con su radio y su crecimiento.' },
   { path: '/sos', name: 'Escenarios', tap: 'Dar la alarma', note: 'Un cebo no se mueve: 500 m que no crecen. Los petardos empiezan en 3 km.' },
   { path: '/explorar', name: 'Explorar', note: 'Esquema, no cartografía. La geometría y los radios sí son reales.' },
-  { path: '/explorar', name: 'Reels de la zona', tap: 'Reels', note: 'Lo grabado en malas condiciones sale etiquetado, no escondido.' },
+  { path: '/', name: 'Reels de la zona', tap: 'Reels', note: 'Tercera pestaña del feed: el vídeo corto es feed, no exploración geográfica. Lo grabado en malas condiciones sale etiquetado, no escondido.' },
   { path: '/mensajes', name: 'Mensajes', note: 'Cada hilo dice de dónde sale. Aquí no se escribe a desconocidos por escribir.' },
   { path: '/mensajes', name: 'Conversación', tap: 'Cumpleaños de Toby', note: 'Burbujas con pico, hora dentro, y el azul solo cuando está leído.' },
   { path: '/perfil', name: 'Perfil', note: 'Retrato, tres cifras, destacados y cuadrícula.' },

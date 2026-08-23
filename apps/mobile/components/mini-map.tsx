@@ -76,6 +76,7 @@ export function MiniMap({
   width,
   height,
   bottomInset = 0,
+  topInset = 0,
 }: {
   center: { lat: number; lng: number };
   markers: MapMarker[];
@@ -95,6 +96,8 @@ export function MiniMap({
    * es el cromo, no el terreno.
    */
   bottomInset?: number;
+  /** Cuánto hay que bajar el cromo de arriba para esquivar la muesca. */
+  topInset?: number;
 }) {
   const theme = useTheme();
   const [tilesDown, setTilesDown] = useState(false);
@@ -286,7 +289,7 @@ export function MiniMap({
             // el margen normal el texto pasaba por debajo del «+» y se cortaba
             // a media frase.
             right: 60,
-            top: theme.space[3] + 30,
+            top: topInset + theme.space[3] + 30,
             paddingHorizontal: theme.space[3],
             paddingVertical: theme.space[2],
             borderRadius: theme.radius.md,
@@ -546,7 +549,7 @@ export function MiniMap({
         style={{
           position: 'absolute',
           left: theme.space[3],
-          top: theme.space[3],
+          top: topInset + theme.space[3],
           paddingHorizontal: 6,
           paddingVertical: 2,
           borderRadius: theme.radius.sm,

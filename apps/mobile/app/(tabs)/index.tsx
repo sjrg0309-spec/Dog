@@ -24,6 +24,23 @@ import {
   type FeedScope,
   type NearbyRadius,
 } from '@/lib/posts';
+import { ReelGrid } from '@/components/reel-grid';
+
+/**
+ * Las tres caras del feed.
+ *
+ * Las dos primeras filtran publicaciones —de quién sigues, o de tu barrio— y la
+ * tercera no filtra nada: es **otro formato**. Por eso `FeedTab` no es
+ * `FeedScope`: el filtro de publicaciones no sabe nada de vídeo, y meterle un
+ * tercer valor obligaría a que lo ignorase por dentro, que es como se cuelan
+ * los estados imposibles.
+ */
+type FeedTab = FeedScope | 'reels';
+
+const FEED_TABS: ReadonlyArray<{ id: FeedTab; label: string; hint: string }> = [
+  ...FEED_SCOPES,
+  { id: 'reels', label: 'Reels', hint: 'Vídeo corto de perros de tu zona.' },
+];
 import { useUnreadActivity } from '@/lib/activity';
 import { totalUnread, useThreads } from '@/lib/messages';
 import { useLiveAlerts } from '@/lib/safety';
@@ -60,8 +77,13 @@ export default function FeedScreen() {
   const { welfare } = discover(pet, conditions);
   const { scrolled, onScroll } = useScrolled();
 
-  const [scope, setScope] = useState<FeedScope>('nearby');
+  const [tab, setTab] = useState<FeedTab>('nearby');
   const [radiusM, setRadiusM] = useState<NearbyRadius>(NEARBY_RADII_M[0]);
+  const reeling = tab === 'reels';
+  /* Con los reels puestos el filtro sigue calculando el feed de vecindario. Es
+     deliberado: es barato, y al volver de los reels la lista ya está hecha en
+     vez de aparecer un instante después. */
+  const scope: FeedScope = reeling ? 'nearby' : tab;
   const entries = useScopedFeed(scope, location, radiusM);
   const outside = useOutsideRadiusCount(location, radiusM);
 
@@ -159,16 +181,11 @@ export default function FeedScreen() {
           />
         ) : null}
 
-        <FeedTabs
-          scope={scope}
-          onChange={setScope}
-          radiusM={radiusM}
-          onRadius={setRadiusM}
-        />
+        <FeedTabs tab={tab} onChange={setTab} radiusM={radiusM} onRadius={setRadiusM} />
 
         {/* Los «snacks»: quién está fuera ahora. Solo tiene sentido en el feed
             de vecindario, porque es presencia y la presencia es local. */}
-        {social && scope === 'nearby' ? (
+        {social && tab === 'nearby' ? (
           <View>
             <StoryRail
               me={pet}
@@ -194,19 +211,27 @@ export default function FeedScreen() {
             que quepa una franja más. */}
         <View style={{ height: theme.space[2] }} />
 
-        {entries.length === 0 ? (
+        {reeling ? (
+          /* Los reels vivían en Explorar, detrás de un segundo conmutador. Era
+             el sitio equivocado por dos motivos: uno, que Explorar es el mapa y
+             una pestaña de vídeo encima de un mapa hace que no parezca un mapa;
+             y dos, que el vídeo corto es **feed**, no exploración geográfica.
+             Aquí está a un toque de las fotos, que es de donde se viene. */
+          <ReelGrid onOpen={(id) => router.push(`/reels?id=${id}`)} />
+        ) : entries.length === 0 ? (
           <View style={{ paddingHorizontal: theme.space[4] }}>
-            <EmptyFeed scope={scope} radiusM={radiusM} outside={outside} onSwitch={setScope} />
+            <EmptyFeed scope={scope} radiusM={radiusM} outside={outside} onSwitch={setTab} />
           </View>
         ) : (
           entries.map(({ post, distanceLabel }, index) => (
             <Appear key={post.id} index={index}>
               <PostCard post={post} viewerName={pet.ownerName} distanceLabel={distanceLabel} />
-              {/* Los reels van intercalados después de las dos primeras
-                  publicaciones, que es donde Instagram los pone: arriba del
-                  todo empujaban la primera foto fuera de la pantalla, y una
-                  bandeja de vídeos antes de haber visto nada del barrio
-                  convierte el feed en una tienda. */}
+              {/* La bandeja de reels va intercalada después de las dos primeras
+                  publicaciones, que es donde Instagram la pone: arriba del todo
+                  empujaba la primera foto fuera de la pantalla. Convive con la
+                  pestaña sin duplicarla, igual que allí: la bandeja es el
+                  vistazo que aparece sin buscarlo, y la pestaña es ir a por
+                  ellos. Quien nunca cambia de pestaña sigue viéndolos. */}
               {social && index === 1 ? (
                 <ReelTray onOpen={(id) => router.push(`/reels?id=${id}`)} />
               ) : null}
@@ -214,7 +239,7 @@ export default function FeedScreen() {
           ))
         )}
 
-        {scope === 'nearby' && entries.length > 0 && outside > 0 ? (
+        {!reeling && scope === 'nearby' && entries.length > 0 && outside > 0 ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[5] }}>
             <Caption>
               {outside === 1
@@ -380,22 +405,28 @@ function HeaderAction({
  *
  * Antes eran dos segmentados apilados: dos píldoras enormes que ocupaban
  * ciento sesenta píxeles de alto justo donde debería estar la primera foto.
- * Ahora son dos palabras con subrayado —el patrón que la gente ya tiene
+ * Ahora son tres palabras con subrayado —el patrón que la gente ya tiene
  * aprendido de cualquier feed moderno— y el radio se convierte en un texto
  * pequeño al lado, que solo aparece en «Cerca de mí» porque es lo único que
  * lo usa.
  *
- * El alternador sigue visible y no en un desplegable: si no se ve la otra
- * pestaña, no se sabe que existe.
+ * La tercera, **Reels**, vivía en Explorar detrás de un segundo conmutador.
+ * Estaba en el sitio equivocado por dos motivos: uno, que Explorar es el mapa y
+ * una pestaña de vídeo encima de un mapa hace que deje de parecer un mapa; y
+ * dos, que el vídeo corto es feed —se ve pasando el pulgar— y no exploración
+ * geográfica. Aquí queda a un toque de las fotos, que es de donde se viene.
+ *
+ * El alternador sigue visible y no en un desplegable: si no se ven las otras
+ * pestañas, no se sabe que existen.
  */
 function FeedTabs({
-  scope,
+  tab,
   onChange,
   radiusM,
   onRadius,
 }: {
-  scope: FeedScope;
-  onChange: (scope: FeedScope) => void;
+  tab: FeedTab;
+  onChange: (tab: FeedTab) => void;
   radiusM: NearbyRadius;
   onRadius: (radius: NearbyRadius) => void;
 }) {
@@ -412,8 +443,8 @@ function FeedTabs({
       }}
       accessibilityRole="tablist"
     >
-      {FEED_SCOPES.map((option) => {
-        const active = option.id === scope;
+      {FEED_TABS.map((option) => {
+        const active = option.id === tab;
         return (
           <Pressable
             key={option.id}
@@ -427,7 +458,7 @@ function FeedTabs({
             style={{
               minHeight: theme.touchTarget.min,
               justifyContent: 'center',
-              paddingRight: theme.space[5],
+              paddingRight: theme.space[4],
               borderBottomWidth: 2,
               /* El subrayado ocupa sitio siempre, activo o no: sin eso el texto
                  da un salto de dos píxeles al cambiar de pestaña. */
@@ -447,7 +478,7 @@ function FeedTabs({
         );
       })}
 
-      {scope === 'nearby' ? (
+      {tab === 'nearby' ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Radio: ${radiusM / 1000} kilómetros`}
@@ -552,7 +583,7 @@ function EmptyFeed({
   scope: FeedScope;
   radiusM: NearbyRadius;
   outside: number;
-  onSwitch: (scope: FeedScope) => void;
+  onSwitch: (tab: FeedTab) => void;
 }) {
   const theme = useTheme();
 
