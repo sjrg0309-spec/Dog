@@ -196,7 +196,14 @@ export function useTheme(): Theme {
    * un perro que no es suyo. El verde de la casa es lo correcto ahí: una
    * protectora es la aplicación, no un perro concreto.
    */
-  const accent = useAccount().kind === 'rescuer' ? 'sage' : accentOf(pet.id);
+  const account = useAccount();
+  /* Y lo mismo antes de entrar: durante el alta todavía no hay perro propio,
+     así que el color salía del primero de la semilla. La bienvenida y las once
+     preguntas se veían azules por un perro que no es de quien está
+     contestando. El verde de la casa es lo correcto hasta que haya animal; al
+     terminar el alta, la aplicación se tiñe del suyo, que es un momento y no
+     un accidente. */
+  const accent = account.kind === 'rescuer' || !account.registered ? 'sage' : accentOf(pet.id);
 
   return {
     colors: PALETTES[accent][isDark ? 'dark' : 'light'],

@@ -40,7 +40,7 @@ describe('el correo', () => {
   });
 
   it('vacío se dice como vacío', () => {
-    expect(validateEmail('   ')).toMatchObject({ reason: 'Escribe tu correo.' });
+    expect(validateEmail('   ')).toMatchObject({ reason: 'Nos falta tu correo.' });
   });
 });
 

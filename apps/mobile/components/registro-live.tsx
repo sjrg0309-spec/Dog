@@ -276,7 +276,8 @@ export function LiveSchedule({
   if (matches.length === 0) {
     return (
       <Caption>
-        Con ese horario todavía no coincides con nadie. Puedes añadir más franjas desde tu perfil.
+        Con ese horario todavía no coincides con nadie del barrio. Puedes añadir más franjas
+        cuando quieras desde tu perfil.
       </Caption>
     );
   }
@@ -285,8 +286,8 @@ export function LiveSchedule({
     <View style={{ gap: theme.space[2] }}>
       <Caption>
         {matches.length === 1
-          ? 'Coincides con 1 perro'
-          : `Coincides con ${matches.length} perros`}
+          ? 'Ya coincides con 1 perro'
+          : `Ya coincides con ${matches.length} perros`}
       </Caption>
       {matches.map(({ other, overlap }) => (
         <Pop key={other.id} trigger={overlap.totalMinutes}>

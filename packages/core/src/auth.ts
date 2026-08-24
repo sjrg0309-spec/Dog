@@ -76,23 +76,23 @@ export type EmailCheck = { ok: true; normalized: string } | { ok: false; reason:
 export function validateEmail(input: string): EmailCheck {
   const normalized = input.trim().toLowerCase();
 
-  if (normalized === '') return { ok: false, reason: 'Escribe tu correo.' };
-  if (/\s/.test(normalized)) return { ok: false, reason: 'El correo no lleva espacios.' };
+  if (normalized === '') return { ok: false, reason: 'Nos falta tu correo.' };
+  if (/\s/.test(normalized)) return { ok: false, reason: 'Se ha colado un espacio: los correos no llevan espacios.' };
   if (!normalized.includes('@')) return { ok: false, reason: 'Falta la arroba.' };
 
   const [user, ...rest] = normalized.split('@');
   const domain = rest.join('@');
 
-  if (!user) return { ok: false, reason: 'Falta lo de antes de la arroba.' };
+  if (!user) return { ok: false, reason: 'Falta el nombre de antes de la arroba.' };
   if (rest.length !== 1 || !domain) return { ok: false, reason: 'Falta el dominio.' };
   if (!domain.includes('.') || domain.startsWith('.') || domain.endsWith('.')) {
-    return { ok: false, reason: 'El dominio está incompleto.' };
+    return { ok: false, reason: 'Al dominio le falta algo, como el «.com».' };
   }
   if (/[^a-z0-9.!#$%&'*+/=?^_`{|}~-]/.test(user)) {
-    return { ok: false, reason: 'El correo tiene caracteres que no valen.' };
+    return { ok: false, reason: 'Hay algún carácter que no vale en el correo.' };
   }
   if (/[^a-z0-9.-]/.test(domain)) {
-    return { ok: false, reason: 'El dominio tiene caracteres que no valen.' };
+    return { ok: false, reason: 'Hay algún carácter que no vale en el dominio.' };
   }
 
   return { ok: true, normalized };
@@ -118,7 +118,7 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
   const value = password;
 
   if (value.length === 0) {
-    return { score: 0, usable: false, label: 'Sin contraseña', advice: 'Escribe una contraseña.' };
+    return { score: 0, usable: false, label: 'Sin contraseña', advice: 'Escribe una y te decimos qué tal está.' };
   }
 
   if (value.length < PASSWORD_MIN) {
@@ -126,7 +126,7 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
       score: 0,
       usable: false,
       label: 'Muy corta',
-      advice: `Mínimo ${PASSWORD_MIN} caracteres. Llevas ${value.length}.`,
+      advice: `Con ${PASSWORD_MIN} caracteres nos vale. Llevas ${value.length}.`,
     };
   }
 
@@ -135,7 +135,7 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
       score: 0,
       usable: false,
       label: 'Muy usada',
-      advice: 'Es de las primeras que se prueban. Elige otra.',
+      advice: 'Es de las primeras que prueba cualquiera. Mejor otra.',
     };
   }
 
@@ -145,7 +145,7 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
       score: 0,
       usable: false,
       label: 'Lleva tu correo',
-      advice: 'No uses tu correo dentro de la contraseña.',
+      advice: 'Mejor que tu correo no vaya dentro de la contraseña.',
     };
   }
 
@@ -156,7 +156,7 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
       score: 0,
       usable: false,
       label: 'Muy repetitiva',
-      advice: 'Prueba con varias palabras distintas.',
+      advice: 'Prueba con varias palabras distintas y verás la diferencia.',
     };
   }
 
@@ -174,7 +174,7 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
     score: 1,
     usable: true,
     label: 'Justa',
-    advice: 'Añade una palabra más y quedará mucho mejor.',
+    advice: 'Con una palabra más queda mucho mejor.',
   };
 }
 
@@ -212,10 +212,10 @@ export function signInProblems(input: Credentials): string[] {
 }
 
 export const NO_SERVER_NOTE =
-  'Todavía no hay servidor: no guardamos contraseñas. Al entrar se abre la cuenta de este dispositivo.';
+  'Todavía no hay servidor, así que no guardamos ninguna contraseña. Al entrar se abre la cuenta de este teléfono.';
 
 export const PASSWORD_ADVICE =
-  'Usa varias palabras. No pedimos mayúsculas ni símbolos: lo que protege es que sea larga.';
+  'Mejor varias palabras que recuerdes. No te pedimos mayúsculas ni símbolos raros: lo que de verdad protege es que sea larga.';
 
 export const FORGOT_NOTE =
-  'Todavía no podemos enviarte el correo de recuperación.';
+  'Todavía no podemos mandarte el correo para recuperarla. Nos falta el servidor.';

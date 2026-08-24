@@ -191,7 +191,7 @@ const AGES = [
  */
 const TRUST = [
   { id: 'loves_everyone', label: 'Con todos', hint: 'Se acerca a cualquiera' },
-  { id: 'same_size_only', label: 'De su tamaño', hint: 'Veta dos escalones de diferencia' },
+  { id: 'same_size_only', label: 'De su tamaño', hint: 'Nada de perros dos tallas más grandes' },
   { id: 'shy_at_first', label: 'Tímido al principio', hint: 'Necesita un rato' },
   { id: 'no_hyper_juveniles', label: 'Cachorros no', hint: 'Los muy revoltosos le agobian' },
   { id: 'prefers_females', label: 'Mejor con hembras', hint: '' },
@@ -494,7 +494,7 @@ function Login({ onBack, onCreate }: { onBack: () => void; onCreate: () => void 
                 letterSpacing: -0.6,
               }}
             >
-Entrar
+¡Hola otra vez!
             </Text>
 
             <Input
@@ -728,8 +728,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   const steps: Step[] = [
     {
       id: 'account',
-      title: 'Crea tu cuenta',
-      why: 'Usarás el correo para entrar. La contraseña no la guardamos: todavía no hay servidor.',
+      title: 'Empezamos por ti',
+      why: 'Con el correo entras la próxima vez. La contraseña no se guarda en ningún sitio: todavía no hay servidor donde guardarla.',
       ready: credentialProblems({ email, password }).length === 0,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -760,15 +760,15 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     {
       id: 'breed',
       title: '¿De qué raza es?',
-      why: 'Mestizo cuenta. Con la raza rellenamos su tamaño y su energía.',
+      why: 'Si es mestizo, también cuenta. Con la raza te rellenamos el tamaño y la energía y acabas antes.',
       ready: breeds.length > 0,
       onLeave: applyBreeds,
       content: <BreedPicker selected={breeds} onChange={setBreeds} />,
     },
     {
       id: 'name',
-      title: '¿Cómo se llama?',
-      why: 'Es el nombre que verán los demás.',
+      title: '¿Y cómo se llama?',
+      why: 'Es como lo verá la gente del barrio.',
       ready: name.trim().length >= 2,
       content: (
         <Input
@@ -782,8 +782,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'age',
-      title: '¿Qué edad tiene?',
-      why: 'Por debajo del año cuenta como cachorro.',
+      title: '¿Cuántos años tiene?',
+      why: 'Si todavía no llega al año, lo tratamos como cachorro.',
       ready: draft.ageMonths !== null,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -812,7 +812,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     {
       id: 'sex',
       title: '¿Macho o hembra?',
-      why: 'Algunos tutores lo tienen en cuenta al quedar.',
+      why: 'Hay gente que lo tiene en cuenta antes de quedar, así que se lo decimos.',
       ready: sex !== null,
       content: (
         <Chips
@@ -830,8 +830,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'size',
-      title: '¿Qué tamaño tiene?',
-      why: 'No juntamos perros con mucha diferencia de tamaño.',
+      title: '¿Es grande o pequeño?',
+      why: 'No le proponemos perros que le saquen dos tallas. Es por que no acabe mal un juego.',
       ready: size !== null,
       hint: sizeFromBreed ? 'Puesto por la raza. Cámbialo si no encaja.' : undefined,
       content: (
@@ -848,8 +848,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'energy',
-      title: '¿Cuánta energía tiene?',
-      why: 'Es lo que más pesa al buscarle compañía.',
+      title: '¿Es tranquilo o un terremoto?',
+      why: 'Es lo que más miramos para buscarle compañía: un perro de sofá con un velocista no se lo pasa bien.',
       ready: energy !== null,
       hint: energyFromBreed ? 'Puesto por la raza. Cámbialo si no encaja.' : undefined,
       live: <LiveMatches draft={livePet} />,
@@ -867,8 +867,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'play',
-      title: '¿Cómo juega?',
-      why: 'Marca todas las que quieras. Con una en común ya encajan.',
+      title: '¿A qué juega?',
+      why: 'Marca las que quieras. Con que compartan una, ya se entienden.',
       ready: play.length > 0,
       live: <LiveMatches draft={livePet} />,
       content: (
@@ -885,8 +885,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'role',
-      title: '¿Qué hace tu perro?',
-      why: 'La mayoría son de compañía. Los que trabajan reciben otras propuestas.',
+      title: '¿Tu perro trabaja?',
+      why: 'Casi todos son de compañía y no pasa nada por dejarlo así. A los que trabajan les proponemos otras cosas.',
       ready: true,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -920,7 +920,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
                   fontSize: theme.fontSize.base,
                 }}
               >
-                Para qué asiste
+                ¿Para qué te asiste?
               </Text>
               {/* Y lo que va con la pregunta, en la misma pantalla: esto no
                   sale de aquí. Decirlo donde se pregunta es lo que hace que se
@@ -951,8 +951,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'handler',
-      title: 'Sobre ti',
-      why: 'Opcional. Solo lo ves tú: no aparece en tu perfil.',
+      title: 'Ahora un poco de ti',
+      why: 'Puedes saltártelo. Esto solo lo ves tú: no sale en tu perfil ni se lo contamos a nadie.',
       ready: true,
       skippable: true,
       content: (
@@ -992,14 +992,14 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
             })}
           </View>
 
-          <Caption>Puedes cambiarlas luego en Configuración.</Caption>
+          <Caption>Puedes cambiarlas cuando quieras en Configuración.</Caption>
         </View>
       ),
     },
     {
       id: 'trust',
       title: '¿Con quién se lleva bien?',
-      why: 'Quitamos de su lista a los que no encajan.',
+      why: 'Nos sirve para no proponerle a quien le agobia.',
       ready: trust.length > 0,
       skippable: true,
       /* Aquí la vista previa hace algo que no hace en los otros pasos: al
@@ -1020,8 +1020,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'schedule',
-      title: '¿Cuándo salís a pasear?',
-      why: 'No publicamos tu horario. Solo decimos con quién coincides.',
+      title: '¿A qué hora salís?',
+      why: 'Tu horario no lo publicamos en ningún sitio. Solo te decimos con quién coincides.',
       ready: days.length > 0 && slot !== null,
       live: (
         <LiveSchedule
@@ -1058,7 +1058,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'chip',
-      title: '¿Tiene chip?',
+      title: '¿Lleva chip?',
       why: CHIP_NOTE,
       ready: chipCheck?.valid === true,
       skippable: true,
@@ -1091,8 +1091,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'done',
-      title: `Listo${name.trim() ? `, ${name.trim()}` : ''}`,
-      why: 'Puedes cambiarlo cuando quieras desde tu perfil.',
+      title: 'Ya estáis dentro',
+      why: 'Todo esto lo puedes cambiar cuando quieras desde su perfil.',
       ready: complete,
       cta: 'Entrar',
       content: (
@@ -1127,7 +1127,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
               label="Con quién"
               value={
                 trust.length === 0
-                  ? 'Sin decir'
+                  ? 'Lo dejas para luego'
                   : trust
                       .map((id) => TRUST.find((option) => option.id === id)?.label)
                       .filter(Boolean)
@@ -1144,7 +1144,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
             />
             <Summary
               label="Chip"
-              value={chipCheck?.valid ? 'Declarado, sin verificar' : 'Sin chip'}
+              value={chipCheck?.valid ? 'Apuntado, falta verificarlo' : 'Todavía no'}
             />
             <Summary
               label="Qué hace"
@@ -1637,8 +1637,8 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
   const steps: Step[] = [
     {
       id: 'account',
-      title: 'Crear la cuenta',
-      why: 'Usaréis el correo para entrar, y ahí os avisaremos de la revisión.',
+      title: 'Empecemos',
+      why: 'Con el correo entráis, y ahí os avisamos en cuanto revisemos el perfil.',
       ready: credentialProblems({ email, password }).length === 0,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -1665,7 +1665,7 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     {
       id: 'name',
       title: '¿Cómo os llamáis?',
-      why: 'El nombre con el que os conocen.',
+      why: 'El nombre por el que os conoce la gente.',
       ready: name.trim().length >= 3,
       content: (
         <Input
@@ -1679,8 +1679,8 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'profile',
-      title: 'Vuestro perfil público',
-      why: 'Instagram, Facebook, TikTok, X o vuestra web. El perfil, no una publicación.',
+      title: '¿Dónde os podemos ver?',
+      why: 'Instagram, Facebook, TikTok, X o vuestra web. El perfil entero, no una publicación suelta.',
       ready: link.ok,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -1712,7 +1712,7 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     {
       id: 'activities',
       title: '¿Qué hacéis?',
-      why: 'Decide qué avisos recibiréis.',
+      why: 'Así sabemos qué avisos os interesan y cuáles no.',
       ready: activities.length > 0,
       content: (
         <Chips
@@ -1731,7 +1731,7 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'done',
-      title: 'Ya está',
+      title: 'Gracias por lo que hacéis',
       why: SHELTER_REVIEW_NOTE,
       ready: missing.length === 0,
       cta: 'Enviar a revisión',

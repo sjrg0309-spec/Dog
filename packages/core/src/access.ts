@@ -353,7 +353,7 @@ export const GATE_NOTE =
   'Para entrar tienes que dar de alta a tu mascota. Dentro está quién pasea por tu barrio y a qué hora.';
 
 export const CHIP_NOTE =
-  'El chip no localiza a tu perro. Sirve para que te lo devuelvan si se pierde, y aquí para ver a otras personas.';
+  'El chip no lleva GPS: no localiza a tu perro. Sirve para que te lo devuelvan si se pierde, y aquí para poder ver a otra gente.';
 
 export const HONESTY_NOTE =
   'Esto no impide que alguien se registre con datos falsos. Sí impide que una cuenta nueva vea quién sale y a qué hora.';
@@ -478,7 +478,7 @@ export const SHELTER_GATE_NOTE =
   'Si rescatas y no tienes mascota propia, entra con el perfil público de tu colectivo.';
 
 export const SHELTER_REVIEW_NOTE =
-  'Revisa el perfil una persona: no podemos comprobarlo en automático. Mientras tanto solo veréis sitios.';
+  'Lo mira una persona, no un robot: no hay forma de comprobarlo en automático. Mientras tanto ya podéis ver los sitios del mapa.';
 
 export const SHELTER_SCOPE_NOTE =
-  'Al aprobarla recibiréis avisos de rescate de varios kilómetros. No veréis quién pasea ni los horarios de nadie.';
+  'En cuanto os aprobemos os llegarán los avisos de rescate de varios kilómetros. Lo que no veréis es quién pasea ni a qué hora sale nadie.';
