@@ -716,6 +716,30 @@ function AlertCard({
         </View>
       ) : (
         <View style={{ gap: theme.space[2] }}>
+          {/*
+            Un solo botón principal, y es este.
+
+            La rejilla de cuatro botones iguales no tenía jerarquía —las cuatro
+            acciones pedían lo mismo— y encima obligaba a partir «Voy a buscar»
+            en dos líneas. Quien lee la alerta de un perro perdido a dos calles
+            tiene una decisión que tomar antes que ninguna otra: si va o no va.
+            Esa ocupa el ancho entero; las demás son lo que se hace después.
+          */}
+          <Button
+            label={searching ? 'Ya no voy a buscar' : 'Voy a buscar'}
+            icon={Footprints}
+            variant={searching ? 'primary' : 'outline'}
+            accessibilityHint={
+              searching
+                ? 'Te quita de la lista de quien está buscando'
+                : 'Aparecerás en la cuenta de quien está buscando'
+            }
+            onPress={() => {
+              toggleSearch(alert.id);
+              haptics.commit();
+            }}
+          />
+
           <Row gap={2}>
             <View style={{ flex: 1 }}>
               <Button
@@ -745,46 +769,47 @@ function AlertCard({
             ) : null}
           </Row>
 
-          <Row gap={2}>
-            <View style={{ flex: 1 }}>
-              <Button
-                label={searching ? 'Ya no voy' : 'Voy a buscar'}
-                icon={Footprints}
-                variant={searching ? 'primary' : 'outline'}
-                accessibilityHint={
-                  searching
-                    ? 'Te quita de la lista de quien está buscando'
-                    : 'Aparecerás en la cuenta de quien está buscando'
-                }
-                onPress={() => {
-                  toggleSearch(alert.id);
-                  haptics.commit();
+          {/* Compartir va sin caja: es lo que se hace **con** el aviso, no una
+              tercera opción a la altura de las otras dos. Sigue midiendo el
+              suelo táctil entero. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Compartir"
+            accessibilityHint="Saca el aviso de la aplicación: grupo del barrio, veterinario"
+            onPress={() => {
+              haptics.tap();
+              void shareText(
+                shareAlertText({
+                  scenario,
+                  petName: alert.petName,
+                  areaName: alert.areaName,
+                  openForHours: live.openForHours,
+                  radiusM: live.radiusM,
+                  contactPhone: alert.contactPhone,
+                  sightings: alert.sightings.length,
+                }),
+              ).then((result) => setShared(shareResultNote(result)));
+            }}
+            style={({ pressed }) => ({
+              minHeight: theme.touchTarget.min,
+              justifyContent: 'center',
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Row gap={2}>
+              <Icon icon={Send} size="sm" color={theme.colors.primary} decorative />
+              <Text
+                style={{
+                  color: theme.colors.primary,
+                  fontFamily: fonts.bodyBold,
+                  fontSize: theme.fontSize.sm,
                 }}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                label="Compartir"
-                icon={Send}
-                variant="outline"
-                accessibilityHint="Saca el aviso de la aplicación: grupo del barrio, veterinario"
-                onPress={() => {
-                  haptics.tap();
-                  void shareText(
-                    shareAlertText({
-                      scenario,
-                      petName: alert.petName,
-                      areaName: alert.areaName,
-                      openForHours: live.openForHours,
-                      radiusM: live.radiusM,
-                      contactPhone: alert.contactPhone,
-                      sightings: alert.sightings.length,
-                    }),
-                  ).then((result) => setShared(shareResultNote(result)));
-                }}
-              />
-            </View>
-          </Row>
+              >
+                Compartir fuera de Petnav
+              </Text>
+            </Row>
+          </Pressable>
+
           {shared ? <Caption>{shared}</Caption> : null}
         </View>
       )}

@@ -833,14 +833,14 @@ for (const tab of TABS) {
       if (!/Vas tú y 2 personas más/.test(after)) {
         problems.push('apuntarse a buscar no cambió la cuenta de quién está buscando');
       }
-      if (!(await page.getByRole('button', { name: /^Ya no voy$/ }).count())) {
+      if (!(await page.getByRole('button', { name: /^Ya no voy a buscar$/ }).count())) {
         problems.push('no se puede dejar de buscar: el botón no cambia');
       }
 
       /* Y se deshace, porque una cuenta que solo sube deja de significar nada.
          Además esto devuelve la alerta a su estado de partida para lo que venga
          después. */
-      await page.getByRole('button', { name: /^Ya no voy$/ }).first().click();
+      await page.getByRole('button', { name: /^Ya no voy a buscar$/ }).first().click();
       await page.waitForTimeout(600);
       const undone = (await page.locator('#root').innerText()).trim();
       if (!/2 personas buscando/.test(undone)) {

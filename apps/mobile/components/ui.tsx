@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 
 import { Icon } from './icon';
+import { Press } from './motion';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import type { LucideIcon } from '@/lib/icons';
@@ -246,8 +247,13 @@ export function Button({
   // El foco se lleva aparte porque el estado que expone `Pressable` no lo
   // incluye en esta versión. En web —donde vive el teclado— `onFocus` sí llega.
   const [focused, setFocused] = useState(false);
+  /* Y el dedo también, por el mismo motivo: lo que se encoge es el botón
+     entero con su fondo, así que la escala vive fuera del `Pressable` y no
+     puede leer su estado desde dentro. */
+  const [down, setDown] = useState(false);
 
   return (
+    <Press pressed={down && !inert}>
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -257,6 +263,8 @@ export function Button({
       accessibilityState={{ disabled: inert, busy: loading }}
       disabled={inert}
       onPress={onPress}
+      onPressIn={() => setDown(true)}
+      onPressOut={() => setDown(false)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       style={({ pressed }) => ({
@@ -264,7 +272,11 @@ export function Button({
         minHeight: theme.touchTarget.min,
         flexDirection: 'row',
         gap: theme.space[2],
-        paddingHorizontal: theme.space[5],
+        /* Antes eran 20 a cada lado. En un botón ancho no se notaba; en dos
+           botones que comparten una fila de 390 puntos, esos 40 puntos son la
+           diferencia entre «Lo he visto» en una línea y en dos. Se vio en la
+           captura de la ficha de una alerta, con cuatro acciones en rejilla. */
+        paddingHorizontal: theme.space[3],
         borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: focused ? theme.colors.focusRing : style.border,
@@ -285,10 +297,19 @@ export function Button({
       ) : icon ? (
         <Icon icon={icon} size="base" color={style.fg} decorative />
       ) : null}
-      <Text style={{ color: style.fg, fontSize: theme.fontSize.base, fontFamily: fonts.bodyBold }}>
+      <Text
+        numberOfLines={1}
+        style={{
+          color: style.fg,
+          fontSize: theme.fontSize.base,
+          fontFamily: fonts.bodyBold,
+          flexShrink: 1,
+        }}
+      >
         {label}
       </Text>
     </Pressable>
+    </Press>
   );
 }
 

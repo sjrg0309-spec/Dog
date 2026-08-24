@@ -1,29 +1,76 @@
 /**
- * Las tres piezas de movimiento de la aplicación.
+ * El vocabulario de movimiento de la aplicación.
  *
  * El proyecto tenía una regla desde el primer día: **el anillo del radar es el
  * único elemento con movimiento continuo**, y por eso significa «en vivo». Esa
- * regla sigue, y lo que hay aquí no la rompe:
+ * regla sigue. Lo que hay aquí no la rompe, la ordena:
  *
  *  - `Appear` es movimiento **de entrada**: ocurre una vez, al aparecer algo, y
  *    se acaba. Sin él una lista se materializa de golpe y no se sabe si ha
  *    cargado o si siempre estuvo así.
- *  - `Pop` es movimiento **de respuesta**: ocurre porque el dedo ha tocado. Es
- *    la confirmación de que el toque ha entrado, antes de que cambie el número.
+ *  - `Press` es movimiento **bajo el dedo**: la superficie cede mientras se
+ *    toca y vuelve al soltar. Es lo que hace que una tarjeta se sienta un
+ *    objeto y no un rectángulo pintado.
+ *  - `Pop` es movimiento **de respuesta**: ocurre porque el toque ya entró. Es
+ *    la confirmación, antes de que cambie el número.
+ *  - `Presence` es movimiento **de salida**: lo que se va se va yendo. Sin él,
+ *    algo que desaparece de golpe parece un fallo.
  *  - `Pulse` es el único **continuo**, y solo lo lleva lo que está pasando
  *    ahora mismo.
  *
- * Los tres respetan movimiento reducido, y ninguno esconde información: quitar
+ * ## Por qué muelles y no curvas de tiempo
+ *
+ * Todo lo que responde a un dedo va con muelle. Una curva de tiempo dura lo que
+ * dura pase lo que pase; un muelle tiene masa, así que si algo se interrumpe a
+ * mitad —y en una pantalla táctil se interrumpe todo el rato— continúa desde
+ * donde estaba con la velocidad que llevaba, en vez de saltar al principio.
+ * Esa es toda la diferencia entre «animado» y «físico», y es la razón de que
+ * los tres muelles de abajo estén **nombrados**: un número suelto en cada
+ * componente acaba siendo doce movimientos distintos que no se parecen entre
+ * sí.
+ *
+ * Los cinco respetan movimiento reducido, y ninguno esconde información: quitar
  * la animación deja el mismo estado final, no un estado peor.
  */
 
-import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Easing, type ViewStyle } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { type ViewStyle } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+  type WithSpringConfig,
+} from 'react-native-reanimated';
 
 import { useReducedMotion } from '@/lib/motion';
 
 /**
- * Entrada: sube y aparece.
+ * Tres muelles con nombre, y ninguno más.
+ *
+ * Se distinguen por **para qué son**, no por cómo suenan:
+ *
+ *  - `snappy` va debajo del dedo. Casi sin rebote: un botón que oscila al
+ *    soltarlo se siente flojo, no vivo.
+ *  - `settle` entra y coloca. Un punto de rebote, el justo para que la pieza
+ *    parezca que ha llegado y no que se ha teletransportado.
+ *  - `gentle` mueve superficies grandes —hojas, paneles—, donde la masa
+ *    aparente tiene que ser mayor: una hoja de media pantalla que llega tan
+ *    rápido como un botón se siente de papel.
+ */
+export const springs = {
+  snappy: { damping: 22, stiffness: 320, mass: 0.7 },
+  settle: { damping: 20, stiffness: 190, mass: 0.9 },
+  gentle: { damping: 26, stiffness: 120, mass: 1 },
+} satisfies Record<string, WithSpringConfig>;
+
+/**
+ * Entrada: sube y aparece, con muelle.
  *
  * `index` escalona la entrada de una lista. Se limita a los primeros: escalonar
  * el elemento número treinta lo haría entrar segundo y medio después de abrir
@@ -41,44 +88,59 @@ export function Appear({
   style?: ViewStyle;
 }) {
   const reduced = useReducedMotion();
-  const progress = useRef(new Animated.Value(reduced ? 1 : 0)).current;
+  const progress = useSharedValue(reduced ? 1 : 0);
 
   useEffect(() => {
     if (reduced) {
-      progress.setValue(1);
+      progress.value = 1;
       return;
     }
-    const animation = Animated.timing(progress, {
-      toValue: 1,
-      duration: 320,
-      delay: Math.min(index, 6) * 55,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
-    animation.start();
-    return () => animation.stop();
+    progress.value = withDelay(Math.min(index, 6) * 55, withSpring(1, springs.settle));
+    return () => cancelAnimation(progress);
   }, [index, progress, reduced]);
 
-  return (
-    <Animated.View
-      style={[
-        style,
-        {
-          opacity: progress,
-          transform: [
-            {
-              translateY: progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [distance, 0],
-              }),
-            },
-          ],
-        },
-      ]}
-    >
-      {children}
-    </Animated.View>
-  );
+  const animated = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ translateY: (1 - progress.value) * distance }],
+  }));
+
+  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+}
+
+/**
+ * La superficie cede bajo el dedo.
+ *
+ * Envuelve al pulsable y le pasa `onPressIn`/`onPressOut` **al hijo**: la
+ * animación no puede vivir dentro del `Pressable` porque lo que se quiere
+ * escalar es todo, incluido su fondo. El hijo sigue recibiendo el toque; esto
+ * solo mira.
+ *
+ * El 0,97 no es un número a ojo: por debajo de 0,95 la tarjeta parece que se
+ * aleja, y por encima de 0,98 no se percibe en una pantalla de 390 puntos. Se
+ * comprobó en captura con las tres.
+ */
+export function Press({
+  children,
+  pressed,
+  scale = 0.97,
+  style,
+}: {
+  children: ReactNode;
+  /** Lo dice el `Pressable` de dentro, que es quien sabe si hay un dedo encima. */
+  pressed: boolean;
+  scale?: number;
+  style?: ViewStyle;
+}) {
+  const reduced = useReducedMotion();
+  const value = useSharedValue(1);
+
+  useEffect(() => {
+    value.value = withSpring(pressed && !reduced ? scale : 1, springs.snappy);
+  }, [pressed, reduced, scale, value]);
+
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: value.value }] }));
+
+  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 }
 
 /**
@@ -98,28 +160,80 @@ export function Pop({
   style?: ViewStyle;
 }) {
   const reduced = useReducedMotion();
-  const scale = useRef(new Animated.Value(1)).current;
-  const first = useRef(true);
+  const scale = useSharedValue(1);
+  const [seen, setSeen] = useState(false);
 
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
+    if (!seen) {
+      setSeen(true);
       return;
     }
     if (reduced) return;
-
-    scale.setValue(0.7);
-    const animation = Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 18,
-      bounciness: 14,
-    });
-    animation.start();
-    return () => animation.stop();
+    scale.value = withSequence(withTiming(0.7, { duration: 90 }), withSpring(1, springs.settle));
+    return () => cancelAnimation(scale);
+    // `seen` queda fuera a propósito: si entrara, el primer cambio de estado
+    // dispararía el rebote dos veces —una por el disparador y otra por haberlo
+    // marcado como visto—, y se vería doble.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced, scale, trigger]);
 
-  return <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>;
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+}
+
+/**
+ * Lo que se va, se va yendo.
+ *
+ * React desmonta de golpe, así que sin esto un aviso, una hoja o una fila
+ * borrada desaparecen en un fotograma y la pantalla parece haber parpadeado.
+ * `Presence` mantiene al hijo montado el tiempo que dura la salida y lo suelta
+ * después, que es lo único que hace falta para que se entienda que **eso estaba
+ * ahí y ya no está**.
+ *
+ * La salida es más corta que la entrada —180 ms contra un muelle— por la misma
+ * razón por la que una puerta se cierra más rápido de lo que se abre: lo que
+ * entra hay que verlo, lo que sale ya se ha visto.
+ */
+export function Presence({
+  visible,
+  children,
+  distance = 8,
+  style,
+}: {
+  visible: boolean;
+  children: ReactNode;
+  distance?: number;
+  style?: ViewStyle;
+}) {
+  const reduced = useReducedMotion();
+  const [mounted, setMounted] = useState(visible);
+  const progress = useSharedValue(visible ? 1 : 0);
+
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      progress.value = reduced ? 1 : withSpring(1, springs.settle);
+      return;
+    }
+    if (reduced) {
+      progress.value = 0;
+      setMounted(false);
+      return;
+    }
+    progress.value = withTiming(0, { duration: 180, easing: Easing.in(Easing.quad) });
+    const timer = setTimeout(() => setMounted(false), 200);
+    return () => clearTimeout(timer);
+  }, [progress, reduced, visible]);
+
+  const animated = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ translateY: (1 - progress.value) * -distance }],
+  }));
+
+  if (!mounted) return null;
+
+  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 }
 
 /**
@@ -139,47 +253,30 @@ export function Pulse({
   style?: ViewStyle;
 }) {
   const reduced = useReducedMotion();
-  const value = useRef(new Animated.Value(0)).current;
+  const value = useSharedValue(0);
 
   useEffect(() => {
     if (!active || reduced) {
-      value.setValue(0);
+      cancelAnimation(value);
+      value.value = 0;
       return;
     }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(value, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(value, {
-          toValue: 0,
-          duration: 1200,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
+    /* Curva de tiempo y no muelle, y es la excepción que confirma la regla: un
+       latido tiene que ser **igual cada vez**, y un muelle interrumpido no lo
+       sería. Lo continuo se mide en tiempo; lo que responde al dedo, en masa. */
+    value.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
     );
-    loop.start();
-    return () => loop.stop();
+    return () => cancelAnimation(value);
   }, [active, reduced, value]);
+
+  const animated = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + value.value * 0.06 }],
+  }));
 
   if (!active) return <Animated.View style={style}>{children}</Animated.View>;
 
-  return (
-    <Animated.View
-      style={[
-        style,
-        {
-          transform: [
-            { scale: value.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
-          ],
-        },
-      ]}
-    >
-      {children}
-    </Animated.View>
-  );
+  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 }

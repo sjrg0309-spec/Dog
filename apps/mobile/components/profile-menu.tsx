@@ -19,7 +19,9 @@
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
+import { Glass } from './glass';
 import { Icon } from './icon';
+import { Appear } from './motion';
 import { Caption } from '@/components/ui';
 import { useBackDismiss } from '@/lib/back';
 import { fonts } from '@/lib/fonts';
@@ -73,19 +75,32 @@ export function ProfileMenu({
 
   return (
     <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      {/* El fondo se desenfoca en vez de solo oscurecerse.
+
+          Es lo que hace iOS al abrir una hoja y lo que hace Instagram con este
+          mismo menú, y no es estética: el desenfoque dice **que lo de detrás
+          sigue ahí**, que es justo lo que un velo negro opaco niega. El velo
+          oscuro sigue encima —lo que da el contraste del panel— pero ahora
+          deja ver la forma de la pantalla de la que se salió. */}
       {/* El velo. Es un botón de verdad con su etiqueta: tocar fuera para
           cerrar es el gesto que hace todo el mundo, y un lector de pantalla
           tiene que poder hacerlo también. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Cerrar el menú"
-        onPress={() => {
-          haptics.tap();
-          onClose();
-        }}
-        style={{ flex: 1, backgroundColor: theme.colors.overlay }}
-      />
+      <Glass style={{ flex: 1 }} tone="scrim">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar el menú"
+          onPress={() => {
+            haptics.tap();
+            onClose();
+          }}
+          style={{ flex: 1, backgroundColor: theme.colors.overlay }}
+        />
+      </Glass>
 
+      {/* El panel entra desde abajo con muelle. Una hoja que aparece ya
+          colocada no se lee como una hoja: se lee como que la pantalla ha
+          cambiado. */}
+      <Appear distance={-24}>
       <View
         accessibilityViewIsModal
         style={{
@@ -150,6 +165,7 @@ export function ProfileMenu({
           </Caption>
         </View>
       </View>
+      </Appear>
     </View>
   );
 }

@@ -17,11 +17,12 @@
  * teclado fuera del sitio donde estaba.
  */
 
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Text, View } from 'react-native';
 
+import { Glass } from './glass';
+import { Appear } from './motion';
 import { fonts } from '@/lib/fonts';
-import { useReducedMotion } from '@/lib/motion';
 import { useTheme } from '@/lib/theme';
 
 export function Toast({
@@ -34,56 +35,55 @@ export function Toast({
   duration?: number;
 }) {
   const theme = useTheme();
-  const reduced = useReducedMotion();
-  const opacity = useRef(new Animated.Value(reduced ? 1 : 0)).current;
 
   useEffect(() => {
-    if (!reduced) {
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 160,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }).start();
-    }
     const timer = setTimeout(onDone, duration);
     return () => clearTimeout(timer);
-  }, [duration, onDone, opacity, reduced]);
+  }, [duration, onDone]);
 
   return (
-    <Animated.View
+    <View
       pointerEvents="none"
       style={{
         position: 'absolute',
         left: theme.space[4],
         right: theme.space[4],
         bottom: theme.space[6],
-        opacity,
         alignItems: 'center',
       }}
     >
-      <View
-        accessibilityRole="alert"
-        aria-live="polite"
-        style={{
-          maxWidth: 420,
-          paddingHorizontal: theme.space[4],
-          paddingVertical: theme.space[3],
-          borderRadius: theme.radius.full,
-          backgroundColor: theme.colors.foreground,
-        }}
-      >
-        <Text
+      {/* Entra con muelle desde abajo. Es lo mismo que hace la píldora de
+          Instagram y de iOS, y no es gratuito: un aviso que aparece de golpe se
+          confunde con un fallo de dibujo. */}
+      <Appear distance={-16}>
+        {/* Cristal y no un rectángulo opaco: el aviso flota sobre la pantalla,
+            así que dejar ver la forma de lo que hay debajo es lo que dice que
+            no es una pantalla nueva. El tinte del cristal mantiene el
+            contraste; el desenfoque solo aporta el efecto. */}
+        <Glass
+          tone="ink"
           style={{
-            color: theme.colors.background,
-            fontFamily: fonts.body,
-            fontSize: theme.fontSize.sm,
-            textAlign: 'center',
+            maxWidth: 420,
+            paddingHorizontal: theme.space[4],
+            paddingVertical: theme.space[3],
+            borderRadius: theme.radius.full,
+            overflow: 'hidden',
           }}
         >
-          {message}
-        </Text>
-      </View>
-    </Animated.View>
+          <Text
+            accessibilityRole="alert"
+            aria-live="polite"
+            style={{
+              color: theme.colors.background,
+              fontFamily: fonts.body,
+              fontSize: theme.fontSize.sm,
+              textAlign: 'center',
+            }}
+          >
+            {message}
+          </Text>
+        </Glass>
+      </Appear>
+    </View>
   );
 }

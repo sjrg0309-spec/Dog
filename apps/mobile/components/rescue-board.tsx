@@ -37,7 +37,7 @@ import { Avatar } from './avatar';
 import { NavBar, Separator, useScrolled } from './chrome';
 import { Icon } from './icon';
 import { MiniMap } from './mini-map';
-import { Pulse } from './motion';
+import { Press, Pulse } from './motion';
 import { Badge, Body, Caption, Screen } from '@/components/ui';
 import { useAccount } from '@/lib/account';
 import { useWeatherState } from '@/lib/conditions';
@@ -154,8 +154,10 @@ export function RescueBoard() {
                   haptics.tap();
                   router.push('/sos');
                 }}
-                style={({ pressed }) => ({ alignItems: 'center', gap: 6, opacity: pressed ? 0.7 : 1 })}
+                style={{ alignItems: 'center', gap: 6 }}
               >
+                {({ pressed }) => (
+                  <Press pressed={pressed} scale={0.94} style={{ alignItems: 'center', gap: 6 }}>
                 <Pulse active>
                   <View
                     style={{
@@ -186,6 +188,8 @@ export function RescueBoard() {
                 >
                   {live.alert.petName ?? 'Peligro'}
                 </Text>
+                  </Press>
+                )}
               </Pressable>
             ))}
           </ScrollView>
