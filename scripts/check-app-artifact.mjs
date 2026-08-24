@@ -103,11 +103,64 @@ if (/no encontr|unmatched|not found/i.test(body.slice(0, 400))) {
  * sino que **no exista la barra de pestañas**: si hay pestañas, hay aplicación.
  */
 if (!/Coincide/i.test(body) || !/no se entra a mirar/i.test(body)) {
-  problems.push('la aplicación no arrancó en el alta: la puerta no está puesta');
+  problems.push('la aplicación no arrancó en la bienvenida: la puerta no está puesta');
 }
 if (await page.getByRole('tab', { name: /Explorar/i }).count()) {
   problems.push('hay barra de pestañas antes de dar de alta a ningún animal');
 }
+for (const label of ['Comenzar ahora', 'Ya tengo cuenta']) {
+  if (!(await page.getByRole('button', { name: label, exact: true }).count())) {
+    problems.push(`la bienvenida no ofrece «${label}»`);
+  }
+}
+
+/*
+ * Entrar, comprobado sin entrar.
+ *
+ * Se mira lo único que esta pantalla puede prometer sin servidor: que no deja
+ * seguir con un correo que no tiene forma de correo, y que sí deja con uno que
+ * la tiene. Lo que no se hace es entrar de verdad, porque entonces la auditoría
+ * se quedaría dentro de la cuenta de demostración y no podría recorrer el alta,
+ * que es lo que hay que comprobar entero.
+ */
+{
+  await page.getByRole('button', { name: 'Ya tengo cuenta', exact: true }).first().click();
+  await page.waitForTimeout(600);
+
+  await page.getByLabel('Correo', { exact: true }).fill('ana');
+  await page.getByLabel('Contraseña', { exact: true }).fill('loquesea');
+  await page.waitForTimeout(300);
+  const blockedLogin = await page
+    .getByRole('button', { name: 'Entrar', exact: true })
+    .first()
+    .getAttribute('aria-disabled');
+  if (blockedLogin !== 'true') {
+    problems.push('entrar acepta un correo que no tiene forma de correo');
+  }
+
+  await page.getByLabel('Correo', { exact: true }).fill('ana@correo.com');
+  await page.waitForTimeout(300);
+  const okLogin = await page
+    .getByRole('button', { name: 'Entrar', exact: true })
+    .first()
+    .getAttribute('aria-disabled');
+  if (okLogin === 'true') {
+    problems.push('entrar no deja seguir con un correo y una contraseña puestos');
+  }
+
+  /* Y el ojo de ver la contraseña, que es lo que hace viable pedir longitud en
+     vez de símbolos: sin él, una frase larga se escribe a ciegas. */
+  if (!(await page.getByRole('button', { name: /Ver la contraseña/i }).count())) {
+    problems.push('la contraseña no se puede ver mientras se escribe');
+  }
+
+  await page.getByRole('button', { name: 'Volver', exact: true }).first().click();
+  await page.waitForTimeout(600);
+}
+
+await page.getByRole('button', { name: 'Comenzar ahora', exact: true }).first().click();
+await page.waitForTimeout(600);
+
 if (!(await page.getByRole('button', { name: /Rescato y no tengo perro/i }).count())) {
   problems.push('falta la segunda puerta: quien rescata y no tiene animal propio');
 }
@@ -151,8 +204,39 @@ const blocked = await page
   .first()
   .getAttribute('aria-disabled');
 if (blocked !== 'true') {
-  problems.push('el primer paso del alta deja seguir sin elegir raza');
+  problems.push('el primer paso del alta deja seguir sin cuenta');
 }
+
+/*
+ * La cuenta, y el medidor de la contraseña.
+ *
+ * Se escribe primero una de las que prueba cualquiera para comprobar que **no
+ * deja seguir** y que lo dice, y después una frase larga: la regla de esta
+ * pantalla es longitud por encima de composición —lo que recomienda el NIST
+ * desde 2017— y sin esta comprobación es una frase en un comentario.
+ */
+await page.getByLabel('Correo', { exact: true }).fill('ana@correo.com');
+await page.getByLabel('Contraseña', { exact: true }).fill('password');
+await page.waitForTimeout(400);
+const weak = (await page.locator('#root').innerText()).trim();
+if (!/de las más usadas/i.test(weak)) {
+  problems.push('el alta acepta una contraseña de las que se prueban primero');
+}
+const blockedWeak = await page
+  .getByRole('button', { name: 'Siguiente', exact: true })
+  .first()
+  .getAttribute('aria-disabled');
+if (blockedWeak !== 'true') {
+  problems.push('el alta deja seguir con una contraseña de las más usadas');
+}
+
+await page.getByLabel('Contraseña', { exact: true }).fill('el perro come pasto');
+await page.waitForTimeout(400);
+const strong = (await page.locator('#root').innerText()).trim();
+if (!/Muy buena/i.test(strong)) {
+  problems.push('una frase larga sin símbolos no se reconoce como buena contraseña');
+}
+await next();
 
 /*
  * La raza, que es el paso que hace corto el resto.

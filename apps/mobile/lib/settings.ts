@@ -304,11 +304,11 @@ export const SETTINGS: readonly SettingGroup[] = [
     rows: [
       {
         id: 'account',
-        label: 'Cuenta y contraseña',
-        hint: 'Sin cuenta todavía',
+        label: 'Cambiar la contraseña',
+        hint: 'Hace falta servidor',
         keywords: ['correo', 'contraseña', 'sesión', 'cerrar sesión', 'borrar cuenta'],
         kind: 'missing',
-        why: 'Esta versión funciona con datos locales y no hay registro, así que no hay contraseña que cambiar ni sesión que cerrar.',
+        why: 'El correo con el que entraste está en este teléfono; la contraseña no se guarda en ninguna parte, así que aquí no hay nada que cambiar. Cambiarla, cerrar sesión en otros dispositivos o borrar la cuenta son cosas que hace un servidor, y todavía no lo hay.',
       },
       {
         id: 'push',

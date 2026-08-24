@@ -44,11 +44,18 @@
  * nunca de los cálculos de dónde quedar.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import {
   ASSISTANCE_ACCESS_NOTE,
+  FORGOT_NOTE,
+  NO_SERVER_NOTE,
+  PASSWORD_ADVICE,
+  credentialProblems,
+  passwordStrength,
+  signInProblems,
+  validateEmail,
   ASSISTANCE_TYPES,
   AUTISTIC_DEFAULT_NEEDS,
   DOG_ROLES,
@@ -82,9 +89,11 @@ import { formatMicrochip, validateMicrochip } from '@coincide/trackers';
 
 import { Icon } from './icon';
 import { Appear } from './motion';
+import { SceneView } from './scene';
 import { LiveCard, LiveMatches, LiveSchedule, portraitSeed } from './registro-live';
 import { Body, Caption, Screen } from '@/components/ui';
-import { registerPet, registerShelter } from '@/lib/account';
+import { registerPet, registerShelter, signIn } from '@/lib/account';
+import { buildScene } from '@/lib/artwork';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
@@ -92,6 +101,8 @@ import {
   BadgeCheck,
   Check,
   CircleAlert,
+  Eye,
+  EyeOff,
   Lock,
   PawPrint,
   Search,
@@ -214,51 +225,125 @@ type Step = {
 };
 
 export function Registro() {
+  const [screen, setScreen] = useState<'start' | 'signup' | 'login'>('start');
   const [door, setDoor] = useState<'tutor' | 'rescuer' | null>(null);
 
-  if (door === null) return <Bienvenida onPick={setDoor} />;
-  if (door === 'tutor') return <AltaTutor onBack={() => setDoor(null)} />;
-  return <AltaProtectora onBack={() => setDoor(null)} />;
+  if (screen === 'login') {
+    return <Login onBack={() => setScreen('start')} onCreate={() => setScreen('signup')} />;
+  }
+
+  if (screen === 'signup') {
+    if (door === null) return <Puertas onPick={setDoor} onBack={() => setScreen('start')} />;
+    if (door === 'tutor') return <AltaTutor onBack={() => setDoor(null)} />;
+    return <AltaProtectora onBack={() => setDoor(null)} />;
+  }
+
+  return <Bienvenida onSignup={() => setScreen('signup')} onLogin={() => setScreen('login')} />;
 }
 
 /**
  * La bienvenida.
  *
- * Es la pantalla de «crear cuenta» de Instagram con el trabajo cambiado: allí
- * elige entre entrar y registrarse; aquí elige **por qué puerta entra**, que es
- * la decisión que gobierna todo lo demás.
+ * Es la primera pantalla y tiene un solo trabajo: decir qué es esto y ofrecer
+ * las dos únicas cosas que alguien puede querer al abrirlo — **empezar** o
+ * **entrar**, si ya tiene cuenta—. Nada de carrusel de tres pantallas
+ * explicando lo bonita que es la aplicación, y nada de «continuar como
+ * invitado», que aquí además no existe.
  *
- * Las dos se ven a la vez y ninguna está escondida detrás de un «más opciones»:
- * quien rescata y no tiene animal propio tiene que ver que hay sitio para ella
- * antes de rellenar nada, y quien tiene perro tiene que ver que la otra existe
- * para entender por qué se le pide lo que se le pide.
+ * La ilustración es la del propio generador de la aplicación, no una imagen de
+ * archivo: la misma que dibuja las escenas del feed, con la hora de verdad
+ * —a las seis de la tarde el cielo sale distinto que a las once de la noche—.
+ * Sale de aquí y no de una carpeta de recursos por lo mismo que los retratos
+ * del alta: lo que se enseña es la aplicación, no un montaje de ella.
+ *
+ * «Comenzar» es el botón lleno y «ya tengo cuenta» el de contorno, al revés que
+ * en una aplicación con usuarios. Aquí no hay ninguno todavía, y el camino que
+ * hay que ver primero es el que crea el primero.
  */
-function Bienvenida({ onPick }: { onPick: (door: 'tutor' | 'rescuer') => void }) {
+function Bienvenida({ onSignup, onLogin }: { onSignup: () => void; onLogin: () => void }) {
   const theme = useTheme();
+  const [why, setWhy] = useState<string | null>(null);
+
+  /*
+   * La escena, a las seis de la tarde y no a la hora que sea.
+   *
+   * Es la única de la aplicación con la hora fijada, y es a propósito: «las seis
+   * de la tarde» es la dirección visual del proyecto desde el primer día —luz
+   * cálida y baja, parque, movimiento— y esta es la pantalla que la presenta. El
+   * resto de escenas sí usan la hora de verdad, porque ahí lo que cuentan es
+   * cuándo pasó lo que enseñan; aquí no ha pasado nada todavía.
+   *
+   * Se calcula una vez: es un dibujo, no un reloj, y recalcularla en cada render
+   * cambiaría el perro al pulsar cualquier cosa.
+   */
+  const scene = useMemo(() => {
+    const goldenHour = new Date();
+    goldenHour.setHours(18, 0, 0, 0);
+    return buildScene({
+      seed: 'bienvenida',
+      petId: 'coincide',
+      at: goldenHour,
+      width: 320,
+      height: 200,
+      pose: 'run',
+    });
+  }, []);
 
   return (
     <Screen>
-      <View
-        style={{
-          flex: 1,
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
           justifyContent: 'center',
-          gap: theme.space[6],
+          gap: theme.space[5],
           padding: theme.space[6],
         }}
       >
         <Appear>
-          <View style={{ alignItems: 'center', gap: theme.space[3] }}>
-            <Icon icon={PawPrint} size="xl" color={theme.colors.primary} decorative />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space[2] }}>
+            <Icon icon={PawPrint} size="lg" color={theme.colors.primary} decorative />
             <Text
               accessibilityRole="header"
               style={{
                 color: theme.colors.foreground,
                 fontFamily: fonts.displayExtrabold,
-                fontSize: theme.fontSize['4xl'],
-                letterSpacing: -1,
+                fontSize: theme.fontSize['2xl'],
+                letterSpacing: 2,
               }}
             >
-              Coincide
+              COINCIDE
+            </Text>
+          </View>
+        </Appear>
+
+        <Appear index={1}>
+          <View
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel="Un perro corriendo por un parque al atardecer"
+            style={{
+              alignItems: 'center',
+              borderRadius: theme.radius['2xl'],
+              overflow: 'hidden',
+              backgroundColor: theme.colors.surfaceSunken,
+            }}
+          >
+            <SceneView scene={scene} width={320} height={200} />
+          </View>
+        </Appear>
+
+        <Appear index={2}>
+          <View style={{ gap: theme.space[2] }}>
+            <Text
+              style={{
+                textAlign: 'center',
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayExtrabold,
+                fontSize: theme.fontSize['2xl'],
+                letterSpacing: -0.5,
+              }}
+            >
+              Con quién pasea tu perro, y a qué hora
             </Text>
             <Text
               style={{
@@ -269,9 +354,247 @@ function Bienvenida({ onPick }: { onPick: (door: 'tutor' | 'rescuer') => void })
                 lineHeight: theme.fontSize.sm * 1.5,
               }}
             >
-              {GATE_NOTE}
+              Se cruzan horarios de paseo, así que funciona a las once de la noche igual que a las
+              siete de la mañana — que es cuando de verdad se pasea solo.
             </Text>
           </View>
+        </Appear>
+
+        <Appear index={3} style={{ gap: theme.space[3] }}>
+          <BigButton label="Comenzar ahora" icon={PawPrint} onPress={onSignup} />
+          <BigButton label="Ya tengo cuenta" tone="outline" onPress={onLogin} />
+
+          {/*
+            Apple y Google.
+            Están porque es lo que espera cualquiera en esta pantalla, y **no
+            fingen entrar**: al tocarlos dicen qué falta para que funcionen. Un
+            botón que hace como que inicia sesión y no lo hace es la peor
+            versión de los dos mundos; uno que explica por qué todavía no puede
+            es información, que es lo que sí se puede dar hoy.
+          */}
+          <View style={{ flexDirection: 'row', gap: theme.space[3] }}>
+            {[
+              {
+                id: 'apple',
+                label: 'Apple',
+                note: 'Entrar con Apple exige una cuenta de desarrollador de Apple y un servidor que valide el token que devuelve. Cuando lo haya, además es obligatorio ofrecerlo si se ofrece el de Google.',
+              },
+              {
+                id: 'google',
+                label: 'Google',
+                note: 'Entrar con Google necesita las claves del proyecto y un servidor que compruebe el token. Sin esa parte, el botón solo abriría una ventana que no lleva a ningún sitio.',
+              },
+            ].map((provider) => (
+              <Pressable
+                key={provider.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Continuar con ${provider.label}`}
+                accessibilityHint="Todavía no está disponible: explica qué falta"
+                onPress={() => {
+                  haptics.tap();
+                  setWhy(why === provider.id ? null : provider.id);
+                }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.space[2],
+                  minHeight: theme.touchTarget.min,
+                  borderRadius: theme.radius.full,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
+                })}
+              >
+                <Icon icon={Lock} size="sm" color={theme.colors.mutedForeground} decorative />
+                <Text
+                  style={{
+                    color: theme.colors.mutedForeground,
+                    fontFamily: fonts.body,
+                    fontSize: theme.fontSize.sm,
+                  }}
+                >
+                  {provider.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {why !== null ? (
+            <Caption>
+              {why === 'apple'
+                ? 'Entrar con Apple exige una cuenta de desarrollador de Apple y un servidor que valide el token que devuelve. Todavía no lo hay.'
+                : 'Entrar con Google necesita las claves del proyecto y un servidor que compruebe el token. Todavía no lo hay.'}
+            </Caption>
+          ) : null}
+
+          <Caption>{GATE_NOTE}</Caption>
+        </Appear>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+/**
+ * Entrar.
+ *
+ * Dos campos y un botón. Lo que se comprueba es lo comprobable sin servidor
+ * —que el correo tenga forma de correo y que la contraseña esté— y lo dice la
+ * propia pantalla, en vez de fingir una comprobación que no existe.
+ *
+ * Cuando haya servidor, el mensaje de error seguirá siendo **uno solo**: «no
+ * cuadran». Decir «ese correo no existe» le confirma a quien está probando
+ * correos cuáles están registrados, y convierte la pantalla de entrar en un
+ * comprobador de cuentas.
+ */
+function Login({ onBack, onCreate }: { onBack: () => void; onCreate: () => void }) {
+  const theme = useTheme();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [tried, setTried] = useState(false);
+  const [forgot, setForgot] = useState(false);
+
+  const problems = signInProblems({ email, password });
+  const check = validateEmail(email);
+
+  return (
+    <Screen>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: theme.space[5] }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          onPress={() => {
+            haptics.tap();
+            onBack();
+          }}
+          style={({ pressed }) => ({
+            width: theme.touchTarget.min,
+            height: theme.touchTarget.min,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Icon icon={ArrowLeft} size="lg" decorative />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: theme.space[6], gap: theme.space[5] }}
+      >
+        <Appear>
+          <View style={{ gap: theme.space[3] }}>
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayExtrabold,
+                fontSize: theme.fontSize['3xl'],
+                letterSpacing: -0.6,
+              }}
+            >
+              Entrar
+            </Text>
+
+            <Input
+              value={email}
+              onChange={setEmail}
+              placeholder="tucorreo@correo.com"
+              label="Correo"
+              autoFocus
+              url
+            />
+            {tried && !check.ok ? <Caption>{check.reason}</Caption> : null}
+
+            <Input
+              value={password}
+              onChange={setPassword}
+              placeholder="Tu contraseña"
+              label="Contraseña"
+              secret
+            />
+
+            <TextLink label="¿Olvidaste la contraseña?" onPress={() => setForgot(true)} />
+            {forgot ? <Caption>{FORGOT_NOTE}</Caption> : null}
+          </View>
+        </Appear>
+
+        <Caption>{NO_SERVER_NOTE}</Caption>
+      </ScrollView>
+
+      <View style={{ gap: theme.space[2], padding: theme.space[6], paddingTop: theme.space[3] }}>
+        <BigButton
+          label="Entrar"
+          disabled={problems.length > 0}
+          onPress={() => {
+            setTried(true);
+            if (problems.length > 0 || !check.ok) return;
+            haptics.commit();
+            signIn(check.normalized);
+          }}
+        />
+        <TextLink label="No tengo cuenta: crear una" onPress={onCreate} />
+      </View>
+    </Screen>
+  );
+}
+
+/**
+ * Por qué puerta se entra, ya dentro de crear cuenta.
+ *
+ * Las dos se ven a la vez y ninguna está escondida detrás de un «más opciones»:
+ * quien rescata y no tiene animal propio tiene que ver que hay sitio para ella
+ * antes de rellenar nada, y quien tiene perro tiene que ver que la otra existe
+ * para entender por qué se le pide lo que se le pide.
+ */
+function Puertas({
+  onPick,
+  onBack,
+}: {
+  onPick: (door: 'tutor' | 'rescuer') => void;
+  onBack: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Screen>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: theme.space[5] }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          onPress={() => {
+            haptics.tap();
+            onBack();
+          }}
+          style={({ pressed }) => ({
+            width: theme.touchTarget.min,
+            height: theme.touchTarget.min,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Icon icon={ArrowLeft} size="lg" decorative />
+        </Pressable>
+      </View>
+
+      <View
+        style={{ flex: 1, justifyContent: 'center', gap: theme.space[5], padding: theme.space[6] }}
+      >
+        <Appear>
+          <Text
+            accessibilityRole="header"
+            style={{
+              color: theme.colors.foreground,
+              fontFamily: fonts.displayExtrabold,
+              fontSize: theme.fontSize['3xl'],
+              letterSpacing: -0.6,
+            }}
+          >
+            ¿Con quién vienes?
+          </Text>
         </Appear>
 
         <Appear index={1} style={{ gap: theme.space[3] }}>
@@ -313,6 +636,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   const theme = useTheme();
 
   const [index, setIndex] = useState(0);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [breeds, setBreeds] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [ageMonths, setAgeMonths] = useState<number | null>(null);
@@ -403,6 +728,37 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   };
 
   const steps: Step[] = [
+    {
+      id: 'account',
+      title: 'Tu cuenta',
+      why: 'El correo es con lo que se entra. La contraseña se comprueba aquí y no se guarda en ningún sitio: en esta versión no hay servidor, y guardar una de mentira no protegería nada.',
+      ready: credentialProblems({ email, password }).length === 0,
+      content: (
+        <View style={{ gap: theme.space[3] }}>
+          <Input
+            value={email}
+            onChange={setEmail}
+            placeholder="tucorreo@correo.com"
+            label="Correo"
+            autoFocus
+            url
+          />
+          {email.trim() !== '' && !validateEmail(email).ok ? (
+            <Caption>{(validateEmail(email) as { reason: string }).reason}</Caption>
+          ) : null}
+
+          <Input
+            value={password}
+            onChange={setPassword}
+            placeholder="Cuatro palabras que recuerdes"
+            label="Contraseña"
+            secret
+          />
+          <Strength password={password} email={email} />
+          <Caption>{PASSWORD_ADVICE}</Caption>
+        </View>
+      ),
+    },
     {
       id: 'breed',
       title: 'De qué raza es',
@@ -931,6 +1287,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
              alta: así el perro que sale al entrar es el que estabas mirando y
              no otro que aparece de golpe. */
           seed: portraitSeed({ name, breeds, size }),
+          email: validateEmail(email).ok ? (validateEmail(email) as { normalized: string }).normalized : undefined,
           sex,
           days,
           startTime: chosenSlot.start,
@@ -1285,6 +1642,8 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
   const theme = useTheme();
 
   const [index, setIndex] = useState(0);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [profile, setProfile] = useState('');
   const [activities, setActivities] = useState<string[]>([]);
@@ -1293,6 +1652,33 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
   const missing = missingShelterFields({ name, profile, activities });
 
   const steps: Step[] = [
+    {
+      id: 'account',
+      title: 'Vuestra cuenta',
+      why: 'El correo es con lo que se entra, y por donde os avisaremos de la revisión. La contraseña se comprueba aquí y no se guarda: todavía no hay servidor.',
+      ready: credentialProblems({ email, password }).length === 0,
+      content: (
+        <View style={{ gap: theme.space[3] }}>
+          <Input
+            value={email}
+            onChange={setEmail}
+            placeholder="contacto@protectora.org"
+            label="Correo"
+            autoFocus
+            url
+          />
+          <Input
+            value={password}
+            onChange={setPassword}
+            placeholder="Cuatro palabras que recordéis"
+            label="Contraseña"
+            secret
+          />
+          <Strength password={password} email={email} />
+          <Caption>{PASSWORD_ADVICE}</Caption>
+        </View>
+      ),
+    },
     {
       id: 'name',
       title: 'Cómo os llamáis',
@@ -1410,7 +1796,15 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
         }
         if (!link.ok) return;
         haptics.commit();
-        registerShelter({ name, profile, activities, normalizedProfile: link.normalized });
+        registerShelter({
+          name,
+          profile,
+          activities,
+          normalizedProfile: link.normalized,
+          email: validateEmail(email).ok
+            ? (validateEmail(email) as { normalized: string }).normalized
+            : undefined,
+        });
       }}
       onSkip={() => setIndex(index + 1)}
     />
@@ -1728,6 +2122,7 @@ function Input({
   autoFocus = false,
   numeric = false,
   url = false,
+  secret = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -1736,29 +2131,120 @@ function Input({
   autoFocus?: boolean;
   numeric?: boolean;
   url?: boolean;
+  /** Contraseña: se tapa, y se puede destapar. */
+  secret?: boolean;
 }) {
   const theme = useTheme();
+  /*
+   * El ojo para ver lo que escribes.
+   *
+   * En un teclado de móvil, escribir una contraseña larga a ciegas es la razón
+   * por la que la gente pone contraseñas cortas. Poder mirarla mientras la
+   * escribes es lo que hace viable pedir longitud en vez de símbolos, así que
+   * este botón no es una comodidad: sostiene la regla de la pantalla anterior.
+   */
+  const [shown, setShown] = useState(false);
 
   return (
-    <TextInput
-      value={value}
-      onChangeText={onChange}
-      placeholder={placeholder}
-      placeholderTextColor={theme.colors.inputPlaceholder}
-      accessibilityLabel={label}
-      autoFocus={autoFocus}
-      autoCapitalize={url ? 'none' : 'sentences'}
-      keyboardType={numeric ? 'number-pad' : url ? 'url' : 'default'}
-      style={{
-        minHeight: theme.touchTarget.comfortable,
-        paddingHorizontal: theme.space[4],
-        borderRadius: theme.radius.md,
-        backgroundColor: theme.colors.input,
-        color: theme.colors.inputForeground,
-        fontFamily: fonts.body,
-        fontSize: theme.fontSize.base,
-      }}
-    />
+    <View>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={theme.colors.inputPlaceholder}
+        accessibilityLabel={label}
+        autoFocus={autoFocus}
+        autoCapitalize={url || secret ? 'none' : 'sentences'}
+        autoCorrect={!secret}
+        secureTextEntry={secret && !shown}
+        keyboardType={numeric ? 'number-pad' : url ? 'url' : 'default'}
+        style={{
+          minHeight: theme.touchTarget.comfortable,
+          paddingLeft: theme.space[4],
+          paddingRight: secret ? theme.space[12] : theme.space[4],
+          borderRadius: theme.radius.md,
+          backgroundColor: theme.colors.input,
+          color: theme.colors.inputForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize.base,
+        }}
+      />
+      {secret ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={shown ? 'Ocultar la contraseña' : 'Ver la contraseña'}
+          onPress={() => {
+            haptics.tap();
+            setShown(!shown);
+          }}
+          style={({ pressed }) => ({
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: theme.touchTarget.min,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Icon
+            icon={shown ? EyeOff : Eye}
+            size="base"
+            color={theme.colors.mutedForeground}
+            decorative
+          />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * La fuerza de la contraseña, mientras se escribe.
+ *
+ * Tres marcas y una frase con **qué hacer**, no un porcentaje: «fuerza 42 %» no
+ * le dice a nadie qué escribir, y «añade una palabra más» sí. La nota la calcula
+ * el núcleo, que es donde están las reglas y sus tests.
+ */
+function Strength({ password, email }: { password: string; email: string }) {
+  const theme = useTheme();
+  const strength = passwordStrength(password, email);
+
+  if (password.length === 0) return null;
+
+  const color = strength.usable
+    ? strength.score >= 3
+      ? theme.colors.success
+      : theme.colors.primary
+    : theme.colors.warning;
+
+  return (
+    <View style={{ gap: theme.space[2] }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+        {[1, 2, 3].map((step) => (
+          <View
+            key={step}
+            style={{
+              flex: 1,
+              height: 4,
+              borderRadius: theme.radius.full,
+              backgroundColor: strength.score >= step ? color : theme.colors.muted,
+            }}
+          />
+        ))}
+        <Text
+          style={{
+            color,
+            fontFamily: fonts.bodyBold,
+            fontSize: theme.fontSize.xs,
+          }}
+        >
+          {strength.label}
+        </Text>
+      </View>
+      {strength.advice ? <Caption>{strength.advice}</Caption> : null}
+    </View>
   );
 }
 

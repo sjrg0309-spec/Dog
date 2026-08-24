@@ -43,6 +43,15 @@ import { addMyPet, MY_PETS, PLACES, type DemoPet } from './demo-data';
 type Account = {
   registered: boolean;
   /**
+   * El correo con el que se entró, ya normalizado.
+   *
+   * **La contraseña no está aquí, ni cifrada ni de ninguna forma.** Se comprueba
+   * al escribirla y se tira: guardar una contraseña «de mentira» en el teléfono
+   * para que el prototipo pareciera completo no protegería nada y enseñaría a
+   * confiar, que es lo peor de las dos opciones.
+   */
+  email: string | null;
+  /**
    * Lo que necesita la persona para que esto le sirva.
    *
    * Vive aquí, **no se publica y no sale del teléfono**. Que alguien sea
@@ -70,6 +79,7 @@ type Account = {
 
 let account: Account = {
   registered: false,
+  email: null,
   handler: { needs: [] },
   kind: 'tutor',
   shelterName: null,
@@ -151,6 +161,22 @@ export function setMicrochipCode(code: string | null): void {
 }
 
 /**
+ * Entrar con una cuenta que ya existe.
+ *
+ * En esta versión abre **la cuenta de este teléfono**: las mascotas de la
+ * semilla, que es lo que hay. No comprueba la contraseña contra nada porque no
+ * hay contra qué, y la pantalla lo dice en vez de fingir un «bienvenida de
+ * nuevo» que no significa nada.
+ *
+ * Lo que sí es real es lo de antes de llegar aquí: el correo se valida y se
+ * normaliza con el mismo módulo del núcleo que usará el servidor cuando lo haya.
+ */
+export function signIn(email: string): void {
+  account = { ...account, registered: true, kind: 'tutor', email };
+  emit();
+}
+
+/**
  * Cambiar los acomodos. Lo único de la persona que la aplicación mira.
  *
  * «Menos movimiento» no se queda aquí guardado esperando a que alguien lo
@@ -214,6 +240,8 @@ export function registerPet(
     showRole?: boolean;
     /** Los acomodos de la persona, que se guardan en la cuenta y no en el perro. */
     handler?: Handler;
+    /** El correo de la cuenta, ya normalizado. La contraseña no se guarda. */
+    email?: string;
     /**
      * La semilla del retrato, que pasa a ser su identificador.
      *
@@ -278,6 +306,7 @@ export function registerPet(
     registered: true,
     microchipCode: draft.microchipCode ?? null,
     handler: draft.handler ?? account.handler,
+    email: draft.email ?? account.email,
   };
   if (account.handler.needs.includes('less_motion')) setSetting('motion', 'reduced');
   emit();
@@ -290,10 +319,13 @@ export function registerPet(
  * puede hacer check-in. Queda **pendiente de revisión** desde el primer
  * momento; aprobar es un acto de alguien, nunca del tiempo que pase.
  */
-export function registerShelter(draft: ShelterDraft & { normalizedProfile: string }): void {
+export function registerShelter(
+  draft: ShelterDraft & { normalizedProfile: string; email?: string },
+): void {
   account = {
     ...account,
     registered: true,
+    email: draft.email ?? account.email,
     kind: 'rescuer',
     shelterName: draft.name.trim(),
     shelterProfile: draft.normalizedProfile,
