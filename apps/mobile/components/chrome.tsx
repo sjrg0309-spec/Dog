@@ -53,6 +53,15 @@ export function NavBar({
   /** El título pequeño solo aparece cuando el grande ya no se ve. */
   showTitle = true,
   /**
+   * Qué hace tocar el título.
+   *
+   * En el feed, el nombre de la aplicación devuelve arriba y refresca — es lo
+   * que hace el logotipo de Instagram en el navegador—. Es opcional porque en
+   * el resto de pantallas el título es un rótulo y nada más: hacerlo pulsable
+   * en todas prometería una acción que no existe.
+   */
+  onTitlePress,
+  /**
    * A qué altura de scroll el título grande ha dejado de verse.
    *
    * Con esto el rótulo de la barra **se cruza** con el grande —uno se va
@@ -67,6 +76,7 @@ export function NavBar({
   scrolled: boolean;
   scrollY?: SharedValue<number>;
   showTitle?: boolean;
+  onTitlePress?: () => void;
   revealAt?: number;
 }) {
   const theme = useTheme();
@@ -111,21 +121,48 @@ export function NavBar({
           hairline,
         ]}
       />
-      <Animated.Text
-        accessibilityRole="header"
-        numberOfLines={1}
-        style={[
-          {
-            flex: 1,
-            color: theme.colors.foreground,
-            fontFamily: fonts.displayBold,
-            fontSize: theme.fontSize.lg,
-          },
-          titleStyle,
-        ]}
-      >
-        {title}
-      </Animated.Text>
+      {onTitlePress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${title}. Volver arriba y actualizar`}
+          onPress={() => {
+            haptics.tap();
+            onTitlePress();
+          }}
+          style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
+        >
+          <Animated.Text
+            accessibilityRole="header"
+            numberOfLines={1}
+            style={[
+              {
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayBold,
+                fontSize: theme.fontSize.lg,
+              },
+              titleStyle,
+            ]}
+          >
+            {title}
+          </Animated.Text>
+        </Pressable>
+      ) : (
+        <Animated.Text
+          accessibilityRole="header"
+          numberOfLines={1}
+          style={[
+            {
+              flex: 1,
+              color: theme.colors.foreground,
+              fontFamily: fonts.displayBold,
+              fontSize: theme.fontSize.lg,
+            },
+            titleStyle,
+          ]}
+        >
+          {title}
+        </Animated.Text>
+      )}
       {trailing ? <View style={{ flexDirection: 'row', gap: theme.space[3] }}>{trailing}</View> : null}
     </View>
   );

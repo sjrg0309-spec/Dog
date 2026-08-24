@@ -1,6 +1,7 @@
+import { useScrollToTop } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { NavBar } from '@/components/chrome';
@@ -10,10 +11,11 @@ import { Appear } from '@/components/motion';
 import { PostCard } from '@/components/post-card';
 import { ReelTray } from '@/components/reel-tray';
 import { StoryRail } from '@/components/story-rail';
+import { Toast } from '@/components/toast';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { haptics } from '@/lib/haptics';
-import { useConditions, useWeatherState } from '@/lib/conditions';
+import { refreshWeather, useConditions, useWeatherState } from '@/lib/conditions';
 import { RescueBoard } from '@/components/rescue-board';
 import { useAccount, useCan } from '@/lib/account';
 import { useVisibleBy, useVisiblePets } from '@/lib/moderation';
@@ -95,6 +97,41 @@ function PetFeed() {
   const { location } = useWeatherState();
   const { welfare } = discover(pet, conditions);
   const { scrollY, onScroll } = useScrollDriver();
+
+  /*
+   * Los dos gestos que tiene cualquier feed y este no tenía.
+   *
+   * **Tocar la pestaña que ya está abierta devuelve el feed arriba.** Es de las
+   * cosas que nadie sabe que sabe hasta que falta: cuando alguien lleva cuarenta
+   * publicaciones bajando y quiere volver al principio, no arrastra — toca el
+   * icono de abajo. `useScrollToTop` es el gancho del propio navegador, así que
+   * hace también lo que se espera al abrir la pestaña desde otra pantalla.
+   *
+   * **Y tirar hacia abajo refresca.** Aquí eso no es decorativo ni finge traer
+   * publicaciones que no existen: vuelve a consultar el tiempo —que es el dato
+   * que de verdad cambia y del que depende toda la capa de bienestar— y con él
+   * se recalculan los radios de los avisos abiertos. Lo que se refresca se dice
+   * después, en la píldora.
+   */
+  /* El tipo del ref es el de la vista animada de Reanimated, no el de
+     `ScrollView` a secas: son la misma vista con métodos de más, y el gancho
+     del navegador solo necesita `scrollTo`, que ahí está. */
+  const scroller = useRef<Animated.ScrollView>(null);
+  useScrollToTop(scroller as unknown as Parameters<typeof useScrollToTop>[0]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    haptics.tap();
+    try {
+      await refreshWeather(true);
+    } finally {
+      setRefreshing(false);
+      setRefreshed(true);
+    }
+  }, []);
   const canSeePeople = useCan('live_people');
 
   const [tab, setTab] = useState<FeedTab>('nearby');
@@ -143,6 +180,14 @@ function PetFeed() {
         title="Petnav"
         scrolled={false}
         scrollY={scrollY}
+        /* El nombre hace lo que hace el logotipo de Instagram en el navegador:
+           subir y actualizar. Y aquí resuelve algo concreto — en web no existe
+           el gesto de tirar hacia abajo, así que sin esto refrescar no tendría
+           camino fuera del teléfono. */
+        onTitlePress={() => {
+          scroller.current?.scrollTo({ y: 0, animated: true });
+          void refresh();
+        }}
         trailing={
           <>
             {/* El animal activo primero: es el contexto de todo lo que hay
@@ -187,10 +232,20 @@ function PetFeed() {
       />
 
       <Animated.ScrollView
+        ref={scroller}
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[10] }}
         contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+            progressBackgroundColor={theme.colors.surface}
+          />
+        }
       >
         {/*
           Encima del feed no va nada más que esto.
@@ -331,6 +386,20 @@ function PetFeed() {
           </Pressable>
         </View>
       </Animated.ScrollView>
+
+      {/* Lo que ha hecho el gesto, dicho y luego apagado solo. Una píldora que
+          dijera «3 publicaciones nuevas» sin haberlas traído sería el tipo de
+          mentira pequeña que enseña a no fiarse del resto. */}
+      {refreshed ? (
+        <Toast
+          message={
+            conditions
+              ? `Al día · ${Math.round(conditions.temperatureC)}° donde estáis`
+              : 'Al día. No hemos podido saber qué tiempo hace.'
+          }
+          onDone={() => setRefreshed(false)}
+        />
+      ) : null}
     </Screen>
   );
 }

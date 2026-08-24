@@ -875,6 +875,76 @@ for (const tab of TABS) {
 }
 
 /*
+ * Tocar la pestaña que ya está abierta devuelve el feed arriba.
+ *
+ * Es de las cosas que nadie sabe que sabe hasta que faltan, y es invisible en
+ * una captura: hay que bajar, tocar y mirar si volvió. Se comprueba con la
+ * fila de historias, que solo existe al principio del feed.
+ */
+{
+  const feedTab = page.getByRole('tab', { name: /^Feed$/ }).first();
+  if (!(await feedTab.count())) {
+    problems.push('no se encontró la pestaña del feed');
+  } else {
+    await feedTab.click();
+    await page.waitForTimeout(800);
+
+    const rail = page.getByRole('button', { name: /Añadir estado/i }).first();
+    if (!(await rail.count())) {
+      problems.push('el feed no tiene la fila de historias con la que se mide el desplazamiento');
+    } else {
+      /* Se mide la **posición** de la fila, no si está en el documento:
+         `isVisible()` de Playwright dice si el elemento está pintado, y una
+         fila desplazada fuera de la pantalla lo sigue estando. */
+      const top = async () => (await rail.boundingBox())?.y ?? 0;
+
+      const before = await top();
+      await page.mouse.move(195, 500);
+      await page.mouse.wheel(0, 1400);
+      await page.waitForTimeout(700);
+
+      const away = await top();
+      if (away > before - 200) {
+        problems.push(`el feed no se desplazó: la fila de historias sigue en ${Math.round(away)}`);
+      }
+
+      await feedTab.click();
+      await page.waitForTimeout(900);
+
+      const back = await top();
+      console.log(`volver arriba tocando la pestaña: ${Math.round(away)} → ${Math.round(back)}`);
+      if (back < before - 40) {
+        problems.push('tocar la pestaña del feed estando en el feed no lo devuelve arriba');
+      }
+
+      /*
+       * Y el mismo camino desde el nombre de la aplicación, que es el que queda
+       * en el navegador: ahí no existe el gesto de tirar hacia abajo, así que
+       * sin esto refrescar no tendría forma de llamarse fuera del teléfono.
+       */
+      await page.mouse.wheel(0, 1400);
+      await page.waitForTimeout(600);
+      const wordmark = page.getByRole('button', { name: /Petnav\. Volver arriba/i }).first();
+      if (!(await wordmark.count())) {
+        problems.push('el nombre de la aplicación no sirve para volver arriba ni actualizar');
+      } else {
+        await wordmark.click();
+        await page.waitForTimeout(1200);
+        const afterTitle = await top();
+        console.log(`volver arriba desde el nombre: ${Math.round(afterTitle)}`);
+        if (afterTitle < before - 40) {
+          problems.push('tocar el nombre de la aplicación no devuelve el feed arriba');
+        }
+        const note = (await page.locator('#root').innerText()).trim();
+        if (!/Al día/i.test(note)) {
+          problems.push('actualizar no dice qué ha actualizado');
+        }
+      }
+    }
+  }
+}
+
+/*
  * La dirección de un espacio no existe hasta que hay reserva confirmada.
  *
  * Es la regla de privacidad más fácil de romper sin enterarse: basta con que
