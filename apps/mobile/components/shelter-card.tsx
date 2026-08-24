@@ -21,10 +21,12 @@ import { Icon } from './icon';
 import { Badge, Body, Caption, Card, Notice, Row, Screen } from '@/components/ui';
 import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
 import { useAccount } from '@/lib/account';
+import { useWeatherState } from '@/lib/conditions';
+import { useAllAlerts, useSavedAlerts } from '@/lib/safety';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import { ProfileMenu } from './profile-menu';
-import { BadgeCheck, Clock, Lock, Menu, Siren } from '@/lib/icons';
+import { BadgeCheck, Bookmark, Clock, Footprints, Lock, Menu, Siren } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
 export function ShelterCard() {
@@ -33,6 +35,12 @@ export function ShelterCard() {
   const account = useAccount();
   const [menu, setMenu] = useState(false);
   const approved = account.shelterReviewed;
+  const { location } = useWeatherState();
+  const saved = useSavedAlerts(location);
+  /* En cuántas búsquedas está metida esta cuenta ahora mismo. Sale de la misma
+     lista que ve el otro lado del aviso: si aquí dijera un número y en la
+     alerta otro, uno de los dos estaría inventado. */
+  const searching = useAllAlerts(location).filter((live) => live.alert.searchers.includes('me'));
 
   const activities = SHELTER_ACTIVITIES.filter((activity) =>
     account.shelterActivities.includes(activity.id),
@@ -136,6 +144,42 @@ export function ShelterCard() {
           </Card>
         ) : null}
 
+        {/*
+          Lo que esta cuenta está haciendo, y no lo que es.
+
+          Un perfil de protectora sin esto era una tarjeta de estado: aprobada o
+          en revisión, y ya. Lo que de verdad se pregunta quien abre su propio
+          perfil a las tres de la mañana es «¿a qué me he apuntado?», y eso son
+          las búsquedas en las que está y los avisos que apartó para volver.
+        */}
+        <Card>
+          <Row gap={2}>
+            <Icon icon={Footprints} size="base" color={theme.colors.primary} decorative />
+            <Body>
+              {searching.length === 0
+                ? 'No estáis en ninguna búsqueda'
+                : searching.length === 1
+                  ? 'Estáis en 1 búsqueda'
+                  : `Estáis en ${searching.length} búsquedas`}
+            </Body>
+          </Row>
+          {searching.map((live) => (
+            <Caption key={live.alert.id}>
+              · {live.alert.petName ?? live.scenario.label} — {live.alert.areaName}
+            </Caption>
+          ))}
+          <Row gap={2}>
+            <Icon icon={Bookmark} size="base" color={theme.colors.mutedForeground} decorative />
+            <Caption>
+              {saved.length === 0
+                ? 'Sin avisos guardados'
+                : saved.length === 1
+                  ? '1 aviso guardado'
+                  : `${saved.length} avisos guardados`}
+            </Caption>
+          </Row>
+        </Card>
+
         <Notice>
           <Row gap={2}>
             <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
@@ -149,8 +193,10 @@ export function ShelterCard() {
             perros propios, que es justo lo contrario de lo que define esta
             puerta. */}
         <Caption>
-          En esta demo la cuenta conserva a Nina y a Kira para que haya contenido. Una cuenta de
-          protectora real no tiene mascotas propias.
+          En esta demo la cuenta conserva las mascotas de la semilla para que el mapa y las
+          quedadas tengan contenido, pero ya no las lleva puestas: ni la cara de la barra ni el
+          color de la aplicación salen de un perro que no es vuestro. Una cuenta de protectora real
+          no tiene mascotas propias.
         </Caption>
       </ScrollView>
 

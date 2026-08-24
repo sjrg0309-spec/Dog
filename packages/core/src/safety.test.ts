@@ -16,6 +16,7 @@ import {
   reaches,
   SAFETY_SCENARIOS,
   scenariosOfKind,
+  shareAlertText,
   type SafetyScenario,
 } from './safety.js';
 
@@ -189,5 +190,58 @@ describe('el tope es alcanzable', () => {
       if (scenario.growthPerHourM > 0) continue;
       expect(scenario.maxRadiusM, scenario.id).toBe(scenario.initialRadiusM);
     }
+  });
+});
+
+/**
+ * Compartir saca un aviso de la aplicación, así que lo que lleva el texto es
+ * una decisión de producto y no del componente que lo pinta.
+ *
+ * Los dos casos que importan son los dos que se pueden equivocar solos: que el
+ * teléfono de alguien salga cuando no lo publicó, y que el mensaje lleve unas
+ * coordenadas que sobreviven al aviso. Los dos se comprueban aquí en vez de
+ * confiar en que nadie añada un campo de más al construir la cadena.
+ */
+describe('el texto para compartir un aviso', () => {
+  const base = {
+    scenario: byId('escape_walk'),
+    petName: 'Tuco',
+    areaName: 'Parque Central',
+    openForHours: 3,
+    radiusM: 2400,
+    contactPhone: null as string | null,
+    sightings: 0,
+  };
+
+  it('nombra al animal, el sitio y hasta dónde llega', () => {
+    const text = shareAlertText(base);
+    expect(text).toContain('Tuco');
+    expect(text).toContain('Parque Central');
+    expect(text).toContain('2,4 km');
+  });
+
+  it('no lleva teléfono si su tutor no lo publicó', () => {
+    expect(shareAlertText(base)).not.toContain('Contacto');
+  });
+
+  it('lo lleva cuando sí lo publicó, porque lo puso para que le llamen', () => {
+    expect(shareAlertText({ ...base, contactPhone: '600 12 34 56' })).toContain('600 12 34 56');
+  });
+
+  it('nunca lleva coordenadas: un mensaje reenviado sobrevive al aviso', () => {
+    const text = shareAlertText({ ...base, sightings: 2, contactPhone: '600 12 34 56' });
+    expect(text).not.toMatch(/-?\d{1,3}\.\d{3,}/);
+  });
+
+  it('dice cuánta gente lo ha visto después, que es lo que cambia dónde buscar', () => {
+    expect(shareAlertText({ ...base, sightings: 1 })).toContain('1 persona lo ha visto');
+    expect(shareAlertText({ ...base, sightings: 3 })).toContain('3 personas lo han visto');
+    expect(shareAlertText(base)).toContain('Sin avistamientos');
+  });
+
+  it('usa el nombre del escenario cuando el peligro no es de nadie', () => {
+    const hazard = byId('poison_bait');
+    const text = shareAlertText({ ...base, scenario: hazard, petName: null });
+    expect(text).toContain(hazard.label);
   });
 });

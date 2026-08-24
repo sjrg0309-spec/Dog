@@ -205,6 +205,7 @@ export default function TabsLayout() {
 function ProfileTab({ focused }: { focused: boolean }) {
   const theme = useTheme();
   const pet = useActivePet();
+  const rescuer = useAccount().kind === 'rescuer';
   const size = 48;
 
   /*
@@ -244,7 +245,19 @@ function ProfileTab({ focused }: { focused: boolean }) {
           borderColor: focused ? theme.colors.primary : theme.colors.border,
         }}
       >
-        <Avatar id={pet.id} name={pet.name} size={size - 10} />
+        {/*
+          Una cuenta de rescate no tiene animal, así que no lleva su cara.
+
+          Llevaba la de un perro de la semilla, que en la demostración es el
+          contenido que hay, y el resultado era que el elemento más visible de
+          la aplicación decía que esa cuenta tiene un perro que no es suyo. La
+          sirena dice lo que esa cuenta es.
+        */}
+        {rescuer ? (
+          <Icon icon={Siren} size="lg" color={theme.colors.primary} decorative />
+        ) : (
+          <Avatar id={pet.id} name={pet.name} size={size - 10} />
+        )}
       </View>
     </View>
   );

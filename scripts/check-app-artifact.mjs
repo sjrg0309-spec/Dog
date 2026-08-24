@@ -786,6 +786,70 @@ for (const tab of TABS) {
   }
 }
 
+
+/*
+ * «Voy a buscar» tiene que verse desde el otro lado.
+ *
+ * Es la comprobación que separa un botón que cambia de color de un estado que
+ * existe: la alerta de la semilla trae dos vecinos ya buscando, así que al
+ * apuntarse la cuenta el texto tiene que pasar de «2 personas buscando» a
+ * decir que vas tú **y** las otras dos. Un botón que solo se encendiera dejaría
+ * el mismo número, y esto lo cazaría.
+ */
+{
+  /* Venimos del resumen de un paseo, que es una pantalla entera y tapa la barra
+     de pestañas. Se sale de ella antes de buscar nada: preguntar por una
+     pestaña que no está en pantalla y anotar «no existe» es un fallo del
+     guion, no de la aplicación. */
+  for (let i = 0; i < 3; i += 1) {
+    const back = page.getByRole('button', { name: /^Volver$/ }).first();
+    if (!(await back.count())) break;
+    await back.click();
+    await page.waitForTimeout(600);
+  }
+
+  const sosTab = page.getByRole('tab', { name: /SOS/i }).first();
+  if (!(await sosTab.count())) {
+    problems.push('no se encontró la pestaña de SOS');
+  } else {
+    await sosTab.click();
+    await page.waitForTimeout(1000);
+
+    const before = (await page.locator('#root').innerText()).trim();
+    const join = page.getByRole('button', { name: /^Voy a buscar$/ }).first();
+
+    if (!(await join.count())) {
+      problems.push('la ficha de una alerta no ofrece apuntarse a buscar');
+    } else {
+      if (!/2 personas buscando/.test(before)) {
+        problems.push(`la alerta no dice cuánta gente busca antes de apuntarse: ${before.slice(0, 120)}`);
+      }
+      await join.scrollIntoViewIfNeeded().catch(() => {});
+      await join.click();
+      await page.waitForTimeout(700);
+
+      const after = (await page.locator('#root').innerText()).trim();
+      console.log(`buscando tras apuntarse: ${/Vas tú[^\n]*/.exec(after)?.[0] ?? 'nada'}`);
+      if (!/Vas tú y 2 personas más/.test(after)) {
+        problems.push('apuntarse a buscar no cambió la cuenta de quién está buscando');
+      }
+      if (!(await page.getByRole('button', { name: /^Ya no voy$/ }).count())) {
+        problems.push('no se puede dejar de buscar: el botón no cambia');
+      }
+
+      /* Y se deshace, porque una cuenta que solo sube deja de significar nada.
+         Además esto devuelve la alerta a su estado de partida para lo que venga
+         después. */
+      await page.getByRole('button', { name: /^Ya no voy$/ }).first().click();
+      await page.waitForTimeout(600);
+      const undone = (await page.locator('#root').innerText()).trim();
+      if (!/2 personas buscando/.test(undone)) {
+        problems.push('dejar de buscar no devolvió la cuenta a su sitio');
+      }
+    }
+  }
+}
+
 /*
  * La única petición que sale del fichero es la del tiempo, y tiene que salir.
  *
@@ -904,6 +968,62 @@ if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada')
   if (!/revisión/i.test(home)) {
     problems.push('la cuenta en revisión no lo dice en su tablero');
   }
+  /*
+   * Las tres acciones de una tarjeta hacen tres cosas distintas.
+   *
+   * Antes las tres llevaban a la misma pantalla, y una interfaz así se audita
+   * sola en verde: los botones estaban, se podían pulsar y no pasaba nada
+   * comprobable. Aquí se pulsan dos y se mira **el efecto**, que es lo único
+   * que distingue un botón de un dibujo de un botón.
+   */
+  const search = shelter.getByRole('button', { name: /^Vas a buscar a / }).first();
+  if (!(await search.count())) {
+    problems.push('el tablero de rescate no ofrece apuntarse a buscar');
+  } else {
+    await search.click();
+    await shelter.waitForTimeout(600);
+    const joined = (await shelter.locator('#root').innerText()).trim();
+    if (!/Vas tú/.test(joined)) {
+      problems.push('apuntarse a buscar desde el tablero no cambia nada en la tarjeta');
+    }
+    if (!(await shelter.getByRole('button', { name: /^Ya no vas a buscar a / }).count())) {
+      problems.push('desde el tablero no se puede dejar de buscar');
+    }
+  }
+
+  const save = shelter.getByRole('button', { name: /^Guardar el aviso de / }).first();
+  if (!(await save.count())) {
+    problems.push('el tablero de rescate no ofrece guardar un aviso');
+  } else {
+    await save.click();
+    await shelter.waitForTimeout(700);
+    const withSaved = (await shelter.locator('#root').innerText()).trim();
+    if (!/Guardados/.test(withSaved)) {
+      problems.push('guardar un aviso no lo lleva a ningún sitio donde volver a verlo');
+    }
+    if (!(await shelter.getByRole('button', { name: /^Quitar de guardados el aviso de / }).count())) {
+      problems.push('un aviso guardado no se puede desguardar');
+    }
+  }
+
+  /* Y el perfil de la cuenta cuenta lo mismo que el tablero: si aquí dijera
+     otro número, uno de los dos estaría inventado. */
+  const shelterProfileTab = shelter.getByRole('tab', { name: /Perfil/i }).first();
+  if (await shelterProfileTab.count()) {
+    await shelterProfileTab.click();
+    await shelter.waitForTimeout(1000);
+    const profile = (await shelter.locator('#root').innerText()).trim();
+    if (!/Estáis en 1 búsqueda/.test(profile)) {
+      problems.push(`el perfil de la protectora no refleja la búsqueda: ${profile.slice(0, 160)}`);
+    }
+    if (!/1 aviso guardado/.test(profile)) {
+      problems.push('el perfil de la protectora no refleja el aviso guardado');
+    }
+    if (/Ficha médica|Modo Paseo/i.test(profile)) {
+      problems.push('la cuenta de protectora ve un perfil de perro');
+    }
+  }
+
   console.log(`protectora: pestañas ${tabs.filter(Boolean).join(', ')}`);
   await shelter.close();
 }

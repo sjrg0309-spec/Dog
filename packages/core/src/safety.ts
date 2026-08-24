@@ -28,6 +28,8 @@
  * justo cuando más lejos está.
  */
 
+import { formatDistance } from './geo.js';
+
 export const ALERT_KINDS = ['lost_pet', 'found_pet', 'hazard', 'outbreak'] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 
@@ -311,3 +313,58 @@ export function reaches(
 export const SAFETY_DISCLAIMER =
   'Petnav no sustituye a un veterinario ni a la policía local. Ante un envenenamiento o un ' +
   'atropello, la llamada va antes que la aplicación.';
+
+/**
+ * El texto de un aviso, para sacarlo de la aplicación.
+ *
+ * Compartir es la única acción del tablero de rescate que hace algo que la
+ * aplicación no puede hacer sola: un aviso solo llega a quien tiene Petnav y
+ * está dentro del radio, y el perro no se perdió dentro de ese radio. El grupo
+ * del barrio, el de la escalera y el mostrador del veterinario están fuera, y
+ * son justo donde aparecen la mitad de los animales.
+ *
+ * Por eso el texto se arma aquí, en el núcleo, con tests: es un mensaje que va
+ * a acabar pegado en sitios que no controlamos, así que **lo que lleva y lo que
+ * no** es una decisión de producto y no del componente que lo pinta.
+ *
+ *  - Lleva **qué animal, dónde y desde cuándo**, que es lo que permite
+ *    reconocerlo, y **a cuánto llega el aviso**, que es lo que le dice a quien
+ *    lo lee si le toca.
+ *  - Lleva el **teléfono solo si su tutor lo publicó** con el aviso. Es suyo y
+ *    lo puso a propósito para que le llamen; añadirlo cuando no lo puso sería
+ *    sacar de la aplicación un dato que su dueño no dio.
+ *  - **No lleva el punto exacto en coordenadas.** Un mensaje reenviado
+ *    sobrevive al aviso: el sitio se dice por su nombre, que es como lo diría
+ *    una persona y lo que sigue sirviendo mañana.
+ */
+export function shareAlertText(input: {
+  scenario: SafetyScenario;
+  petName: string | null;
+  areaName: string;
+  openForHours: number;
+  radiusM: number;
+  contactPhone: string | null;
+  sightings: number;
+}): string {
+  const who = input.petName ?? input.scenario.label;
+  const since =
+    input.openForHours < 1
+      ? 'desde hace menos de una hora'
+      : input.openForHours < 24
+        ? `desde hace ${Math.round(input.openForHours)} h`
+        : `desde hace ${Math.round(input.openForHours / 24)} día(s)`;
+
+  const lines = [
+    input.scenario.kind === 'lost_pet' ? `Se busca a ${who}` : `Aviso: ${who}`,
+    `${input.areaName}, ${since}.`,
+    input.sightings > 0
+      ? `${input.sightings} ${input.sightings === 1 ? 'persona lo ha visto' : 'personas lo han visto'} después.`
+      : 'Sin avistamientos todavía.',
+    input.scenario.steps[0] ?? input.scenario.description,
+    `El aviso llega a ${formatDistance(input.radiusM)} a la redonda.`,
+  ];
+
+  if (input.contactPhone) lines.push(`Contacto: ${input.contactPhone}`);
+
+  return lines.join('\n');
+}

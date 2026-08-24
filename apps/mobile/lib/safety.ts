@@ -52,6 +52,20 @@ export type SafetyAlert = {
   openedAt: Date;
   resolvedAt: Date | null;
   sightings: Sighting[];
+  /**
+   * Quién ha dicho que va a buscar.
+   *
+   * Vive en la alerta y no en quien la mira porque su valor está en verse desde
+   * el otro lado: quien ha perdido a su perro a las tres de la mañana necesita
+   * saber que hay tres personas mirando, y quien va de camino necesita saber
+   * que no va solo. Un botón que solo cambia de color en tu teléfono no hace ni
+   * una cosa ni la otra.
+   *
+   * Son identificadores, no nombres: en el aviso sale cuánta gente va, no
+   * quiénes son. Salir a buscar un perro de noche no debería publicar dónde vas
+   * a estar tú.
+   */
+  searchers: string[];
 };
 
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
@@ -86,6 +100,10 @@ let alerts: SafetyAlert[] = [
         reporterName: 'Javier P.',
       },
     ],
+    /* Dos vecinos ya de camino. La semilla lo trae para que el contador se vea
+       haciendo lo suyo desde el primer momento: sin nadie, el número diría cero
+       en las tres alertas y no se sabría si funciona o si no hay estado. */
+    searchers: ['vecina-1', 'vecino-2'],
   },
   {
     id: 'alert-bait',
@@ -100,7 +118,10 @@ let alerts: SafetyAlert[] = [
     areaName: 'Setos de la entrada sur del Parque Central',
     openedAt: minutesAgo(240),
     resolvedAt: null,
+    /* Nadie. Un cebo no se busca: se evita. Que este esté a cero enseña que el
+       contador cuenta y no adorna. */
     sightings: [],
+    searchers: [],
   },
   {
     id: 'alert-found',
@@ -116,6 +137,7 @@ let alerts: SafetyAlert[] = [
     openedAt: minutesAgo(1400),
     resolvedAt: minutesAgo(1200),
     sightings: [],
+    searchers: ['rescatista-1'],
   },
 ];
 
@@ -130,6 +152,27 @@ const subscribe = (listener: () => void) => {
   };
 };
 const snapshot = () => alerts;
+
+/**
+ * Quién es esta cuenta para las alertas.
+ *
+ * Basta con una constante mientras no hay servidor: lo que importa es que
+ * unirse a una búsqueda sea **una entrada más** en la misma lista que las
+ * demás, y no un booleano aparte que luego habría que reconciliar.
+ */
+const ME = 'me';
+
+/**
+ * Los avisos guardados.
+ *
+ * Guardar no es una preferencia de visualización: una protectora guarda el
+ * aviso del galgo del polígono porque va a volver a él mañana, cuando ya no
+ * esté arriba del tablero y puede que ni siquiera siga abierto. Por eso los
+ * guardados se listan **incluidos los resueltos** —saber cómo acabó es la mitad
+ * del valor— y por eso viven fuera de la alerta: son de quien guarda.
+ */
+let saved: readonly string[] = [];
+const savedSnapshot = (): readonly string[] => saved;
 
 let counter = 0;
 const nextId = (prefix: string) => `${prefix}-${(counter += 1)}`;
@@ -158,6 +201,7 @@ export function openAlert(input: {
     openedAt: new Date(),
     resolvedAt: null,
     sightings: [],
+    searchers: [],
   };
   alerts = [alert, ...alerts];
   emit();
@@ -200,6 +244,61 @@ export function reportSighting(
       : alert,
   );
   emit();
+}
+
+/**
+ * Apuntarse a buscar, y borrarse.
+ *
+ * Se puede deshacer, y eso no es un detalle: un botón de «voy» que no se pueda
+ * retirar hace que la cuenta de gente buscando solo suba, y una cuenta que solo
+ * sube deja de significar nada a la tercera noche. Quien llega a casa y lo
+ * apaga está diciendo algo verdadero sobre quién queda mirando.
+ */
+export function toggleSearch(alertId: string): void {
+  alerts = alerts.map((alert) =>
+    alert.id === alertId
+      ? {
+          ...alert,
+          searchers: alert.searchers.includes(ME)
+            ? alert.searchers.filter((id) => id !== ME)
+            : [...alert.searchers, ME],
+        }
+      : alert,
+  );
+  emit();
+}
+
+/** ¿Voy yo a buscar a este? Lo consulta el botón para saber qué decir. */
+export function useAmSearching(alertId: string): boolean {
+  const all = useSyncExternalStore(subscribe, snapshot, snapshot);
+  return all.find((alert) => alert.id === alertId)?.searchers.includes(ME) ?? false;
+}
+
+/** «3 buscando», «vas tú sola». Lo lee la tarjeta y también la ficha del SOS. */
+export function describeSearchers(alert: SafetyAlert): string | null {
+  const total = alert.searchers.length;
+  const mine = alert.searchers.includes(ME);
+  if (total === 0) return null;
+  if (total === 1) return mine ? 'Vas tú' : '1 persona buscando';
+  if (mine) return `Vas tú y ${total - 1} ${total - 1 === 1 ? 'persona más' : 'personas más'}`;
+  return `${total} personas buscando`;
+}
+
+/* ------------------------------------------------------------------ */
+
+const subscribeSaved = (listener: () => void): (() => void) => subscribe(listener);
+
+/** Guardar o dejar de guardar un aviso. */
+export function toggleSavedAlert(alertId: string): void {
+  saved = saved.includes(alertId)
+    ? saved.filter((id) => id !== alertId)
+    : [alertId, ...saved];
+  emit();
+}
+
+export function useIsSaved(alertId: string): boolean {
+  const ids = useSyncExternalStore(subscribeSaved, savedSnapshot, savedSnapshot);
+  return ids.includes(alertId);
 }
 
 export type LiveAlert = {
@@ -264,6 +363,23 @@ export function useAllAlerts(from: { lat: number; lng: number }): LiveAlert[] {
     .map((alert) => hydrate(alert, from))
     .filter((live): live is LiveAlert => live !== null)
     .sort((a, b) => b.alert.openedAt.getTime() - a.alert.openedAt.getTime());
+}
+
+/**
+ * Los guardados, en el orden en que se guardaron.
+ *
+ * Incluye los resueltos a propósito: quien guardó el aviso de un galgo quiere
+ * saber si apareció, y esa es justo la información que un filtro de «solo
+ * abiertos» le escondería.
+ */
+export function useSavedAlerts(from: { lat: number; lng: number }): LiveAlert[] {
+  const all = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const ids = useSyncExternalStore(subscribeSaved, savedSnapshot, savedSnapshot);
+  return ids
+    .map((id) => all.find((alert) => alert.id === id))
+    .filter((alert): alert is SafetyAlert => alert !== undefined)
+    .map((alert) => hydrate(alert, from))
+    .filter((live): live is LiveAlert => live !== null);
 }
 
 /** Cuántas alertas críticas hay abiertas cerca. Es lo que pinta la pestaña. */

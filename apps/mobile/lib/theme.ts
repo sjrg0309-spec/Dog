@@ -21,6 +21,7 @@ import {
 } from '@petnav/tokens';
 
 import { useActivePet } from './active-pet';
+import { useAccount } from './account';
 import { accentOf } from './artwork';
 import { useSettings } from './settings';
 
@@ -186,7 +187,16 @@ export function useTheme(): Theme {
   const choice = useSettings().theme;
   const isDark = choice === 'system' ? scheme === 'dark' : choice === 'dark';
   const pet = useActivePet();
-  const accent = accentOf(pet.id);
+  /*
+   * El acento sale del animal seleccionado… salvo en una cuenta de rescate, que
+   * no tiene animal.
+   *
+   * En la demostración esa cuenta conserva las mascotas de la semilla para que
+   * haya contenido, y sin esta línea la aplicación entera se teñía del color de
+   * un perro que no es suyo. El verde de la casa es lo correcto ahí: una
+   * protectora es la aplicación, no un perro concreto.
+   */
+  const accent = useAccount().kind === 'rescuer' ? 'sage' : accentOf(pet.id);
 
   return {
     colors: PALETTES[accent][isDark ? 'dark' : 'light'],

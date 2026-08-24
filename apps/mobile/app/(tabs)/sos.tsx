@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
 import { Icon } from '@/components/icon';
@@ -16,25 +16,32 @@ import {
   ChevronUp,
   CircleCheck,
   Eye,
+  Footprints,
   Locate,
   Phone,
+  Send,
   ChevronRight,
   Siren,
   TriangleAlert,
   X,
 } from '@/lib/icons';
 import {
+  describeSearchers,
   formatOpenFor,
   openAlert,
   reportSighting,
   resolveAlert,
+  toggleSearch,
   useAllAlerts,
+  useAmSearching,
   type LiveAlert,
 } from '@/lib/safety';
+import { shareResultNote, shareText } from '@/lib/share';
 import { useHazardZones } from '@/lib/rescue';
 import { useSettings } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 import {
+  shareAlertText,
   EVIDENCE_CHECKLIST,
   alertReachM,
   REPORTING_CHANNELS_NOTE,
@@ -544,9 +551,12 @@ function AlertCard({
   const theme = useTheme();
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState('');
+  const [shared, setShared] = useState<string | null>(null);
 
   const { alert, scenario } = live;
   const grew = live.radiusM > scenario.initialRadiusM;
+  const searching = useAmSearching(alert.id);
+  const searchers = describeSearchers(alert);
 
   return (
     <View
@@ -640,6 +650,21 @@ function AlertCard({
         </View>
       ) : null}
 
+      {/*
+        Quién va de camino.
+        
+        Es la mitad del valor de apuntarse: quien ha perdido a su perro a las
+        tres de la mañana necesita ver que no está solo mirando, y quien va
+        necesita saber que hay más gente. Sale la cuenta, no los nombres: salir
+        a buscar de noche no debería publicar dónde vas a estar tú.
+      */}
+      {searchers ? (
+        <Row gap={2}>
+          <Icon icon={Footprints} size="sm" color={theme.colors.primary} decorative />
+          <Caption>{searchers}</Caption>
+        </Row>
+      ) : null}
+
       <Steps steps={scenario.steps} />
 
       {alert.microchipCode ? (
@@ -690,28 +715,78 @@ function AlertCard({
           />
         </View>
       ) : (
-        <Row gap={2}>
-          <View style={{ flex: 1 }}>
-            <Button
-              label="Lo he visto"
-              icon={Eye}
-              variant="outline"
-              accessibilityHint="Reportar dónde y cuándo, con tus coordenadas"
-              onPress={() => setReporting(true)}
-            />
-          </View>
-          {alert.contactPhone ? (
+        <View style={{ gap: theme.space[2] }}>
+          <Row gap={2}>
             <View style={{ flex: 1 }}>
               <Button
-                label="Llamar"
-                icon={Phone}
+                label="Lo he visto"
+                icon={Eye}
                 variant="outline"
-                accessibilityHint={`Llama a ${alert.ownerName}`}
-                onPress={() => haptics.tap()}
+                accessibilityHint="Reportar dónde y cuándo, con tus coordenadas"
+                onPress={() => setReporting(true)}
               />
             </View>
-          ) : null}
-        </Row>
+            {alert.contactPhone ? (
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Llamar"
+                  icon={Phone}
+                  variant="outline"
+                  accessibilityHint={`Llama a ${alert.ownerName}`}
+                  /* Marca de verdad. Antes solo vibraba: un botón de llamar que
+                     no llama, en la pantalla de un animal perdido, es la peor
+                     versión de un botón falso. */
+                  onPress={() => {
+                    haptics.tap();
+                    void Linking.openURL(`tel:${alert.contactPhone!.replace(/\s/g, '')}`);
+                  }}
+                />
+              </View>
+            ) : null}
+          </Row>
+
+          <Row gap={2}>
+            <View style={{ flex: 1 }}>
+              <Button
+                label={searching ? 'Ya no voy' : 'Voy a buscar'}
+                icon={Footprints}
+                variant={searching ? 'primary' : 'outline'}
+                accessibilityHint={
+                  searching
+                    ? 'Te quita de la lista de quien está buscando'
+                    : 'Aparecerás en la cuenta de quien está buscando'
+                }
+                onPress={() => {
+                  toggleSearch(alert.id);
+                  haptics.commit();
+                }}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button
+                label="Compartir"
+                icon={Send}
+                variant="outline"
+                accessibilityHint="Saca el aviso de la aplicación: grupo del barrio, veterinario"
+                onPress={() => {
+                  haptics.tap();
+                  void shareText(
+                    shareAlertText({
+                      scenario,
+                      petName: alert.petName,
+                      areaName: alert.areaName,
+                      openForHours: live.openForHours,
+                      radiusM: live.radiusM,
+                      contactPhone: alert.contactPhone,
+                      sightings: alert.sightings.length,
+                    }),
+                  ).then((result) => setShared(shareResultNote(result)));
+                }}
+              />
+            </View>
+          </Row>
+          {shared ? <Caption>{shared}</Caption> : null}
+        </View>
       )}
 
       {alert.ownerName !== 'Sin cuenta' ? (
