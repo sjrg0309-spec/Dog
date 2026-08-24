@@ -22,6 +22,7 @@
     "@petnav/tokens": "workspace:*",
     "@petnav/trackers": "workspace:*",
     "@petnav/weather": "workspace:*",
+    "@react-navigation/bottom-tabs": "7.18.17",
     "@react-navigation/native": "^7.3.17",
     "debug": "^4.4.3",
     "expo": "^52.0.0",

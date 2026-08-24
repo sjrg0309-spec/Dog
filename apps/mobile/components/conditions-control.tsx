@@ -17,11 +17,12 @@
  * quiere oír.
  */
 
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import type { Surface } from '@petnav/core';
 import { GRID_PRECISION_M, describeSky, estimateGroundC, judgeGround } from '@petnav/weather';
 
+import { SkeletonBlock } from './skeleton';
 import { Caption, Row } from './ui';
 import {
   MANUAL_NOTE,
@@ -66,18 +67,30 @@ export function ConditionsControl() {
     <View style={{ gap: theme.space[2] }}>
       <Caption>Hoy, donde vais a estar</Caption>
 
+      {/*
+        Mientras se consulta, el hueco tiene **la forma de la respuesta**.
+
+        Antes había un indicador giratorio con «Consultando el tiempo…», y eso
+        tiene dos problemas que se ven al usarlo: el giro no dice cuánto falta
+        —ningún indicador lo dice— y, cuando llega el dato, la fila cambia de
+        alto y empuja todo lo de abajo justo cuando alguien estaba leyéndolo.
+        Un hueco con la medida exacta de la temperatura y su renglón hace que la
+        llegada del dato no mueva nada de sitio.
+
+        El texto sigue estando, para quien no ve la pantalla: es lo que se
+        anuncia, y el dibujo queda oculto al lector.
+      */}
       {weather.kind === 'loading' ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
-          <ActivityIndicator color={theme.colors.mutedForeground} />
-          <Text
-            style={{
-              color: theme.colors.mutedForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize.sm,
-            }}
-          >
-            Consultando el tiempo…
-          </Text>
+        <View
+          accessibilityRole="progressbar"
+          accessibilityLabel="Consultando el tiempo"
+          style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}
+        >
+          <SkeletonBlock width={56} height={32} radius={theme.radius.sm} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <SkeletonBlock width="60%" height={12} />
+            <SkeletonBlock width="40%" height={10} />
+          </View>
         </View>
       ) : null}
 

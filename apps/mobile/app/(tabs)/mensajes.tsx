@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { NavBar, useScrolled } from '@/components/chrome';
+import { NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { FacePile } from '@/components/face-pile';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
@@ -20,6 +21,7 @@ import {
   type LucideIcon,
 } from '@/lib/icons';
 import { clockTime, useThreads, type Thread } from '@/lib/messages';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -65,7 +67,7 @@ type Filter = (typeof FILTERS)[number]['id'];
 export default function MessagesScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { scrolled, onScroll } = useScrolled();
+  const { scrollY, onScroll } = useScrollDriver();
   const threads = useThreads();
 
   const [filter, setFilter] = useState<Filter>('all');
@@ -96,7 +98,8 @@ export default function MessagesScreen() {
     <Screen>
       <NavBar
         title="Mensajes"
-        scrolled={scrolled}
+        scrolled={false}
+        scrollY={scrollY}
         trailing={
           <Pressable
             accessibilityRole="button"
@@ -118,7 +121,7 @@ export default function MessagesScreen() {
         }
       />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[10] }}
@@ -261,7 +264,7 @@ export default function MessagesScreen() {
             </Pressable>
           </Notice>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }

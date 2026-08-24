@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
 import { Icon } from '@/components/icon';
+import { TabBar } from '@/components/tab-bar';
 import { useWeatherState } from '@/lib/conditions';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -39,38 +39,23 @@ import { useTheme } from '@/lib/theme';
  */
 export default function TabsLayout() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const rescuer = useAccount().kind === 'rescuer';
   const { location } = useWeatherState();
   const criticalNearby = useCriticalCount(location);
 
   return (
     <Tabs
-      // Un toque seco al cambiar de pestaña. Es el gesto más repetido de la
-      // aplicación y el único sitio donde la háptica es constante.
-      screenListeners={{ tabPress: () => haptics.tap() }}
+      /* La barra la dibuja esta aplicación, no el navegador. Lo que no se podía
+         pedir desde estas opciones era lo que define cómo se siente: la
+         pastilla que viaja de una pestaña a otra, el cristal, y que se condense
+         al leer en vez de ocupar setenta y dos puntos fijos. La háptica se va
+         con ella, que es donde estaba el toque. */
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
         // Cada pantalla dibuja su propia barra de navegación, con título
         // grande y separación que solo aparece al desplazar. La cabecera del
         // navegador sobraba: eran dos barras encima de la misma pantalla.
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.colors.background,
-          borderTopColor: theme.colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          /* 72 y no 64. Antes fue 64 y no 58, por lo mismo: la barra reserva
-             un alto fijo para el icono, así que cada píxel que el retrato del
-             centro sobresale sale del sitio del rótulo. Encogerlo hasta que
-             cupiera fue el primer intento y el círculo dejaba de destacar,
-             que era justo lo que se pedía; darle sitio a la barra deja las dos
-             cosas. Tres pasadas de captura para llegar aquí. */
-          height: 72 + insets.bottom,
-          paddingTop: theme.space[1],
-          paddingBottom: insets.bottom > 0 ? insets.bottom : theme.space[2],
-        },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.mutedForeground,
-        tabBarLabelStyle: { fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] },
       }}
     >
       {/*
@@ -142,12 +127,6 @@ export default function TabsLayout() {
            * distinga el rojo tiene que enterarse igual.
            */
           tabBarBadge: criticalNearby > 0 ? criticalNearby : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: theme.colors.destructive,
-            color: theme.colors.destructiveForeground,
-            fontFamily: fonts.bodyBold,
-            fontSize: theme.fontSize['2xs'],
-          },
           tabBarAccessibilityLabel:
             criticalNearby > 0
               ? `SOS. ${criticalNearby} ${criticalNearby === 1 ? 'alerta crítica abierta cerca' : 'alertas críticas abiertas cerca'}`
@@ -275,39 +254,27 @@ function TabIcon({
   /** Hay algo abierto que reclama atención, pero esta no es la pestaña actual. */
   alert?: boolean;
 }) {
-  const theme = useTheme();
-
   /**
-   * La pestaña activa lleva una pastilla detrás, no el icono relleno.
+   * El icono, sin pastilla propia.
    *
-   * Instagram rellena el icono, y es lo primero que probé. No funciona con esta
-   * librería: Lucide son trazos, no siluetas, así que rellenar el globo de
-   * mensajes lo convertía en un borrón sin los puntos de dentro. Se veía en la
-   * captura y no en el tipado.
+   * La pastilla la dibuja **la barra**, una sola para las cinco, y por eso
+   * puede viajar de una pestaña a otra en vez de encenderse aquí y apagarse
+   * allá. Cuando cada pestaña tenía la suya, lo único animable era su opacidad.
    *
-   * La pastilla hace el mismo trabajo y mejor: es una forma sólida, así que
-   * sobrevive a una captura en blanco y negro y a cualquier deficiencia de
-   * visión del color, que es lo que el cambio de tinte no hace. Y el rótulo de
-   * texto sigue debajo de todas formas.
+   * Lo que sí se queda aquí es el trazo: 2,4 en la actual y en la que reclama
+   * atención, 1,75 en las demás. Instagram rellena el icono y fue lo primero
+   * que se probó — no funciona con esta librería, que son trazos y no
+   * siluetas: el globo de mensajes relleno se convertía en un borrón sin los
+   * puntos de dentro. El grosor hace el mismo trabajo y sobrevive a una
+   * captura en blanco y negro, que es lo que el color no hace.
    */
   return (
-    <View
-      style={{
-        minWidth: 52,
-        height: 30,
-        borderRadius: theme.radius.full,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: focused ? theme.colors.accent : 'transparent',
-      }}
-    >
-      <Icon
-        icon={icon}
-        size="lg"
-        color={color}
-        strokeWidth={focused || alert ? 2.4 : 1.75}
-        decorative
-      />
-    </View>
+    <Icon
+      icon={icon}
+      size="lg"
+      color={color}
+      strokeWidth={focused || alert ? 2.4 : 1.75}
+      decorative
+    />
   );
 }

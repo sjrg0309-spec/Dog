@@ -59,12 +59,20 @@ export type Post = {
   petName: string;
   authorName: string;
   /**
-   * Ruta del objeto en el almacenamiento, o URI local si la acaba de elegir el
-   * tutor. Vacía significa que aún no se ha subido nada.
+   * Las fotos, en orden. Siempre hay al menos una.
+   *
+   * Es una lista y no un campo suelto porque una salida no es una foto: el
+   * charco, el perro empapado y la cara de después son la misma historia, y
+   * obligar a elegir una convierte el feed en un muestrario. Instagram lo
+   * resolvió con el carrusel hace diez años y desde entonces es lo que la gente
+   * espera al ver un contador «1/3».
+   *
+   * **Cada foto lleva su propia descripción**, no una para el conjunto. Un
+   * lector de pantalla las recorre de una en una: una descripción compartida
+   * diría lo mismo tres veces y las otras dos fotos serían tres imágenes sin
+   * texto alternativo.
    */
-  imageUri: string | null;
-  imagePath: string;
-  imageAlt: string;
+  photos: readonly PostPhoto[];
   caption: string;
   placeName: string | null;
   /**
@@ -93,6 +101,17 @@ export type Post = {
    */
   savedByMe: boolean;
   comments: PostComment[];
+};
+
+export type PostPhoto = {
+  /**
+   * Ruta del objeto en el almacenamiento, o URI local si la acaba de elegir el
+   * tutor. Nula mientras no hay foto: entonces se dibuja la escena generada.
+   */
+  uri: string | null;
+  path: string;
+  /** Obligatoria. Sin ella la publicación no la ve todo el mundo. */
+  alt: string;
 };
 
 export type PostComment = {
@@ -148,10 +167,27 @@ export const SEED_POSTS: Post[] = [
     petId: '20000000-0000-4000-8000-000000000001',
     petName: 'Nina',
     authorName: 'Marta R.',
-    imageUri: null,
-    imagePath: 'posts/nina-pelota.jpg',
-    imageAlt:
-      'Nina, border collie blanca y negra, con una pelota en la boca sobre la hierba',
+    /* Tres fotos: la publicación con carrusel de la semilla. Está aquí para que
+       el paginador y el contador «1/3» se vean funcionando desde el principio,
+       y para que se note lo que cuesta de verdad — tres descripciones, una por
+       foto, escritas por quien publica. */
+    photos: [
+      {
+        uri: null,
+        path: 'posts/nina-pelota.jpg',
+        alt: 'Nina, border collie blanca y negra, con una pelota en la boca sobre la hierba',
+      },
+      {
+        uri: null,
+        path: 'posts/nina-carrera.jpg',
+        alt: 'Nina corriendo de vuelta con la pelota, las orejas hacia atrás',
+      },
+      {
+        uri: null,
+        path: 'posts/nina-sentada.jpg',
+        alt: 'Nina sentada delante de la pelota, esperando a que se la tiren otra vez',
+      },
+    ],
     caption:
       'Cuarenta minutos y no ha soltado la pelota ni una vez. Mañana a las siete, como siempre.',
     placeName: 'Parque Central',
@@ -182,9 +218,18 @@ export const SEED_POSTS: Post[] = [
     petId: '20000000-0000-4000-8000-000000000002',
     petName: 'Toby',
     authorName: 'Carlos M.',
-    imageUri: null,
-    imagePath: 'posts/toby-charco.jpg',
-    imageAlt: 'Toby, mestizo marrón, empapado saliendo de un charco',
+    photos: [
+      {
+        uri: null,
+        path: 'posts/toby-charco.jpg',
+        alt: 'Toby, mestizo marrón, empapado saliendo de un charco',
+      },
+      {
+        uri: null,
+        path: 'posts/toby-sacudida.jpg',
+        alt: 'Toby sacudiéndose el agua con el parque de fondo',
+      },
+    ],
     caption: 'Ha encontrado el único charco del parque. Obviamente.',
     placeName: 'Parque Central',
     createdAt: atHour(0, 18, 25),
@@ -201,9 +246,13 @@ export const SEED_POSTS: Post[] = [
     petId: '20000000-0000-4000-8000-000000000003',
     petName: 'Rocky',
     authorName: 'Diego S.',
-    imageUri: null,
-    imagePath: 'posts/rocky-sombra.jpg',
-    imageAlt: 'Rocky, galgo español, tumbado a la sombra de un árbol',
+    photos: [
+      {
+        uri: null,
+        path: 'posts/rocky-sombra.jpg',
+        alt: 'Rocky, galgo español, tumbado a la sombra de un árbol',
+      },
+    ],
     caption:
       'A esta hora ya no hay nadie y se está mejor. Los martes y jueves salimos a las once.',
     placeName: 'Parque del Retiro',
@@ -228,9 +277,13 @@ export const SEED_POSTS: Post[] = [
     petId: '20000000-0000-4000-8000-00000000000c',
     petName: 'Kira',
     authorName: 'Marta R.',
-    imageUri: null,
-    imagePath: 'posts/kira-sombra.jpg',
-    imageAlt: 'Kira, bulldog francés, jadeando a la sombra',
+    photos: [
+      {
+        uri: null,
+        path: 'posts/kira-sombra.jpg',
+        alt: 'Kira, bulldog francés, jadeando a la sombra',
+      },
+    ],
     caption:
       'Hoy media hora y a casa. La app no me dejaba ni eso a mediodía y tenía razón.',
     placeName: 'Parque del Retiro',
@@ -250,9 +303,13 @@ export const SEED_POSTS: Post[] = [
     petId: '20000000-0000-4000-8000-000000000004',
     petName: 'Bruno',
     authorName: 'Pablo G.',
-    imageUri: null,
-    imagePath: 'posts/bruno-noche.jpg',
-    imageAlt: 'Bruno, pastor alemán cachorro, sentado bajo una farola',
+    photos: [
+      {
+        uri: null,
+        path: 'posts/bruno-noche.jpg',
+        alt: 'Bruno, pastor alemán cachorro, sentado bajo una farola',
+      },
+    ],
     caption: 'Primera semana saliendo de noche. Aquí a las once no hay nadie y él va más tranquilo.',
     placeName: 'Parque Berlín',
     createdAt: atHour(1, 6, 20),
@@ -464,8 +521,8 @@ export type NewPost = {
   petId: string;
   petName: string;
   authorName: string;
-  imageUri: string;
-  imageAlt: string;
+  /** Una o varias, ya con su descripción cada una. */
+  photos: readonly { uri: string; alt: string }[];
   caption: string;
   placeName: string | null;
   point: { lat: number; lng: number } | null;
@@ -479,9 +536,11 @@ export function publish(draft: NewPost): void {
       petId: draft.petId,
       petName: draft.petName,
       authorName: draft.authorName,
-      imageUri: draft.imageUri,
-      imagePath: 'pendiente-de-subida',
-      imageAlt: draft.imageAlt.trim(),
+      photos: draft.photos.map((photo) => ({
+        uri: photo.uri,
+        path: 'pendiente-de-subida',
+        alt: photo.alt.trim(),
+      })),
       caption: draft.caption.trim(),
       placeName: draft.placeName,
       point: draft.point,

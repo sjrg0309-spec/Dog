@@ -67,8 +67,20 @@ export default function ComposeScreen() {
   const [mode, setMode] = useState<Mode>(
     params.modo === 'estado' ? 'story' : params.modo === 'reel' ? 'reel' : 'post',
   );
-  const [mediaUri, setMediaUri] = useState<string | null>(null);
-  const [alt, setAlt] = useState('');
+  /*
+   * Los medios elegidos, en orden, cada uno con su descripción.
+   *
+   * Es una lista y no un campo suelto porque una publicación de feed puede
+   * llevar varias fotos. Un estado y un reel siguen siendo uno: se quedan con
+   * el primero, y el selector no deja elegir más en esos modos.
+   *
+   * **La descripción es por foto y no del conjunto**, que es lo que cuesta
+   * defender y lo que hace que sirva: un lector de pantalla las recorre de una
+   * en una, así que una descripción compartida convertiría las otras dos en
+   * imágenes sin texto alternativo.
+   */
+  const [shots, setShots] = useState<{ uri: string; alt: string }[]>([]);
+  const mediaUri = shots[0]?.uri ?? null;
   const [caption, setCaption] = useState('');
   const [place, setPlace] = useState<DemoPlace | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
@@ -86,26 +98,34 @@ export default function ComposeScreen() {
      mediodía en agosto, y sin dato no hay etiqueta honesta que poner. Los otros
      dos modos no la llevan, así que no se bloquean por esto. */
   const needsWeather = mode === 'reel' && conditions === null;
-  const ready =
-    !needsWeather && (textOnlyStory || (mediaUri !== null && alt.trim().length >= 3));
+  const described = shots.length > 0 && shots.every((shot) => shot.alt.trim().length >= 3);
+  const ready = !needsWeather && (textOnlyStory || described);
 
   async function pickMedia() {
     setPicking(true);
     setPickError(null);
     try {
+      /* Varias fotos solo en el feed. Un estado es una pantalla y un reel es un
+         vídeo: ahí «varias» no significa nada. Y con selección múltiple no se
+         puede recortar —la galería del sistema no ofrece las dos cosas a la
+         vez—, así que el recorte cuadrado se mantiene cuando se elige una sola,
+         que es el caso de siempre. */
+      const many = mode === 'post';
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: wantsVideo
           ? ImagePicker.MediaTypeOptions.Videos
           : ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsMultipleSelection: many,
+        selectionLimit: many ? 5 : 1,
+        allowsEditing: !many,
         // Vertical para reels y estados, cuadrado para el feed: recortar un
         // vídeo vertical a cuadrado es tirar media pantalla del que lo mira.
         aspect: mode === 'post' ? [1, 1] : [9, 16],
         quality: 0.8,
         videoMaxDuration: 60,
       });
-      if (!result.canceled && result.assets[0]) {
-        setMediaUri(result.assets[0].uri);
+      if (!result.canceled && result.assets.length > 0) {
+        setShots(result.assets.map((asset) => ({ uri: asset.uri, alt: '' })));
       }
     } catch {
       setPickError(
@@ -126,7 +146,7 @@ export default function ComposeScreen() {
         authorName: pet.ownerName,
         kind: mediaUri === null ? 'text' : 'photo',
         uri: mediaUri,
-        alt,
+        alt: shots[0]?.alt ?? '',
         text: caption,
         placeName: place?.name ?? null,
       });
@@ -148,7 +168,7 @@ export default function ComposeScreen() {
         petName: pet.name,
         authorName: pet.ownerName,
         videoUri: mediaUri,
-        alt,
+        alt: shots[0]?.alt ?? '',
         caption,
         placeName: place?.name ?? null,
         durationS: 15,
@@ -164,13 +184,12 @@ export default function ComposeScreen() {
       return;
     }
 
-    if (!mediaUri) return;
+    if (shots.length === 0) return;
     publish({
       petId: pet.id,
       petName: pet.name,
       authorName: pet.ownerName,
-      imageUri: mediaUri,
-      imageAlt: alt,
+      photos: shots,
       caption,
       placeName: place?.name ?? null,
       point: place ? { lat: place.lat, lng: place.lng } : null,
@@ -208,11 +227,12 @@ export default function ComposeScreen() {
 
           <MediaPicker
             uri={mediaUri}
+            count={shots.length}
             wantsVideo={wantsVideo}
             optional={mode === 'story'}
             picking={picking}
             onPick={pickMedia}
-            onClear={() => setMediaUri(null)}
+            onClear={() => setShots([])}
           />
 
           {pickError ? (
@@ -221,20 +241,42 @@ export default function ComposeScreen() {
             </Notice>
           ) : null}
 
-          {mediaUri ? (
+          {/* Una descripción por foto. Con una sola es el campo de siempre;
+              con varias, uno por foto y numerado, porque quien las oye las oye
+              en ese orden. */}
+          {shots.map((shot, index) => (
             <Field
-              label={wantsVideo ? 'Qué se ve en el vídeo' : 'Qué se ve en la foto'}
+              key={shot.uri}
+              label={
+                shots.length > 1
+                  ? `Qué se ve en la foto ${index + 1}`
+                  : wantsVideo
+                    ? 'Qué se ve en el vídeo'
+                    : 'Qué se ve en la foto'
+              }
               required
-              value={alt}
-              onChange={setAlt}
+              value={shot.alt}
+              onChange={(value) =>
+                setShots((current) =>
+                  current.map((item, position) =>
+                    position === index ? { ...item, alt: value } : item,
+                  ),
+                )
+              }
               placeholder={
                 wantsVideo
                   ? `${pet.name} corriendo por la hierba y frenando para coger la pelota`
                   : `${pet.name} con una pelota en la boca sobre la hierba`
               }
-              help="Obligatorio. Sin esto, la publicación no la ve todo el mundo."
+              help={
+                index === 0
+                  ? shots.length > 1
+                    ? 'Una por foto: quien no ve la pantalla las oye de una en una.'
+                    : 'Obligatorio. Sin esto, la publicación no la ve todo el mundo.'
+                  : undefined
+              }
             />
-          ) : null}
+          ))}
 
           <Field
             label={mode === 'story' && !mediaUri ? 'Qué quieres decir' : 'Texto'}
@@ -292,10 +334,10 @@ export default function ComposeScreen() {
                 ? 'Un reel se publica con la temperatura y la superficie en las que se grabó, y ahora mismo no sabemos qué tiempo hace. Ponla arriba y sigue.'
                 : mode === 'story' && !mediaUri
                 ? 'Escribe algo, o elige una foto o un vídeo.'
-                : mediaUri === null
+                : shots.length === 0
                   ? wantsVideo
                     ? 'Elige un vídeo del carrete.'
-                    : 'Elige una foto del carrete.'
+                    : 'Elige una foto del carrete. Puedes elegir hasta cinco.'
                   : 'Falta describir lo que se ve. Son dos líneas y es lo que hace que la vea todo el mundo.'}
             </Caption>
           ) : null}
@@ -326,7 +368,7 @@ export default function ComposeScreen() {
             // El medio no sobrevive al cambio: un vídeo no vale para una
             // publicación de foto y una foto cuadrada no vale para un reel.
             // Arrastrarlo daría un error al publicar y no al elegir.
-            setMediaUri(null);
+            setShots([]);
             setMode(next);
           }}
         />
@@ -337,6 +379,7 @@ export default function ComposeScreen() {
 
 function MediaPicker({
   uri,
+  count = 0,
   wantsVideo,
   optional,
   picking,
@@ -344,6 +387,8 @@ function MediaPicker({
   onClear,
 }: {
   uri: string | null;
+  /** Cuántas se han elegido. Con más de una, la vista previa lo dice. */
+  count?: number;
   wantsVideo: boolean;
   optional: boolean;
   picking: boolean;
@@ -355,25 +400,51 @@ function MediaPicker({
   if (uri && !wantsVideo) {
     return (
       <View style={{ gap: theme.space[2] }}>
-        <Image
-          source={{ uri }}
-          accessibilityLabel="La foto elegida"
-          accessible
-          style={{
-            width: '100%',
-            aspectRatio: 1,
-            borderRadius: theme.radius.lg,
-            backgroundColor: theme.colors.muted,
-          }}
-          resizeMode="cover"
-        />
+        <View>
+          <Image
+            source={{ uri }}
+            accessibilityLabel={count > 1 ? `La primera de ${count} fotos` : 'La foto elegida'}
+            accessible
+            style={{
+              width: '100%',
+              aspectRatio: 1,
+              borderRadius: theme.radius.lg,
+              backgroundColor: theme.colors.muted,
+            }}
+            resizeMode="cover"
+          />
+          {count > 1 ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: theme.space[3],
+                right: theme.space[3],
+                paddingHorizontal: theme.space[2],
+                paddingVertical: 2,
+                borderRadius: theme.radius.full,
+                backgroundColor: 'rgba(0,0,0,0.55)',
+              }}
+            >
+              <Text
+                style={{
+                  color: '#fff',
+                  fontFamily: fonts.bodyBold,
+                  fontSize: theme.fontSize['2xs'],
+                }}
+              >
+                {count} fotos
+              </Text>
+            </View>
+          ) : null}
+        </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Elegir otra"
+          accessibilityLabel={count > 1 ? 'Elegir otras' : 'Elegir otra'}
           onPress={onClear}
           style={{ minHeight: theme.touchTarget.min, justifyContent: 'center' }}
         >
-          <Caption>Elegir otra</Caption>
+          <Caption>{count > 1 ? 'Elegir otras' : 'Elegir otra'}</Caption>
         </Pressable>
       </View>
     );

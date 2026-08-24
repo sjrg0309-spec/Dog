@@ -30,11 +30,12 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { describeZone, formatDistance, shareAlertText } from '@petnav/core';
 
 import { Avatar } from './avatar';
-import { NavBar, Separator, useScrolled } from './chrome';
+import { NavBar, Separator } from './chrome';
 import { Icon } from './icon';
 import { MiniMap } from './mini-map';
 import { Press, Pulse } from './motion';
@@ -59,12 +60,13 @@ import {
 } from '@/lib/safety';
 import { shareResultNote, shareText } from '@/lib/share';
 import { Toast } from './toast';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 export function RescueBoard() {
   const theme = useTheme();
   const router = useRouter();
-  const { scrolled, onScroll } = useScrolled();
+  const { scrollY, onScroll } = useScrollDriver();
   const { location } = useWeatherState();
   const account = useAccount();
 
@@ -81,7 +83,8 @@ export function RescueBoard() {
     <Screen>
       <NavBar
         title="Rescate"
-        scrolled={scrolled}
+        scrolled={false}
+        scrollY={scrollY}
         trailing={
           <>
             <Pressable

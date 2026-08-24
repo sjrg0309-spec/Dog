@@ -4,6 +4,7 @@ import { useWeatherBootstrap } from '@/lib/conditions';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Registro } from '@/components/registro';
@@ -33,10 +34,20 @@ import { useTheme } from '@/lib/theme';
  * presenten por encima.
  */
 export default function RootLayout() {
+  /*
+   * La raíz de los gestos envuelve a todo.
+   *
+   * Sin ella, un gesto de Gesture Handler no llega a ninguna parte —y no falla:
+   * simplemente no pasa nada, que es la clase de error que cuesta media hora
+   * encontrar—. Va por fuera del área segura porque los gestos empiezan en el
+   * borde de la pantalla, que es justo lo que el área segura recorta.
+   */
   return (
-    <SafeAreaProvider>
-      <RootStack />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <RootStack />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

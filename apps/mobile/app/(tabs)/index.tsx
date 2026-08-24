@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { NavBar, useScrolled } from '@/components/chrome';
+import { NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { Appear } from '@/components/motion';
@@ -49,6 +50,7 @@ import { totalUnread, useThreads } from '@/lib/messages';
 import { useLiveAlerts } from '@/lib/safety';
 import { useStoriesOf, useStoryGroups } from '@/lib/stories';
 import { setSetting, useSettings } from '@/lib/settings';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -92,7 +94,7 @@ function PetFeed() {
   const conditions = useConditions(45);
   const { location } = useWeatherState();
   const { welfare } = discover(pet, conditions);
-  const { scrolled, onScroll } = useScrolled();
+  const { scrollY, onScroll } = useScrollDriver();
   const canSeePeople = useCan('live_people');
 
   const [tab, setTab] = useState<FeedTab>('nearby');
@@ -139,7 +141,8 @@ function PetFeed() {
     <Screen>
       <NavBar
         title="Petnav"
-        scrolled={scrolled}
+        scrolled={false}
+        scrollY={scrollY}
         trailing={
           <>
             {/* El animal activo primero: es el contexto de todo lo que hay
@@ -183,7 +186,7 @@ function PetFeed() {
         }
       />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[10] }}
@@ -327,7 +330,7 @@ function PetFeed() {
             </View>
           </Pressable>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }

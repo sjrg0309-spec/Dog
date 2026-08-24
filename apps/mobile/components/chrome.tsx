@@ -17,6 +17,11 @@
 import { useRouter } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 import { Icon } from './icon';
 import { fonts } from '@/lib/fonts';
@@ -32,15 +37,51 @@ export function NavBar({
   trailing,
   /** Ya se ha desplazado el contenido: toca enseñar la separación. */
   scrolled,
+  /**
+   * El desplazamiento en crudo, si la pantalla lo lleva.
+   *
+   * Con él, la separación **aparece progresivamente** en los primeros doce
+   * puntos de scroll en vez de encenderse de golpe al pasar de cuatro. Es la
+   * misma información —hay algo debajo— dicha sin un salto, y se calcula en el
+   * hilo de la interfaz, así que no depende de que JavaScript esté libre.
+   *
+   * Sigue siendo opcional: las pantallas que no se desplazan apenas —o que
+   * están detrás de una hoja— se quedan con el booleano, que no miente, solo es
+   * más basto.
+   */
+  scrollY,
   /** El título pequeño solo aparece cuando el grande ya no se ve. */
   showTitle = true,
+  /**
+   * A qué altura de scroll el título grande ha dejado de verse.
+   *
+   * Con esto el rótulo de la barra **se cruza** con el grande —uno se va
+   * mientras el otro llega— en vez de aparecer de golpe cuando un booleano
+   * cambia. Es el gesto de iOS, y lo que lo hace legible: en ningún momento hay
+   * dos títulos a plena tinta ni ninguno.
+   */
+  revealAt,
 }: {
   title: string;
   trailing?: ReactNode;
   scrolled: boolean;
+  scrollY?: SharedValue<number>;
   showTitle?: boolean;
+  revealAt?: number;
 }) {
   const theme = useTheme();
+
+  const hairline = useAnimatedStyle(() => ({
+    opacity: scrollY ? interpolate(scrollY.value, [0, 12], [0, 1], 'clamp') : scrolled ? 1 : 0,
+  }));
+
+  const titleStyle = useAnimatedStyle(() => {
+    if (!scrollY || revealAt === undefined) return { opacity: showTitle ? 1 : 0 };
+    return {
+      opacity: interpolate(scrollY.value, [revealAt - 28, revealAt], [0, 1], 'clamp'),
+      transform: [{ translateY: interpolate(scrollY.value, [revealAt - 28, revealAt], [6, 0], 'clamp') }],
+    };
+  });
 
   return (
     <View
@@ -51,23 +92,40 @@ export function NavBar({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: theme.colors.background,
-        borderBottomWidth: scrolled ? StyleSheet.hairlineWidth : 0,
-        borderBottomColor: theme.colors.border,
       }}
     >
-      <Text
+      {/* La separación es una capa aparte y no un borde del contenedor: un
+          borde no se puede desvanecer sin mover el contenido un pelo hacia
+          arriba al aparecer, y ese pelo se ve. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: StyleSheet.hairlineWidth,
+            backgroundColor: theme.colors.border,
+          },
+          hairline,
+        ]}
+      />
+      <Animated.Text
         accessibilityRole="header"
         numberOfLines={1}
-        style={{
-          flex: 1,
-          color: theme.colors.foreground,
-          fontFamily: fonts.displayBold,
-          fontSize: theme.fontSize.lg,
-          opacity: showTitle ? 1 : 0,
-        }}
+        style={[
+          {
+            flex: 1,
+            color: theme.colors.foreground,
+            fontFamily: fonts.displayBold,
+            fontSize: theme.fontSize.lg,
+          },
+          titleStyle,
+        ]}
       >
         {title}
-      </Text>
+      </Animated.Text>
       {trailing ? <View style={{ flexDirection: 'row', gap: theme.space[3] }}>{trailing}</View> : null}
     </View>
   );

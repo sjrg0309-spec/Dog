@@ -892,6 +892,26 @@ console.log(`consultas de tiempo: ${weatherCalls.length}`);
 const alive = await page.locator('#root').innerText();
 if (alive.trim().length < 80) problems.push('la app se quedó vacía tras fallar la consulta del tiempo');
 
+/*
+ * La barra tiene cinco pestañas, ni una más.
+ *
+ * Esta regla existe porque se rompió: al escribir la barra a mano, el filtro de
+ * rutas ocultas miraba `href`, que el enrutador ya se había comido, y la barra
+ * salió con catorce —radar, quedadas, publicar, citas…—. La comprobación
+ * anterior solo preguntaba si estaba «Rescate», así que pasó en verde con nueve
+ * pestañas de más. Contar es lo que la habría cazado.
+ */
+{
+  const count = await page.getByRole('tab').count();
+  console.log(`pestañas en la barra: ${count}`);
+  if (count !== 5) {
+    const names = await page
+      .getByRole('tab')
+      .evaluateAll((nodes) => nodes.map((node) => (node.getAttribute('aria-label') || node.textContent || '').trim()));
+    problems.push(`la barra tiene ${count} pestañas y no 5: ${names.join(', ')}`);
+  }
+}
+
 const loadedFonts = await page.evaluate(() => [...document.fonts].filter((font) => font.status === 'loaded').length);
 console.log(`tipografías cargadas: ${loadedFonts}`);
 if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada');

@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
+import { LargeTitle, NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { Badge, Body, Button, Caption, Card, Notice, Row, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
@@ -39,6 +40,7 @@ import {
 import { shareResultNote, shareText } from '@/lib/share';
 import { useHazardZones } from '@/lib/rescue';
 import { useSettings } from '@/lib/settings';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 import {
   shareAlertText,
@@ -82,7 +84,7 @@ import {
 export default function SosScreen() {
   const theme = useTheme();
   const { location } = useWeatherState();
-  const { scrolled, onScroll } = useScrolled();
+  const { scrollY, onScroll } = useScrollDriver();
   const activePet = useActivePet();
   const alerts = useAllAlerts(location);
 
@@ -93,9 +95,9 @@ export default function SosScreen() {
 
   return (
     <Screen>
-      <NavBar title="SOS" scrolled={scrolled} showTitle={scrolled} />
+      <NavBar title="SOS" scrolled={false} scrollY={scrollY} revealAt={64} />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[16] }}
@@ -186,7 +188,7 @@ export default function SosScreen() {
             <Caption>{SAFETY_DISCLAIMER}</Caption>
           </Notice>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }

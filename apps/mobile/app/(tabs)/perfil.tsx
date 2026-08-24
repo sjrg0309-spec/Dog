@@ -1,10 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Avatar } from '@/components/avatar';
-import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
+import { LargeTitle, NavBar, Separator } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { ProfileMenu } from '@/components/profile-menu';
@@ -60,6 +61,7 @@ import {
   walkModeCard,
   type MedicalEntry,
 } from '@/lib/medical';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 import { HEALTH_FLAG_LABEL, type HealthFlag } from '@petnav/core';
 
@@ -91,7 +93,7 @@ export default function ProfileScreen() {
 
 function PetProfile() {
   const theme = useTheme();
-  const { scrolled, onScroll } = useScrolled();
+  const { scrollY, onScroll } = useScrollDriver();
   const pet = useActivePet();
   const record = useMedicalRecord(pet.id);
   const posts = usePostsOf(pet.id);
@@ -134,8 +136,9 @@ function PetProfile() {
     <Screen>
       <NavBar
         title={pet.name}
-        scrolled={scrolled}
-        showTitle={scrolled}
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={64}
         trailing={
           <Pressable
             accessibilityRole="button"
@@ -158,7 +161,7 @@ function PetProfile() {
         }
       />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[16] }}
@@ -523,7 +526,7 @@ function PetProfile() {
             </Card>
           ) : null}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {menu ? (
         <ProfileMenu
@@ -601,7 +604,11 @@ function PostGrid({
           key={post.id}
           accessible
           accessibilityRole="image"
-          accessibilityLabel={post.imageAlt}
+          accessibilityLabel={
+            post.photos.length > 1
+              ? `${post.photos[0]!.alt}. ${post.photos.length} fotos`
+              : post.photos[0]!.alt
+          }
           style={{
             width: cell,
             height: cell,

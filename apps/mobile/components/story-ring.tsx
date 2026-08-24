@@ -82,7 +82,14 @@ export function StoryRing({
 
   return (
     <LinearGradient
-      colors={[theme.colors.liveRing, theme.colors.warning]}
+      /* Tres paradas y no dos.
+         Con dos, el aro se lee como un color con sombra; la tercera —el verde
+         de la casa— es la que lo convierte en un degradado y, de paso, la que
+         lo ata a esta aplicación en vez de a cualquier otra con un aro cálido.
+         El recorrido va de abajo-izquierda a arriba-derecha, que es donde cae
+         la luz en el resto de las ilustraciones. */
+      colors={[theme.colors.liveRing, theme.colors.warning, theme.colors.primary]}
+      locations={[0, 0.55, 1]}
       start={{ x: 0, y: 1 }}
       end={{ x: 1, y: 0 }}
       style={{

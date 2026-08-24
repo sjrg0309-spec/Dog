@@ -27,10 +27,13 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  ScrollView,
   TextInput,
   useWindowDimensions,
   View,
   type GestureResponderEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 
 import { useRouter } from 'expo-router';
@@ -38,6 +41,7 @@ import { useRouter } from 'expo-router';
 import { Avatar } from './avatar';
 import { Icon } from './icon';
 import { Pop } from './motion';
+import { Drawer } from './drawer';
 import { PawTrail } from './paw-trail';
 import { SceneView } from './scene';
 import { buildScene } from '@/lib/artwork';
@@ -349,13 +353,7 @@ export function PostCard({
           // pone `PostImage`.
           accessible={false}
         >
-          <PostImage
-            uri={post.imageUri}
-            alt={post.imageAlt}
-            seed={post.id}
-            petId={post.petId}
-            at={post.createdAt}
-          />
+          <PostCarousel post={post} />
         </Pressable>
         {trail ? (
           <PawTrail
@@ -628,24 +626,71 @@ export function PostCard({
         </Text>
       </View>
 
+      {/*
+        Los comentarios, en una hoja que se arrastra hacia abajo.
+
+        Antes se desplegaban dentro de la tarjeta, y eso tenía dos efectos que
+        solo se ven usándolo: la publicación crecía de golpe y empujaba a las de
+        abajo —se perdía el sitio donde se estaba leyendo—, y el campo de
+        escribir quedaba a media pantalla, encima del teclado, en el punto peor
+        de la mano. En una hoja, el texto está siempre abajo, la lista se
+        desplaza dentro, y se cierra con el gesto que ya hace todo el mundo.
+      */}
       {showComments ? (
-        <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[3] }}>
-          {post.comments.map((comment) => (
+        <Drawer title="Comentarios" onClose={() => setShowComments(false)}>
+          <ScrollView
+            contentContainerStyle={{
+              paddingHorizontal: theme.space[4],
+              paddingBottom: theme.space[4],
+              gap: theme.space[3],
+            }}
+          >
             <Text
-              key={comment.id}
+              accessibilityRole="header"
               style={{
                 color: theme.colors.foreground,
-                fontFamily: fonts.body,
-                fontSize: theme.fontSize.sm,
-                lineHeight: theme.fontSize.sm * 1.5,
+                fontFamily: fonts.displayBold,
+                fontSize: theme.fontSize.base,
+                paddingBottom: theme.space[1],
               }}
             >
-              <Text style={{ fontFamily: fonts.bodyBold }}>{comment.authorName}</Text>{' '}
-              {comment.body}
+              {post.comments.length === 0
+                ? 'Sin comentarios'
+                : post.comments.length === 1
+                  ? '1 comentario'
+                  : `${post.comments.length} comentarios`}
             </Text>
-          ))}
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+            {post.comments.map((comment) => (
+              <Text
+                key={comment.id}
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.sm,
+                  lineHeight: theme.fontSize.sm * 1.5,
+                }}
+              >
+                <Text style={{ fontFamily: fonts.bodyBold }}>{comment.authorName}</Text>{' '}
+                {comment.body}
+              </Text>
+            ))}
+          </ScrollView>
+
+          {/* El compositor, pegado abajo y fuera de la lista: es lo único que
+              no debe moverse al desplazar los comentarios. */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.space[2],
+              paddingHorizontal: theme.space[4],
+              paddingTop: theme.space[3],
+              paddingBottom: theme.space[3],
+              borderTopWidth: 1,
+              borderTopColor: theme.colors.border,
+            }}
+          >
             <TextInput
               value={draft}
               onChangeText={setDraft}
@@ -699,8 +744,135 @@ export function PostCard({
               />
             </Pressable>
           </View>
-        </View>
+        </Drawer>
       ) : null}
+
+    </View>
+  );
+}
+
+/**
+ * El carrusel de la publicación.
+ *
+ * Una salida no es una foto: el charco, el perro empapado y la cara de después
+ * son la misma historia. Obligar a elegir una convierte el feed en un
+ * muestrario, y por eso Instagram lleva diez años con el contador «1/3».
+ *
+ * Tres decisiones que no son evidentes:
+ *
+ *  - **Con una sola foto no hay carrusel.** Ni puntos, ni contador, ni
+ *    desplazamiento horizontal: una publicación de una foto tiene que
+ *    comportarse exactamente como antes. Un paginador de un punto es ruido que
+ *    además promete algo que no hay.
+ *  - **El paginador va dentro de la imagen y arriba**, no debajo. Debajo se
+ *    comía el sitio de la barra de reacciones, que es lo que uno quiere tocar.
+ *  - **Cada foto se anuncia con su descripción y su posición** —«2 de 3»—.
+ *    Quien no ve la pantalla no tiene los puntos, así que la única forma de
+ *    saber que hay más es que se lo digan.
+ *
+ * El desplazamiento va con `pagingEnabled`, que en React Native web se traduce
+ * a `scroll-snap`: el navegador hace el enganche, así que se siente como el del
+ * sistema y no como una animación imitándolo.
+ */
+function PostCarousel({ post }: { post: Post }) {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const [index, setIndex] = useState(0);
+  const photos = post.photos;
+
+  if (photos.length === 1) {
+    const only = photos[0]!;
+    return (
+      <PostImage
+        uri={only.uri}
+        alt={only.alt}
+        seed={post.id}
+        petId={post.petId}
+        at={post.createdAt}
+      />
+    );
+  }
+
+  return (
+    <View>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        /* El índice sale del desplazamiento y se redondea al ancho de la
+           pantalla. Con `Math.floor` el punto cambiaba un pelo antes de que la
+           foto acabara de encajar, y se veía. */
+        onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          const next = Math.round(event.nativeEvent.contentOffset.x / width);
+          if (next !== index) setIndex(next);
+        }}
+        scrollEventThrottle={16}
+      >
+        {photos.map((photo, position) => (
+          <PostImage
+            key={photo.path}
+            uri={photo.uri}
+            alt={`${photo.alt}. Foto ${position + 1} de ${photos.length}`}
+            seed={`${post.id}-${position}`}
+            petId={post.petId}
+            at={post.createdAt}
+          />
+        ))}
+      </ScrollView>
+
+      {/* El contador, arriba a la derecha, como en Instagram. Es lo que dice
+          que hay más antes de que el dedo lo descubra por casualidad. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: theme.space[3],
+          right: theme.space[3],
+          paddingHorizontal: theme.space[2],
+          paddingVertical: 2,
+          borderRadius: theme.radius.full,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+        }}
+      >
+        <Text
+          style={{
+            color: '#fff',
+            fontFamily: fonts.bodyBold,
+            fontSize: theme.fontSize['2xs'],
+          }}
+        >
+          {index + 1}/{photos.length}
+        </Text>
+      </View>
+
+      {/* Los puntos. Decorativos a propósito: la posición ya va en la etiqueta
+          de cada foto, y anunciarlos otra vez sería leer «2 de 3» dos veces. */}
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          position: 'absolute',
+          bottom: theme.space[3],
+          left: 0,
+          right: 0,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 6,
+        }}
+      >
+        {photos.map((photo, position) => (
+          <View
+            key={`dot-${photo.path}`}
+            style={{
+              width: position === index ? 7 : 6,
+              height: position === index ? 7 : 6,
+              borderRadius: theme.radius.full,
+              backgroundColor: position === index ? '#fff' : 'rgba(255,255,255,0.5)',
+            }}
+          />
+        ))}
+      </View>
     </View>
   );
 }

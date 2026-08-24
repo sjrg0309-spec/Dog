@@ -289,7 +289,9 @@ describe('publicaciones', () => {
     // eligió su tipografía por accesibilidad: dejarlo opcional sería
     // contradecirse.
     for (const post of SEED_FEED) {
-      expect(post.imageAlt.trim().length, post.petName).toBeGreaterThanOrEqual(3);
+      for (const photo of post.photos) {
+        expect(photo.alt.trim().length, `${post.petName}: ${photo.path}`).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 

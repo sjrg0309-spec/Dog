@@ -21,7 +21,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';
-import { Pulse } from './motion';
+import { Press, Pulse } from './motion';
 import { StoryRing } from './story-ring';
 import { useHandlerNeed } from '@/lib/account';
 import type { DemoPet } from '@/lib/data';
@@ -218,8 +218,15 @@ function Bubble({
       onPress={onPress}
       // El área táctil real es la burbuja entera más su rótulo: 70 × 88, por
       // encima del mínimo de 44 que pide la guía.
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+      style={{ width: 70 }}
     >
+      {({ pressed }) => (
+      /* La burbuja se hunde bajo el dedo en vez de aclararse. Bajar la opacidad
+         era lo que había, y sobre una fila de retratos de colores se lee como
+         que la foto se ha estropeado; encoger se lee como que el dedo ha
+         entrado. 0,92 y no 0,97 como en las tarjetas: una burbuja de setenta
+         puntos necesita más recorrido para que se note lo mismo. */
+      <Press pressed={pressed} scale={0.92}>
       <View style={{ alignItems: 'center', gap: theme.space[1], width: 70 }}>
         <View>
           {/* El pulso es el único movimiento continuo de la aplicación y solo
@@ -300,6 +307,8 @@ function Bubble({
           {label}
         </Text>
       </View>
+      </Press>
+      )}
     </Pressable>
   );
 }
