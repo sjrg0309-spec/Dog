@@ -92,6 +92,9 @@ await tap('Siguiente');
 await shot('17-chip');
 await tap('Omitir');
 await shot('18-resumen');
+await tap('Entrar');
+await page.waitForTimeout(900);
+await shot('19-tu-barrio');
 
 console.log('capturas del alta listas');
 await browser.close();

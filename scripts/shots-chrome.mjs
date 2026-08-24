@@ -81,6 +81,8 @@ await chip('Mañana');
 await next();
 await next('Omitir');
 await next('Entrar');
+await page.waitForTimeout(500);
+await next('Entrar');
 await page.waitForTimeout(1400);
 
 await page.screenshot({ path: `${OUT}chrome-feed.png` });

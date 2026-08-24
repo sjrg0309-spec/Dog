@@ -394,6 +394,32 @@ export type DemoSpot = {
   zone: string;
   /** Especies para las que este espacio tiene sentido. */
   speciesIds: string[];
+  /**
+   * Los datos duros del sitio.
+   *
+   * Van aparte de la descripción a propósito. «Media hectárea vallada con
+   * arbolado» es una frase bonita que hay que leer entera para saber si sirve;
+   * `sizeM2`, `fenceHeightCm` y `hasShade` se comparan de un vistazo entre dos
+   * espacios, que es lo que de verdad se hace antes de reservar. Es lo que
+   * hacen las plataformas de alquiler de patios, y es la diferencia entre una
+   * ficha y un anuncio.
+   */
+  sizeM2: number;
+  /** Nulo si no está vallado. En metros no: en centímetros, que es como se mide. */
+  fenceHeightCm: number | null;
+  hasWater: boolean;
+  hasShade: boolean;
+  /** Qué se pisa: importa para las almohadillas y para el barro. */
+  surface: 'hierba' | 'tierra' | 'grava' | 'mixto';
+  /**
+   * La dirección exacta y cómo se entra.
+   *
+   * **No se enseña hasta que la reserva está confirmada.** Es la propiedad
+   * privada de alguien: publicarla a cualquiera que abra la aplicación es
+   * exactamente lo que haría que ningún anfitrión publicara su patio.
+   */
+  address: string;
+  accessNotes: string;
 };
 
 export const SPOTS: DemoSpot[] = [
@@ -407,6 +433,13 @@ export const SPOTS: DemoSpot[] = [
     isFenced: true,
     zone: 'Chamberí',
     speciesIds: ['dog'],
+    sizeM2: 200,
+    fenceHeightCm: 200,
+    hasWater: true,
+    hasShade: false,
+    surface: 'tierra',
+    address: 'Calle de Fernández de los Ríos 84, portal 2, patio interior',
+    accessNotes: 'El portal se abre con el código 4417. El patio está al fondo, cruzando el zaguán.',
   },
   {
     id: '40000000-0000-4000-8000-000000000002',
@@ -419,6 +452,13 @@ export const SPOTS: DemoSpot[] = [
     isFenced: true,
     zone: 'Las Rozas',
     speciesIds: ['dog'],
+    sizeM2: 5000,
+    fenceHeightCm: 180,
+    hasWater: true,
+    hasShade: true,
+    surface: 'hierba',
+    address: 'Camino del Garzo 12, Las Rozas',
+    accessNotes: 'Cancela verde a la derecha de la casa. La llave está en la caja con código 2050.',
   },
 ];
 

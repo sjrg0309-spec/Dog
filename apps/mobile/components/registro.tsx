@@ -49,6 +49,11 @@ import { Animated, Easing, Pressable, ScrollView, Text, TextInput, View } from '
 
 import {
   ASSISTANCE_ACCESS_NOTE,
+  accessLevel,
+  can,
+  describeOverlap,
+  scheduleOverlap,
+  whyNot,
   FORGOT_NOTE,
   NO_SERVER_NOTE,
   PASSWORD_ADVICE,
@@ -93,6 +98,8 @@ import { SceneView } from './scene';
 import { LiveCard, LiveMatches, LiveSchedule, portraitSeed } from './registro-live';
 import { Body, Caption, Screen } from '@/components/ui';
 import { registerPet, registerShelter, signIn } from '@/lib/account';
+import { Avatar } from './avatar';
+import { OTHER_PETS } from '@/lib/demo-data';
 import { buildScene } from '@/lib/artwork';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -663,6 +670,17 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   const theme = useTheme();
 
   const [index, setIndex] = useState(0);
+  /*
+   * El último paso no entra en la aplicación: enseña el barrio.
+   *
+   * Es lo mejor del alta de Dogo —una pantalla que convierte las respuestas en
+   * algo antes de soltarte dentro— y aquí puede ser verdad en vez de una
+   * animación: los números salen del mismo cálculo de solapamiento que usa el
+   * descubrimiento. El alta se ejecuta al pulsar «Entrar» en esa pantalla, no
+   * antes, porque registrar abre la aplicación y se llevaría por delante el
+   * momento.
+   */
+  const [showing, setShowing] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [breeds, setBreeds] = useState<string[]>([]);
@@ -1275,6 +1293,54 @@ Qué verás al entrar
   const step = steps[index]!;
   const last = index === steps.length - 1;
 
+  /**
+   * Entrar de verdad: el alta se ejecuta aquí, al final del todo.
+   *
+   * Va después de la pantalla del barrio y no antes porque registrar abre la
+   * aplicación —el estado de la cuenta es lo que decide qué se pinta— y se
+   * llevaría por delante el único momento en que las respuestas se convierten
+   * en algo delante de quien las ha dado.
+   */
+  const enter = () => {
+    if (!chosenSlot || sex === null) return;
+    haptics.commit();
+    registerPet({
+      ...draft,
+      /* El mismo identificador con el que se dibujó el retrato durante el
+         alta: así el perro que sale al entrar es el que estabas mirando y no
+         otro que aparece de golpe. */
+      seed: portraitSeed({ name, breeds, size }),
+      email: validateEmail(email).ok
+        ? (validateEmail(email) as { normalized: string }).normalized
+        : undefined,
+      sex,
+      days,
+      startTime: chosenSlot.start,
+      endTime: chosenSlot.end,
+      microchipCode: chipCheck?.valid ? chipCheck.normalized : null,
+      breedLabel: describeBreeds(breeds),
+      healthFlags: flags,
+      trustCircle: trust,
+      role,
+      assistanceType: assistanceType ?? undefined,
+      showRole,
+      handler: { autistic: autistic || undefined, needs },
+    });
+  };
+
+  if (showing && chosenSlot) {
+    return (
+      <TuBarrio
+        name={name.trim()}
+        days={days}
+        startTime={chosenSlot.start}
+        endTime={chosenSlot.end}
+        chipVerified={false}
+        onEnter={enter}
+      />
+    );
+  }
+
   return (
     <Wizard
       steps={steps.length}
@@ -1294,32 +1360,206 @@ Qué verás al entrar
         }
         if (!chosenSlot || sex === null) return;
         haptics.commit();
-        registerPet({
-          ...draft,
-          /* El mismo identificador con el que se dibujó el retrato durante el
-             alta: así el perro que sale al entrar es el que estabas mirando y
-             no otro que aparece de golpe. */
-          seed: portraitSeed({ name, breeds, size }),
-          email: validateEmail(email).ok ? (validateEmail(email) as { normalized: string }).normalized : undefined,
-          sex,
-          days,
-          startTime: chosenSlot.start,
-          endTime: chosenSlot.end,
-          microchipCode: chipCheck?.valid ? chipCheck.normalized : null,
-          breedLabel: describeBreeds(breeds),
-          healthFlags: flags,
-          trustCircle: trust,
-          role,
-          assistanceType: assistanceType ?? undefined,
-          showRole,
-          handler: { autistic: autistic || undefined, needs },
-        });
+        setShowing(true);
       }}
       onSkip={() => {
         step.onLeave?.();
         setIndex(index + 1);
       }}
     />
+  );
+}
+
+/**
+ * Tu barrio: lo que han producido las once respuestas.
+ *
+ * Es lo mejor del alta de Dogo —la pantalla de «construyendo tu plan», que
+ * convierte un cuestionario largo en algo antes de soltarte dentro— con una
+ * diferencia que importa: **aquí los números son de verdad**. Salen del mismo
+ * cálculo de solapamiento horario que usa el descubrimiento, contra los perros
+ * del barrio de la demostración. No hay barra de progreso falsa ni «analizando
+ * tus respuestas» de dos segundos.
+ *
+ * Y hace la segunda cosa que ninguna pantalla de bienvenida hace: **decir qué
+ * está cerrado y por qué**. La puerta del radar —quién pasea ahora, a qué hora
+ * sale cada uno— se abre al verificar el chip, y este es el único momento en
+ * que esa frase llega antes de chocarse con ella.
+ */
+function TuBarrio({
+  name,
+  days,
+  startTime,
+  endTime,
+  chipVerified,
+  onEnter,
+}: {
+  name: string;
+  days: readonly number[];
+  startTime: string;
+  endTime: string;
+  chipVerified: boolean;
+  onEnter: () => void;
+}) {
+  const theme = useTheme();
+
+  const matches = useMemo(() => {
+    const mine = days.map((weekday) => ({ weekday, startTime, endTime }));
+    return OTHER_PETS.map((other) => ({
+      other,
+      overlap: scheduleOverlap(mine, other.availability),
+    })).filter((entry) => entry.overlap.totalMinutes > 0);
+  }, [days, startTime, endTime]);
+
+  const best = matches
+    .slice()
+    .sort((a, b) => b.overlap.totalMinutes - a.overlap.totalMinutes)[0];
+
+  const level = accessLevel({
+    kind: 'tutor',
+    pets: 1,
+    microchipVerified: chipVerified,
+    walks: 0,
+    meetupsAttended: 0,
+    shelterProfile: null,
+    shelterReviewed: false,
+  });
+
+  const doors = [
+    { capability: 'places' as const, label: 'Los sitios del mapa' },
+    { capability: 'feed' as const, label: 'El feed del barrio' },
+    { capability: 'live_people' as const, label: 'Quién pasea ahora' },
+    { capability: 'schedules' as const, label: 'Los horarios de los demás' },
+  ];
+
+  return (
+    <Screen>
+      <ScrollView contentContainerStyle={{ padding: theme.space[6], gap: theme.space[6] }}>
+        <Appear>
+          <View style={{ gap: theme.space[2] }}>
+            <Text
+              style={{
+                color: theme.colors.primary,
+                fontFamily: fonts.displayBold,
+                fontSize: theme.fontSize.sm,
+                letterSpacing: 0.6,
+                textTransform: 'uppercase',
+              }}
+            >
+              Ya está
+            </Text>
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayExtrabold,
+                fontSize: theme.fontSize['3xl'],
+                letterSpacing: -0.6,
+                lineHeight: theme.fontSize['3xl'] * 1.1,
+              }}
+            >
+              {matches.length === 0
+                ? `Este es el barrio de ${name}`
+                : matches.length === 1
+                  ? `${name} ya coincide con 1 perro`
+                  : `${name} ya coincide con ${matches.length} perros`}
+            </Text>
+            <Body muted>
+              {best
+                ? `Con ${best.other.name}, de ${best.other.ownerName}, sois quienes más coincidís: ${describeOverlap(best.overlap) ?? 'algún rato a la semana'}.`
+                : 'Con ese horario todavía no coincides con nadie. En cuanto alguien más se dé de alta a tu hora, aparece aquí.'}
+            </Body>
+          </View>
+        </Appear>
+
+        {/* Los tres o cuatro nombres, con su cara. Es la diferencia entre un
+            número y un barrio. */}
+        {matches.length > 0 ? (
+          <Appear index={1}>
+            <View style={{ gap: theme.space[3] }}>
+              {matches.slice(0, 3).map(({ other, overlap }) => (
+                <View
+                  key={other.id}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}
+                >
+                  <Avatar id={other.id} name={other.name} size={40} />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: theme.colors.foreground,
+                        fontFamily: fonts.bodyBold,
+                        fontSize: theme.fontSize.base,
+                      }}
+                    >
+                      {/* El nombre y de quién es. En un barrio hay tres Lunas y
+                          dos Tobys, y sin el tutor la lista es un acertijo —más
+                          aún si tu perro se llama igual que el del vecino. */}
+                      {other.name} · de {other.ownerName}
+                    </Text>
+                    <Caption>{describeOverlap(overlap) ?? 'Coincidís algún rato'}</Caption>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Appear>
+        ) : null}
+
+        {/* Qué se abre y qué no, dicho aquí y no cuando alguien se choque. */}
+        <Appear index={2}>
+          <View
+            style={{
+              gap: theme.space[3],
+              padding: theme.space[4],
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.surface,
+            }}
+          >
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayBold,
+                fontSize: theme.fontSize.base,
+              }}
+            >
+              Lo que se abre hoy
+            </Text>
+            {doors.map((door) => {
+              const open = can(level, door.capability);
+              return (
+                <View
+                  key={door.capability}
+                  style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.space[3] }}
+                >
+                  <Icon
+                    icon={open ? Check : Lock}
+                    size="base"
+                    color={open ? theme.colors.success : theme.colors.mutedForeground}
+                    decorative
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: open ? theme.colors.foreground : theme.colors.mutedForeground,
+                        fontFamily: open ? fonts.bodyBold : fonts.body,
+                        fontSize: theme.fontSize.sm,
+                      }}
+                    >
+                      {door.label}
+                    </Text>
+                    {!open ? <Caption>{whyNot(level, door.capability)}</Caption> : null}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </Appear>
+      </ScrollView>
+
+      <View style={{ padding: theme.space[6], paddingTop: theme.space[3] }}>
+        <BigButton label="Entrar" icon={PawPrint} onPress={onEnter} />
+      </View>
+    </Screen>
   );
 }
 

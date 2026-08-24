@@ -360,8 +360,32 @@ if (!/Hocico chato/i.test(summary)) {
      grados. */
   problems.push('la raza de hocico chato no llegó a marcar la señal de salud');
 }
+/*
+ * El alta no entra en la aplicación: enseña el barrio.
+ *
+ * Es el momento en que las once respuestas se convierten en algo, y lo que
+ * hay que comprobar es que **los números son de verdad** —salen del mismo
+ * solapamiento horario que el descubrimiento— y que ahí se dice qué queda
+ * cerrado. Una pantalla de bienvenida que solo felicita no necesita
+ * comprobación; esta sí, porque afirma cosas.
+ */
 await next('Entrar');
 await page.waitForTimeout(900);
+
+const barrio = (await page.locator('#root').innerText()).trim();
+if (!/coincide con \d+ perros?|todavía no coincides con nadie/i.test(barrio)) {
+  problems.push(`el final del alta no enseña con quién coincides: ${barrio.slice(0, 120)}`);
+}
+if (!/Lo que se abre hoy/i.test(barrio)) {
+  problems.push('el final del alta no dice qué se abre y qué no');
+}
+if (!/Quién pasea ahora/i.test(barrio)) {
+  problems.push('el final del alta no nombra la puerta que queda cerrada');
+}
+console.log(`fin del alta: ${/coincide con (\d+) perros?/i.exec(barrio)?.[0] ?? 'sin coincidencias'}`);
+
+await page.getByRole('button', { name: 'Entrar', exact: true }).first().click();
+await page.waitForTimeout(1200);
 
 if (!(await page.getByRole('tab', { name: /Explorar/i }).count())) {
   problems.push('tras dar de alta al animal la aplicación no se abrió');
@@ -851,6 +875,88 @@ for (const tab of TABS) {
 }
 
 /*
+ * La dirección de un espacio no existe hasta que hay reserva confirmada.
+ *
+ * Es la regla de privacidad más fácil de romper sin enterarse: basta con que
+ * alguien pinte la ficha entera «para que se vea completa». Por eso no se mira
+ * si hay un aviso que lo promete —un aviso se deja puesto con la calle debajo—
+ * sino **si la calle está en la pantalla**, antes y después.
+ *
+ * La cadena que se busca es un trozo de la dirección de la semilla. Si mañana
+ * cambia la semilla, esta comprobación falla y hay que actualizarla: es
+ * preferible a que pase en silencio.
+ */
+{
+  const CALLE = 'Fernández de los Ríos';
+
+  const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
+  if (!(await mapTab.count())) {
+    problems.push('no se encontró el mapa para entrar a los espacios');
+  } else {
+    await mapTab.click();
+    await page.waitForTimeout(900);
+
+    const toSpots = page
+      .getByRole('link', { name: /Espacios privados/i })
+      .or(page.getByRole('button', { name: /Espacios privados/i }))
+      .first();
+
+    if (!(await toSpots.count())) {
+      problems.push('no se encontró el acceso a los espacios desde el mapa');
+    } else {
+      await toSpots.click();
+      await page.waitForTimeout(1400);
+
+      const before = (await page.locator('#root').innerText()).trim();
+      if (!/200 m²/.test(before) || !/Valla de 2 m/.test(before)) {
+        problems.push('la ficha del espacio no enseña los datos duros');
+      }
+      if (!/Sin sombra/.test(before)) {
+        problems.push('la ficha solo enseña lo que el sitio tiene: lo que le falta no sale');
+      }
+      if (before.includes(CALLE)) {
+        problems.push('la dirección del espacio se ve sin haber reservado');
+      }
+
+      const propose = page.getByRole('button', { name: /^Proponer reserva/ }).first();
+      if (!(await propose.count())) {
+        problems.push('no se puede proponer una reserva');
+      } else {
+        await propose.scrollIntoViewIfNeeded().catch(() => {});
+        await propose.click();
+        await page.waitForTimeout(700);
+
+        const proposed = (await page.locator('#root').innerText()).trim();
+        if (proposed.includes(CALLE)) {
+          problems.push('proponer una reserva ya enseña la dirección: proponer no es entrar');
+        }
+        if (!/Propuesta enviada/i.test(proposed)) {
+          problems.push('proponer una reserva no cambia nada en la ficha');
+        }
+
+        const simulate = page.getByRole('button', { name: /Simular que el anfitrión acepta/i }).first();
+        if (!(await simulate.count())) {
+          problems.push('no hay forma de ver una reserva confirmada en la demo');
+        } else {
+          await simulate.scrollIntoViewIfNeeded().catch(() => {});
+          await simulate.click();
+          await page.waitForTimeout(800);
+
+          const confirmed = (await page.locator('#root').innerText()).trim();
+          console.log(`dirección tras confirmar: ${confirmed.includes(CALLE) ? 'aparece' : 'no aparece'}`);
+          if (!confirmed.includes(CALLE)) {
+            problems.push('con la reserva confirmada la dirección sigue sin aparecer');
+          }
+          if (!/deja de verse si se cancela/i.test(confirmed)) {
+            problems.push('la dirección aparece sin decir quién la tiene ni hasta cuándo');
+          }
+        }
+      }
+    }
+  }
+}
+
+/*
  * La única petición que sale del fichero es la del tiempo, y tiene que salir.
  *
  * Esta comprobación cambió de signo cuando el clima pasó a ser automático:
@@ -902,10 +1008,13 @@ if (alive.trim().length < 80) problems.push('la app se quedó vacía tras fallar
  * pestañas de más. Contar es lo que la habría cazado.
  */
 {
-  const count = await page.getByRole('tab').count();
+  /* Se cuentan las de **la barra**, no las del documento: el conmutador de
+     mascota también son pestañas, y con tres animales el total daba ocho. */
+  const bar = page.getByRole('tablist', { name: 'Navegación principal' });
+  const count = await bar.getByRole('tab').count();
   console.log(`pestañas en la barra: ${count}`);
   if (count !== 5) {
-    const names = await page
+    const names = await bar
       .getByRole('tab')
       .evaluateAll((nodes) => nodes.map((node) => (node.getAttribute('aria-label') || node.textContent || '').trim()));
     problems.push(`la barra tiene ${count} pestañas y no 5: ${names.join(', ')}`);

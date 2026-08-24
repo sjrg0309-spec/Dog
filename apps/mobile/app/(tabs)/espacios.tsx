@@ -1,25 +1,20 @@
 import { ScrollView, View } from 'react-native';
 
-import { formGroup, formatCents, splitCost } from '@petnav/core';
 
 import { NavBar, useScrolled } from '@/components/chrome';
 import { PetSwitcher } from '@/components/pet-switcher';
+import { SpotCard } from '@/components/spot-card';
 import {
-  Badge,
   Body,
-  Button,
   Caption,
   Card,
   Eyebrow,
-  Heading,
   Notice,
-  Row,
   Screen,
   Title,
 } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { petHasMeetups, speciesOf, spotsFor } from '@/lib/data';
-import { OTHER_PETS } from '@/lib/demo-data';
 import { speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
 
@@ -98,68 +93,9 @@ export default function SpotsScreen() {
           </Notice>
         ) : null}
 
-        {available.map((spot) => {
-          // El grupo se forma solo entre animales de la misma especie: el
-          // algoritmo veta el resto, pero filtrar antes evita proponer un grupo
-          // vacío y tener que explicarlo después.
-          const pool = OTHER_PETS.filter((other) => other.speciesId === pet.speciesId);
-          const group = formGroup(pet, pool, { maxPets: spot.maxPets, minAffinity: 60 });
-          const shares = splitCost(spot.pricePerSlotCents, group.pets.length);
-          const perPet = shares[0] ?? 0;
-
-          return (
-            <Card key={spot.id}>
-              <Row>
-                <Heading>{spot.title}</Heading>
-                {spot.isFenced ? <Badge tone="accent">Cerrado</Badge> : null}
-              </Row>
-
-              <Caption>
-                {spot.zone} · hasta {spot.maxPets} animales ·{' '}
-                {formatCents(spot.pricePerSlotCents)} por{' '}
-                {spot.slotMinutes >= 60 ? `${spot.slotMinutes / 60} h` : `${spot.slotMinutes} min`}
-              </Caption>
-
-              <Caption>Admite: {spot.speciesIds.map(speciesName).join(', ')}</Caption>
-
-              <Body muted>{spot.description}</Body>
-
-              <View
-                style={{
-                  backgroundColor: theme.colors.surfaceSunken,
-                  borderRadius: theme.radius.md,
-                  padding: theme.space[3],
-                  gap: theme.space[2],
-                }}
-              >
-                <Body>Grupo propuesto</Body>
-                <Row>
-                  {group.pets.map((member) => (
-                    <Badge key={member.id} tone={member.id === pet.id ? 'accent' : 'neutral'}>
-                      {'name' in member ? (member as { name: string }).name : member.id}
-                    </Badge>
-                  ))}
-                </Row>
-                <Caption>
-                  Afinidad del grupo {group.affinity.min} % · {formatCents(perPet)} cada uno
-                </Caption>
-                {group.rejected.length > 0 ? (
-                  <Caption>
-                    {group.rejected.length === 1
-                      ? '1 quedó fuera del grupo'
-                      : `${group.rejected.length} quedaron fuera del grupo`}
-                    : {group.rejected[0]?.reason.toLowerCase()}
-                  </Caption>
-                ) : null}
-              </View>
-
-              <Button
-                label={`Proponer reserva · ${formatCents(perPet)} cada uno`}
-                accessibilityHint="Envía la propuesta al grupo y al anfitrión"
-              />
-            </Card>
-          );
-        })}
+        {available.map((spot) => (
+          <SpotCard key={spot.id} pet={pet} spot={spot} />
+        ))}
 
         <Notice>
           <Body>El pago se acuerda con el anfitrión, todavía no en la aplicación.</Body>
@@ -173,8 +109,8 @@ export default function SpotsScreen() {
         <Notice>
           <Body>La dirección exacta llega al confirmar.</Body>
           <Caption>
-            Antes solo se muestra la zona: es la propiedad privada de alguien y no se publica a
-            cualquiera que abra la aplicación.
+            Antes solo se muestra la zona. Y no es una promesa de este aviso: hasta que la reserva
+            está confirmada, la dirección no está en la pantalla.
           </Caption>
         </Notice>
       </ScrollView>

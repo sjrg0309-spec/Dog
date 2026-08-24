@@ -30,6 +30,7 @@ export function PetSwitcher() {
   return (
     <View
       accessibilityRole="tablist"
+      accessibilityLabel="Mascota que estás mirando"
       style={{
         flexDirection: 'row',
         gap: theme.space[2],

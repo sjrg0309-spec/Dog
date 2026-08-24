@@ -425,8 +425,20 @@ export function buildScene(options: {
   width: number;
   height: number;
   pose?: Pose;
+  /**
+   * Qué se está dibujando.
+   *
+   * `pet` es lo de siempre: el animal es el sujeto. `place` dibuja **el sitio y
+   * nadie dentro**, que es lo que necesita la galería de un espacio en
+   * alquiler: enseñar un patio con un perro que no es el tuyo sería vender la
+   * foto de otro animal como si fuera parte del sitio.
+   */
+  subject?: 'pet' | 'place';
+  /** En un sitio, si está vallado se dibuja la valla. El dibujo dice el dato. */
+  fenced?: boolean;
 }): Scene {
   const { seed, petId, at, width, height } = options;
+  const subject = options.subject ?? 'pet';
   const random = rng(hashOf(seed));
   const petRandom = rng(hashOf(petId));
 
@@ -494,28 +506,66 @@ export function buildScene(options: {
     items.push(...tree(tx, horizon + height * 0.02, th, random() > 0.6, { near: ground.near, far: ground.far }));
   }
 
+  /*
+   * La valla, cuando el sitio la tiene.
+   *
+   * Solo en las escenas de sitio: en una foto de paseo la valla no significa
+   * nada, y en la ficha de un patio en alquiler es **el dato que más se mira**.
+   * Va delante de los árboles y detrás de la hierba, que es donde estaría.
+   */
+  if (subject === 'place' && options.fenced) {
+    const fenceY = horizon + (height - horizon) * 0.36;
+    const postCount = Math.max(6, Math.round(width / 46));
+    const step = width / postCount;
+    const postHeight = Math.min(width, height) * 0.11;
+    const wood = time === 'night' ? hex(bone[400]) : hex(bone[300]);
+    for (let index = 0; index <= postCount; index += 1) {
+      const px = index * step;
+      items.push({
+        kind: 'rect',
+        x: px - 2,
+        y: fenceY - postHeight,
+        w: 4,
+        h: postHeight,
+        fill: wood,
+      });
+    }
+    for (const ratio of [0.32, 0.68]) {
+      items.push({
+        kind: 'rect',
+        x: 0,
+        y: fenceY - postHeight * ratio - 2,
+        w: width,
+        h: 4,
+        fill: wood,
+      });
+    }
+  }
+
   // El perro, sobre la línea del suelo y a un tercio del ancho.
   // El perro es el sujeto: ocupa sitio. A escala menor la escena se leía como
   // un paisaje con un bicho pequeño en una esquina.
   const dogScale = Math.min(width, height) / 135;
   const dogX = width * (0.32 + random() * 0.3);
   const dogY = horizon + (height - horizon) * (0.62 + random() * 0.18);
-  items.push(
-    ...dog({
-      x: dogX,
-      y: dogY,
-      scale: dogScale,
-      pose,
-      coat,
-      long,
-      legs,
-      floppyEars,
-      facingLeft: random() > 0.5,
-    }),
-  );
+  if (subject === 'pet') {
+    items.push(
+      ...dog({
+        x: dogX,
+        y: dogY,
+        scale: dogScale,
+        pose,
+        coat,
+        long,
+        legs,
+        floppyEars,
+        facingLeft: random() > 0.5,
+      }),
+    );
+  }
 
   // Una pelota, cuando corre. Es la mitad de lo que se publica aquí.
-  if (pose === 'run') {
+  if (subject === 'pet' && pose === 'run') {
     items.push({
       kind: 'ellipse',
       cx: dogX + width * 0.22,

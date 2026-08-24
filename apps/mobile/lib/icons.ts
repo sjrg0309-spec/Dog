@@ -29,6 +29,7 @@ export {
   Radar,
   CalendarDays,
   Fence,
+  Ruler,
   Users,
   ChevronLeft,
   ChevronRight,

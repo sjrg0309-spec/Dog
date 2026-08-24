@@ -101,6 +101,13 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     <Animated.View style={[{ overflow: 'hidden' }, barStyle]}>
       <Glass style={{ flex: 1 }}>
         <View
+          /* Una barra de pestañas es una lista de pestañas, y decirlo tiene dos
+             efectos: un lector de pantalla anuncia «1 de 5» al recorrerla, y la
+             auditoría puede contar **las de la barra** en vez de todas las del
+             documento —el conmutador de mascota también son pestañas, y contarlo
+             todo junto daba ocho—. */
+          accessibilityRole="tablist"
+          accessibilityLabel="Navegación principal"
           onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
           style={{
             flex: 1,
