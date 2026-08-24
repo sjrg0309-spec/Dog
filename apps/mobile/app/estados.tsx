@@ -12,6 +12,7 @@ import {
 
 import { Avatar } from '@/components/avatar';
 import { SceneView } from '@/components/scene';
+import { SwipeToClose } from '@/components/swipe-to-close';
 import { buildScene } from '@/lib/artwork';
 import { Icon } from '@/components/icon';
 import { useActivePet } from '@/lib/active-pet';
@@ -175,7 +176,10 @@ export default function StoriesScreen() {
   const mine = story.petId === me.id;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    /* Arrastrar hacia abajo cierra el visor, que es lo que la mano hace sola en
+       una pantalla sin cromo. El botón de cerrar sigue estando: el gesto es un
+       atajo para quien lo conoce, no el único camino. */
+    <SwipeToClose onClose={close}>
       {/* El medio, a pantalla completa y detrás de todo lo demás. */}
       <StoryMedia story={story} width={width} height={height} />
 
@@ -403,7 +407,7 @@ export default function StoriesScreen() {
           </Text>
         ) : null}
       </View>
-    </View>
+    </SwipeToClose>
   );
 }
 

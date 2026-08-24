@@ -29,7 +29,6 @@
  * al contenido en cuanto se empieza a leer.
  */
 
-import { useCallback } from 'react';
 import {
   makeMutable,
   useAnimatedScrollHandler,
@@ -102,12 +101,11 @@ export function useScrollDriver(): ScrollDriver {
 /**
  * Devolver el cromo a su sitio.
  *
- * Lo llama quien cambia de pantalla o de pestaña: llegar a una pantalla nueva
- * con la barra condensada por el scroll de la anterior es heredar un estado que
- * no se ha provocado aquí.
+ * Lo llama quien cambia de pestaña: llegar a una pantalla nueva con la barra
+ * condensada por el desplazamiento de la anterior es heredar un estado que no
+ * se ha provocado allí. Salió en una captura —Explorar con los rótulos
+ * escondidos sin haberse desplazado nunca— y no en el tipado.
  */
-export function useResetChrome(): () => void {
-  return useCallback(() => {
-    chromeCondensed.value = withSpring(0, CHROME_SPRING);
-  }, []);
+export function resetChrome(): void {
+  chromeCondensed.value = withSpring(0, CHROME_SPRING);
 }

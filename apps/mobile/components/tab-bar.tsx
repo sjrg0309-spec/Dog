@@ -43,7 +43,7 @@ import { Glass } from './glass';
 import { springs } from './motion';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { chromeCondensed } from '@/lib/scroll';
+import { chromeCondensed, resetChrome } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 /** Alto de la barra sin el área segura, entera y condensada. */
@@ -143,6 +143,12 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 icon={options.tabBarIcon}
                 onPress={() => {
                   haptics.tap();
+                  /* La barra vuelve entera al cambiar de pestaña. Se vio en una
+                     captura: se llegaba a Explorar con los rótulos escondidos
+                     porque el dedo había bajado en el feed, y esa pantalla no
+                     se había desplazado nunca. El estado del cromo es de la
+                     pantalla que se desplaza, no de la aplicación. */
+                  resetChrome();
                   const event = navigation.emit({
                     type: 'tabPress',
                     target: route.key,
