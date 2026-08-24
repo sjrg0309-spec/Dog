@@ -102,7 +102,7 @@ if (/no encontr|unmatched|not found/i.test(body.slice(0, 400))) {
  * texto solamente —un cartel se puede dejar puesto con la aplicación detrás—,
  * sino que **no exista la barra de pestañas**: si hay pestañas, hay aplicación.
  */
-if (!/Petnav/i.test(body) || !/dar de alta a tu mascota/i.test(body)) {
+if (!/Petnav/i.test(body) || !/Aquí se entra con tu perro/i.test(body)) {
   problems.push('la aplicación no arrancó en la bienvenida: la puerta no está puesta');
 }
 if (await page.getByRole('tab', { name: /Explorar/i }).count()) {
@@ -161,7 +161,7 @@ for (const label of ['Comenzar ahora', 'Ya tengo cuenta']) {
 await page.getByRole('button', { name: 'Comenzar ahora', exact: true }).first().click();
 await page.waitForTimeout(600);
 
-if (!(await page.getByRole('button', { name: /Rescato y no tengo perro/i }).count())) {
+if (!(await page.getByRole('button', { name: /No, yo rescato/i }).count())) {
   problems.push('falta la segunda puerta: quien rescata y no tiene animal propio');
 }
 
@@ -194,7 +194,7 @@ const chip = async (label) => {
   await page.waitForTimeout(150);
 };
 
-await page.getByRole('button', { name: /Dar de alta a mi perro/i }).first().click();
+await page.getByRole('button', { name: /Sí, vengo con mi perro/i }).first().click();
 await page.waitForTimeout(600);
 
 /* El botón no se enciende con el paso a medias. Es la promesa que sustituye a
@@ -948,7 +948,7 @@ if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada')
   };
 
   await step('Comenzar ahora');
-  await step('Rescato y no tengo perro');
+  await step('No, yo rescato');
   await shelter.getByLabel('Correo', { exact: true }).fill('patitas@protectora.org');
   await shelter.getByLabel('Contraseña', { exact: true }).fill('el perro come pasto');
   await step('Siguiente');

@@ -592,24 +592,36 @@ function Puertas({
               letterSpacing: -0.6,
             }}
           >
-¿Tienes perro?
+¿Vienes con perro?
           </Text>
         </Appear>
 
         <Appear index={1} style={{ gap: theme.space[3] }}>
+          {/*
+            Una pregunta de sí o no, con respuestas de sí y de no.
+
+            Antes ponía «¿Tienes perro?» y debajo «Dar de alta a mi perro» y
+            «Rescato y no tengo perro». Fallaban las tres cosas: la pregunta no
+            se contestaba con ninguno de los dos botones, «dar de alta» es lo
+            que se hace en una gestoría, y a quien rescata se le presentaba por
+            lo que **no** tiene.
+
+            Ahora la pregunta y las respuestas encajan, y quien rescata entra
+            diciendo lo que hace, que además es de lo que uno está orgulloso.
+          */}
           <BigButton
-            label="Dar de alta a mi perro"
+            label="Sí, vengo con mi perro"
             icon={PawPrint}
             onPress={() => onPick('tutor')}
           />
           <BigButton
-            label="Rescato y no tengo perro"
+            label="No, yo rescato"
             icon={Siren}
             tone="outline"
             onPress={() => onPick('rescuer')}
           />
           <Caption>
-Protectoras, albergues y casas de acogida entran con el perfil de su colectivo.
+Protectoras, albergues y casas de acogida entráis con el perfil de vuestro colectivo.
           </Caption>
         </Appear>
       </View>

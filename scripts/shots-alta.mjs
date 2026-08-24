@@ -46,7 +46,7 @@ const tap = async (name) => {
 await shot('01-bienvenida');
 await tap('Comenzar ahora');
 await shot('02-puertas');
-await tap('Dar de alta a mi perro');
+await tap('Sí, vengo con mi perro');
 await shot('03-cuenta');
 
 await page.getByLabel('Correo', { exact: true }).fill('ana@correo.com');

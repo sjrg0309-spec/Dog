@@ -269,8 +269,8 @@ const REASON_SHELTER: Partial<Record<Capability, string>> = {
   live_people:
     'Las cuentas de protectora no ven quién pasea. Rescatar no necesita saber a qué hora sale cada vecino.',
   schedules: 'Las cuentas de protectora no ven horarios de vecinos.',
-  check_in: 'No tienes animal dado de alta, así que no hay presencia que publicar.',
-  host: 'Las quedadas las organizan tutores con animal dado de alta.',
+  check_in: 'Todavía no nos has presentado a tu animal, así que no hay presencia que publicar.',
+  host: 'Las quedadas las organiza quien ya tiene aquí a su animal.',
 };
 
 const REASON_VERIFIED: Partial<Record<Capability, string>> = {
@@ -350,7 +350,7 @@ export const STEP_LABEL: Record<RegistrationStep, string> = {
  * de una comunidad.
  */
 export const GATE_NOTE =
-  'Para entrar tienes que dar de alta a tu mascota. Dentro está quién pasea por tu barrio y a qué hora.';
+  'Aquí se entra con tu perro: preséntanoslo y ya está. Dentro verás quién pasea por tu barrio y a qué hora.';
 
 export const CHIP_NOTE =
   'El chip no lleva GPS: no localiza a tu perro. Sirve para que te lo devuelvan si se pierde, y aquí para poder ver a otra gente.';
@@ -475,7 +475,7 @@ export function missingShelterFields(draft: ShelterDraft): string[] {
 }
 
 export const SHELTER_GATE_NOTE =
-  'Si rescatas y no tienes mascota propia, entra con el perfil público de tu colectivo.';
+  'Entráis con el perfil público de vuestro colectivo. Es lo que nos deja comprobar que sois quienes decís.';
 
 export const SHELTER_REVIEW_NOTE =
   'Lo mira una persona, no un robot: no hay forma de comprobarlo en automático. Mientras tanto ya podéis ver los sitios del mapa.';

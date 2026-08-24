@@ -257,7 +257,7 @@ describe('la segunda puerta: quien rescata y no tiene animal', () => {
   it('no hay check-in sin animal propio', () => {
     const level = accessLevel(shelter({ shelterReviewed: true }));
     expect(can(level, 'check_in')).toBe(false);
-    expect(whyNot(level, 'check_in')).toContain('No tienes animal');
+    expect(whyNot(level, 'check_in')).toContain('no nos has presentado a tu animal');
   });
 });
 

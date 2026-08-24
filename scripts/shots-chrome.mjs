@@ -54,7 +54,7 @@ const chip = async (name) => {
 };
 
 await tap('Comenzar ahora');
-await tap('Dar de alta a mi perro');
+await tap('Sí, vengo con mi perro');
 await page.getByLabel('Correo', { exact: true }).fill('ana@correo.com');
 await page.getByLabel('Contraseña', { exact: true }).fill('el perro come pasto');
 await page.waitForTimeout(350);
