@@ -41,7 +41,9 @@ import { Pop } from './motion';
 import { PawTrail } from './paw-trail';
 import { SceneView } from './scene';
 import { buildScene } from '@/lib/artwork';
-import { Badge, Row } from './ui';
+import { Badge, Caption, Row } from './ui';
+import { BLOCK_NOTE, REPORT_NOTE, REPORT_REASONS } from '@petnav/core';
+import { blockOwnerOf, reportOwnerOf } from '@/lib/moderation';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
@@ -87,6 +89,8 @@ export function PostCard({
   const [draft, setDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const saved = post.savedByMe;
 
   /**
@@ -221,17 +225,65 @@ export function PostCard({
             borderRadius: theme.radius.md,
             backgroundColor: theme.colors.surfaceSunken,
             paddingHorizontal: theme.space[4],
+            paddingVertical: theme.space[2],
+            gap: theme.space[1],
           }}
         >
-          {['Silenciar a este perro', 'Dejar de seguir', 'Denunciar la publicación'].map(
-            (option) => (
+          {/*
+            Este menú tenía tres opciones y ninguna hacía nada: silenciar, dejar
+            de seguir y denunciar cerraban la hoja y ya. Ahora son dos y las dos
+            funcionan.
+
+            Bloquear saca a esa persona del feed, del mapa, del radar y de las
+            quedadas, porque el filtro es uno solo y pasa por él todo lo que
+            enseña gente. Denunciar pide un motivo de una lista: no hay dónde
+            escribir, por lo mismo que en los avisos de rescate.
+          */}
+          {reporting ? (
+            <>
+              <Caption>{REPORT_NOTE}</Caption>
+              {REPORT_REASONS.map((reason) => (
+                <Pressable
+                  key={reason.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={reason.label}
+                  accessibilityHint={reason.hint}
+                  onPress={() => {
+                    haptics.commit();
+                    reportOwnerOf(post.petId, reason.id);
+                    setReporting(false);
+                    setShowOptions(false);
+                    setDone('Gracias. Lo revisamos con las demás denuncias.');
+                  }}
+                  style={({ pressed }) => ({
+                    minHeight: theme.touchTarget.min,
+                    justifyContent: 'center',
+                    opacity: pressed ? 0.5 : 1,
+                  })}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.foreground,
+                      fontFamily: fonts.body,
+                      fontSize: theme.fontSize.base,
+                    }}
+                  >
+                    {reason.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </>
+          ) : (
+            <>
               <Pressable
-                key={option}
                 accessibilityRole="button"
-                accessibilityLabel={option}
+                accessibilityLabel={`Bloquear a ${post.authorName}`}
+                accessibilityHint={BLOCK_NOTE}
                 onPress={() => {
-                  haptics.tap();
+                  haptics.commit();
+                  blockOwnerOf(post.petId);
                   setShowOptions(false);
+                  setDone(`Has bloqueado a ${post.authorName}. ${BLOCK_NOTE}`);
                 }}
                 style={({ pressed }) => ({
                   minHeight: theme.touchTarget.min,
@@ -241,19 +293,48 @@ export function PostCard({
               >
                 <Text
                   style={{
-                    color:
-                      option === 'Denunciar la publicación'
-                        ? theme.colors.destructive
-                        : theme.colors.foreground,
+                    color: theme.colors.foreground,
                     fontFamily: fonts.body,
                     fontSize: theme.fontSize.base,
                   }}
                 >
-                  {option}
+                  Bloquear a {post.authorName}
                 </Text>
               </Pressable>
-            ),
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Denunciar"
+                onPress={() => {
+                  haptics.tap();
+                  setReporting(true);
+                }}
+                style={({ pressed }) => ({
+                  minHeight: theme.touchTarget.min,
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.5 : 1,
+                })}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.destructive,
+                    fontFamily: fonts.body,
+                    fontSize: theme.fontSize.base,
+                  }}
+                >
+                  Denunciar
+                </Text>
+              </Pressable>
+
+              <Caption>{BLOCK_NOTE}</Caption>
+            </>
           )}
+        </View>
+      ) : null}
+
+      {done ? (
+        <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[2] }}>
+          <Caption>{done}</Caption>
         </View>
       ) : null}
 

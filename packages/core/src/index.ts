@@ -15,3 +15,5 @@ export * from './access.js';
 export * from './breeds.js';
 export * from './roles.js';
 export * from './auth.js';
+export * from './moderation.js';
+export * from './escort.js';

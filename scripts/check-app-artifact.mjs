@@ -418,6 +418,50 @@ for (const tab of TABS) {
 }
 
 /*
+ * Bloquear, comprobado como se rompe: mirando si de verdad desaparece.
+ *
+ * Es la comprobación que separa un bloqueo de un «silenciar»: no basta con que
+ * la publicación se vaya del feed. Se cuenta cuántas publicaciones hay antes y
+ * después, y se comprueba que la persona bloqueada ya no aparece por su nombre
+ * en ninguna parte de la pantalla.
+ */
+{
+  await page.getByRole('tab', { name: /Feed/i }).first().click();
+  await page.waitForTimeout(1000);
+
+  const options = page.getByRole('button', { name: /Opciones de la publicación/i }).first();
+  if (!(await options.count())) {
+    problems.push('las publicaciones del feed no ofrecen opciones');
+  } else {
+    const label = (await options.getAttribute('aria-label')) ?? '';
+    const before = (await page.locator('#root').innerText()).trim();
+    await options.click();
+    await page.waitForTimeout(500);
+
+    const block = page.getByRole('button', { name: /^Bloquear a / }).first();
+    const report = page.getByRole('button', { name: 'Denunciar', exact: true }).first();
+    if (!(await block.count()) || !(await report.count())) {
+      problems.push('el menú de una publicación no ofrece bloquear ni denunciar');
+    } else {
+      /* El menú tenía tres opciones que no hacían nada. Que estén las dos que
+         sí hacen algo es la mitad; la otra mitad es que hagan algo. */
+      const owner = (await block.getAttribute('aria-label'))?.replace('Bloquear a ', '') ?? '';
+      await block.click();
+      await page.waitForTimeout(800);
+
+      const after = (await page.locator('#root').innerText()).trim();
+      if (owner && after.includes(owner) && !after.includes('Has bloqueado')) {
+        problems.push(`bloquear a ${owner} no lo quitó del feed`);
+      }
+      if (after.length >= before.length) {
+        problems.push('el feed no cambió al bloquear a alguien');
+      }
+      console.log(`bloqueo: ${label.slice(0, 40)} · feed ${before.length} → ${after.length}`);
+    }
+  }
+}
+
+/*
  * El acomodo, comprobado donde cambia algo.
  *
  * El alta se hizo con «soy autista» encendido, que marca «prefiero sitios
@@ -626,6 +670,26 @@ for (const tab of TABS) {
     }
     if (/Le quedan \d+ min/.test(closed)) {
       problems.push('el radar lista quién está paseando sin el chip verificado');
+    }
+
+    /*
+     * El radar sin duraciones que ofrecer.
+     *
+     * Aquí no hay conexión, así que no se sabe qué tiempo hace y no se ofrece
+     * ningún check-in: es deliberado. Lo que no puede pasar es que la tarjeta
+     * diga «elige hasta cuándo» sin nada que elegir, ni que el texto de abajo se
+     * quede a medias porque contaba con al menos una duración. Salió en una
+     * captura y por eso está aquí.
+     */
+    const noDurations = (await page.getByRole('button', { name: /Estamos fuera/ }).count()) === 0;
+    if (noDurations) {
+      const card = (await page.locator('#root').innerText()).trim();
+      if (!/No sabemos qué tiempo hace/i.test(card)) {
+        problems.push('el radar no ofrece ninguna duración y no dice por qué');
+      }
+      if (/aguanta bien\s{2,}y a partir/.test(card)) {
+        problems.push('el radar escribe una frase con el hueco de la duración vacío');
+      }
     }
 
     /* El atajo de demostración, por el camino real: perfil → menú → ajustes. */

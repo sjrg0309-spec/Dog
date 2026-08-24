@@ -166,6 +166,14 @@ export const SETTINGS: readonly SettingGroup[] = [
     title: 'Privacidad',
     rows: [
       {
+        id: 'blocked',
+        label: 'Bloqueados',
+        hint: 'Quién no te ve y a quién no ves',
+        keywords: ['bloqueo', 'bloquear', 'denunciar', 'reportar', 'acoso', 'seguridad'],
+        kind: 'link',
+        href: '/bloqueados',
+      },
+      {
         id: 'ghost',
         label: 'Modo fantasma',
         hint: 'Desapareces del mapa',
@@ -317,14 +325,6 @@ export const SETTINGS: readonly SettingGroup[] = [
         keywords: ['push', 'sonido', 'silenciar', 'alertas'],
         kind: 'missing',
         why: 'El reparto de avisos está construido y probado, pero enviarlos al teléfono necesita credenciales que este entorno no tiene.',
-      },
-      {
-        id: 'blocks',
-        label: 'Bloquear a alguien',
-        hint: 'Falta el servidor',
-        keywords: ['bloqueo', 'silenciar', 'denunciar', 'reportar'],
-        kind: 'missing',
-        why: 'Bloquear solo protege cuando hay cuentas reales detrás. Con datos de demo no protegería de nada.',
       },
       {
         id: 'export',

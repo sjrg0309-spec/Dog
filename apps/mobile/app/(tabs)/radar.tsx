@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { NavBar, useScrolled } from '@/components/chrome';
+import { NavBar, Separator, useScrolled } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { WelfareNotice } from '@/components/welfare-notice';
@@ -19,18 +19,34 @@ import {
   Screen,
   Title,
 } from '@/components/ui';
-import { assessWelfare, type Conditions, type WelfareVerdict } from '@petnav/core';
+import {
+  ESCORT_LATE_NOTE,
+  ESCORT_NOTE,
+  assessWelfare,
+  type Conditions,
+  type WelfareVerdict,
+} from '@petnav/core';
 
 import { useActivePet } from '@/lib/active-pet';
+import { haptics } from '@/lib/haptics';
 import { setLocation, useConditionsBuilder, useWeatherState } from '@/lib/conditions';
 import { RADAR_AREA_NOTE, petFriendlyPlaces, placeAt } from '@/lib/geofence';
 import { Icon } from '@/components/icon';
-import { ChevronRight, Footprints, Lock, MapPin } from '@/lib/icons';
+import { ChevronRight, Footprints, Lock, MapPin, ShieldAlert } from '@/lib/icons';
 import { fonts } from '@/lib/fonts';
 import { useCan, useWhyNot } from '@/lib/account';
+import { useVisiblePets } from '@/lib/moderation';
 import { petHasMeetups, speciesOf, walkingNow } from '@/lib/data';
 import { PLACES } from '@/lib/demo-data';
 import { speciesName } from '@/lib/labels';
+import {
+  cancelEscort,
+  closeEscort,
+  escortContacts,
+  escortPreview,
+  startEscort,
+  useEscort,
+} from '@/lib/escort';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { useTheme } from '@/lib/theme';
 import { recordWalk, useWalks } from '@/lib/walks';
@@ -67,7 +83,7 @@ export default function RadarScreen() {
      es la diferencia entre una lista escondida y una lista que no existe. */
   const canSeePeople = useCan('live_people');
   const whyNotPeople = useWhyNot('live_people');
-  const others = canSeePeople ? walkingNow(pet.speciesId) : [];
+  const others = useVisiblePets(canSeePeople ? walkingNow(pet.speciesId) : []);
   const declared = useWeatherState();
   const build = useConditionsBuilder();
 
@@ -78,6 +94,8 @@ export default function RadarScreen() {
   const router = useRouter();
   const walks = useWalks(pet.id);
   const ghost = useGhostMode();
+  const escort = useEscort();
+  const [escortWith, setEscortWith] = useState<string | null>(null);
 
   /* Hace falta guardar **cuándo empezó**, no solo hasta cuándo dura: sin eso,
      al cerrar el check-in no hay forma de saber cuánto se estuvo fuera, que es
@@ -96,6 +114,20 @@ export default function RadarScreen() {
   const activeUntil = session?.until ?? null;
 
   const checkIn = (minutes: number) => {
+    /* Si hay alguien elegido, el acompañamiento empieza con el paseo: pedirlo
+       aparte sería un segundo botón que se olvida justo el día que importa. */
+    if (escortWith !== null && here) {
+      const contact = escortContacts().find((candidate) => candidate.id === escortWith);
+      if (contact) {
+        startEscort({
+          contactId: contact.id,
+          contactName: contact.name,
+          placeName: here.name,
+          minutes,
+        });
+      }
+    }
+
     const until = new Date();
     until.setMinutes(until.getMinutes() + minutes);
     const conditions = build ? build(minutes) : null;
@@ -140,6 +172,10 @@ export default function RadarScreen() {
       companions: together.map((other) => ({ petId: other.id, outcome: null })),
     });
 
+    /* Y se cierra solo al cerrar el paseo. Es lo que evita el fallo obvio: un
+       aviso de «no ha vuelto» a la una de la mañana porque alguien se olvidó de
+       tocar un segundo botón. */
+    closeEscort();
     setSession(null);
     router.push(`/paseo?id=${id}`);
   };
@@ -215,6 +251,49 @@ export default function RadarScreen() {
               Se apaga solo a esa hora. Los tutores con un animal compatible de la misma especie a
               dos kilómetros han recibido un aviso.
             </Caption>
+            {/* Lo que le llega a esa persona, tal cual y mientras dura.
+                Enseñarlo es la mitad de la promesa: se puede leer y comprobar
+                que no lleva nada más que el sitio y la hora. */}
+            {escort && !escort.closedAt ? (
+              <View
+                style={{
+                  gap: theme.space[1],
+                  padding: theme.space[3],
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.colors.surfaceSunken,
+                }}
+              >
+                <Row gap={2}>
+                  <Icon icon={ShieldAlert} size="sm" color={theme.colors.foreground} decorative />
+                  <Body>{escort.contactName} lo sabe</Body>
+                </Row>
+                <Caption>«{escortPreview(escort)}»</Caption>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Dejar de avisar a ${escort.contactName}`}
+                  onPress={() => {
+                    haptics.tap();
+                    cancelEscort();
+                  }}
+                  style={({ pressed }) => ({
+                    minHeight: theme.touchTarget.min,
+                    justifyContent: 'center',
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.primary,
+                      fontFamily: fonts.bodyBold,
+                      fontSize: theme.fontSize.sm,
+                    }}
+                  >
+                    Dejar de avisar
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+
             <Button label="Hemos terminado" variant="outline" onPress={checkOut} />
           </Card>
         ) : ghost ? (
@@ -250,8 +329,9 @@ export default function RadarScreen() {
           <Card>
             <Heading>¿Salís ahora?</Heading>
             <Body muted>
-              Elige hasta cuándo. No hay opción de dejarlo indefinido: el check-in caduca solo para
-              que nadie se quede visible por olvido.
+              {allowed.length === 0
+                ? 'No sabemos qué tiempo hace. Pon la temperatura aquí arriba y te decimos cuánto podéis estar fuera.'
+                : 'Elige hasta cuándo. No hay opción de dejarlo indefinido: el check-in caduca solo para que nadie se quede visible por olvido.'}
             </Body>
             {/* Las duraciones que hoy no le convienen no se ofrecen. Enseñar
                 "4 horas" a 30 grados y avisar debajo es proponerlo igual. */}
@@ -267,7 +347,76 @@ export default function RadarScreen() {
               ))}
             </View>
 
-            {allowed.length < DURATIONS.length ? (
+            {/*
+              Avisar a alguien de que has salido.
+
+              Esta aplicación se usa a las seis de la mañana y a las once de la
+              noche, que son las horas en las que se pasea solo. Todo lo demás
+              de seguridad mira al animal; esto mira a la persona.
+
+              Va **aquí y no en un ajuste** porque es una decisión de cada
+              salida: hoy sales de noche y quieres avisar, mañana a mediodía y
+              no hace falta.
+            */}
+            <Separator />
+            <View style={{ gap: theme.space[2] }}>
+              <Row gap={2}>
+                <Icon icon={ShieldAlert} size="base" color={theme.colors.foreground} decorative />
+                <Body>¿Aviso a alguien?</Body>
+              </Row>
+              <Caption>{ESCORT_NOTE}</Caption>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}>
+                {escortContacts().map((contact) => {
+                  const on = escortWith === contact.id;
+                  return (
+                    <Pressable
+                      key={contact.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                      accessibilityLabel={`Avisar a ${contact.name}`}
+                      onPress={() => {
+                        haptics.tap();
+                        setEscortWith(on ? null : contact.id);
+                      }}
+                      style={({ pressed }) => ({
+                        minHeight: theme.touchTarget.min,
+                        justifyContent: 'center',
+                        paddingHorizontal: theme.space[4],
+                        borderRadius: theme.radius.full,
+                        borderWidth: on ? 2 : 1,
+                        borderColor: on ? theme.colors.primary : theme.colors.border,
+                        backgroundColor: pressed
+                          ? theme.colors.surfaceSunken
+                          : theme.colors.surface,
+                      })}
+                    >
+                      <Text
+                        style={{
+                          color: on ? theme.colors.foreground : theme.colors.mutedForeground,
+                          fontFamily: on ? fonts.bodyBold : fonts.body,
+                          fontSize: theme.fontSize.sm,
+                        }}
+                      >
+                        {contact.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {escortWith !== null ? <Caption>{ESCORT_LATE_NOTE}</Caption> : null}
+            </View>
+
+            {/*
+              El caso de cero duraciones existía y escribía una frase rota.
+              Sin conexión no se ofrece ninguna —es deliberado: un botón de
+              check-in que aparece igual cuando no sabemos si se puede salir
+              decide por su cuenta— pero el texto de abajo daba por hecho que
+              siempre quedaba al menos una, y salía «aguanta bien  y a partir de
+              ahí empieza a costarle», con el hueco donde iba la duración. Se vio
+              en una captura, no en un test: la frase estaba bien formada, solo
+              que vacía por dentro.
+            */}
+            {allowed.length > 0 && allowed.length < DURATIONS.length ? (
               <Caption>
                 Con estas condiciones no ofrecemos ratos más largos: {pet.name} aguanta bien{' '}
                 {allowed[allowed.length - 1]?.label} y a partir de ahí empieza a costarle.

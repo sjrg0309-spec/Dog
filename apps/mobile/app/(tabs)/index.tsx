@@ -14,6 +14,7 @@ import { useActivePet } from '@/lib/active-pet';
 import { haptics } from '@/lib/haptics';
 import { useConditions, useWeatherState } from '@/lib/conditions';
 import { useCan } from '@/lib/account';
+import { useVisibleBy, useVisiblePets } from '@/lib/moderation';
 import { discover, petHasMeetups, walkingNow } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
 import { Compass, Heart, SquarePlus, Send, Siren, type LucideIcon } from '@/lib/icons';
@@ -92,13 +93,16 @@ export default function FeedScreen() {
      deliberado: es barato, y al volver de los reels la lista ya está hecha en
      vez de aparecer un instante después. */
   const scope: FeedScope = reeling ? 'nearby' : tab;
-  const entries = useScopedFeed(scope, location, radiusM);
+  /* Todo lo que enseña gente pasa por el mismo filtro. Si el bloqueo se
+     aplicara pantalla por pantalla, la que se olvidara sería la que te propone
+     quedar con quien bloqueaste. */
+  const entries = useVisibleBy(useScopedFeed(scope, location, radiusM), (entry) => entry.post.petId);
   const outside = useOutsideRadiusCount(location, radiusM);
 
   const [checkedIn, setCheckedIn] = useState(false);
   /* La etiqueta EN VIVO de la fila de historias dice quién está fuera ahora, así
      que va detrás de la misma puerta que el mapa de gente. */
-  const outNow = social && canSeePeople ? walkingNow(pet.speciesId) : [];
+  const outNow = useVisiblePets(social && canSeePeople ? walkingNow(pet.speciesId) : []);
   const stopped = social && welfare?.level === 'stop';
 
   // Los estados y la presencia son dos cosas distintas que comparten la fila:

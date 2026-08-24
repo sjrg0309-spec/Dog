@@ -8,6 +8,7 @@ import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { WelfareNotice } from '@/components/welfare-notice';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
+import { useVisibleBy } from '@/lib/moderation';
 import { useActivePet } from '@/lib/active-pet';
 import { useConditions } from '@/lib/conditions';
 import { communitiesFor, discover, petHasMeetups, servicesFor, speciesOf } from '@/lib/data';
@@ -37,8 +38,11 @@ export default function DiscoverScreen() {
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
   const conditions = useConditions(45);
-  const { entries, emptyReason, safetyVetoed, otherSpeciesNearby, welfare, restingNearby } =
+  const { entries: found, emptyReason, safetyVetoed, otherSpeciesNearby, welfare, restingNearby } =
     discover(pet, conditions);
+  /* Bloquear tiene que sacar a alguien también de aquí: si no, la aplicación
+     te propone quedar el martes con quien bloqueaste el lunes. */
+  const entries = useVisibleBy(found, (entry) => entry.pet.id);
   const { scrolled, onScroll } = useScrolled();
   const stopped = social && welfare?.level === 'stop';
 

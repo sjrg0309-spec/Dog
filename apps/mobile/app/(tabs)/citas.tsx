@@ -6,6 +6,7 @@ import { Avatar } from '@/components/avatar';
 import { NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { Badge, Body, Caption, Notice, Row, Screen } from '@/components/ui';
+import { useVisibleBy } from '@/lib/moderation';
 import { useActivePet } from '@/lib/active-pet';
 import { useConditions } from '@/lib/conditions';
 import { discover, petHasMeetups, type DiscoveryEntry } from '@/lib/data';
@@ -41,7 +42,8 @@ export default function PlaydateMatchScreen() {
   const router = useRouter();
   const pet = useActivePet();
   const conditions = useConditions(45);
-  const { entries, welfare } = discover(pet, conditions);
+  const { entries: found, welfare } = discover(pet, conditions);
+  const entries = useVisibleBy(found, (entry) => entry.pet.id);
   const social = petHasMeetups(pet);
 
   const [index, setIndex] = useState(0);
