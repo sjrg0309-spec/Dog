@@ -76,23 +76,23 @@ export type EmailCheck = { ok: true; normalized: string } | { ok: false; reason:
 export function validateEmail(input: string): EmailCheck {
   const normalized = input.trim().toLowerCase();
 
-  if (normalized === '') return { ok: false, reason: 'Falta el correo.' };
-  if (/\s/.test(normalized)) return { ok: false, reason: 'Un correo no lleva espacios.' };
+  if (normalized === '') return { ok: false, reason: 'Escribe tu correo.' };
+  if (/\s/.test(normalized)) return { ok: false, reason: 'El correo no lleva espacios.' };
   if (!normalized.includes('@')) return { ok: false, reason: 'Falta la arroba.' };
 
   const [user, ...rest] = normalized.split('@');
   const domain = rest.join('@');
 
   if (!user) return { ok: false, reason: 'Falta lo de antes de la arroba.' };
-  if (rest.length !== 1 || !domain) return { ok: false, reason: 'Falta el dominio: lo de después de la arroba.' };
+  if (rest.length !== 1 || !domain) return { ok: false, reason: 'Falta el dominio.' };
   if (!domain.includes('.') || domain.startsWith('.') || domain.endsWith('.')) {
-    return { ok: false, reason: 'El dominio no está completo: falta el punto y lo que va detrás.' };
+    return { ok: false, reason: 'El dominio está incompleto.' };
   }
   if (/[^a-z0-9.!#$%&'*+/=?^_`{|}~-]/.test(user)) {
-    return { ok: false, reason: 'Ese correo lleva algún carácter que no puede llevar.' };
+    return { ok: false, reason: 'El correo tiene caracteres que no valen.' };
   }
   if (/[^a-z0-9.-]/.test(domain)) {
-    return { ok: false, reason: 'El dominio lleva algún carácter que no puede llevar.' };
+    return { ok: false, reason: 'El dominio tiene caracteres que no valen.' };
   }
 
   return { ok: true, normalized };
@@ -125,8 +125,8 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
     return {
       score: 0,
       usable: false,
-      label: 'Demasiado corta',
-      advice: `Necesita ${PASSWORD_MIN} caracteres como mínimo. Van ${value.length}.`,
+      label: 'Muy corta',
+      advice: `Mínimo ${PASSWORD_MIN} caracteres. Llevas ${value.length}.`,
     };
   }
 
@@ -134,8 +134,8 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
     return {
       score: 0,
       usable: false,
-      label: 'Es de las más usadas',
-      advice: 'Esa es de las primeras que se prueban. Cualquier otra cosa es mejor.',
+      label: 'Muy usada',
+      advice: 'Es de las primeras que se prueban. Elige otra.',
     };
   }
 
@@ -144,8 +144,8 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
     return {
       score: 0,
       usable: false,
-      label: 'Lleva tu correo dentro',
-      advice: 'Si alguien sabe tu correo, ya la tiene medio adivinada.',
+      label: 'Lleva tu correo',
+      advice: 'No uses tu correo dentro de la contraseña.',
     };
   }
 
@@ -155,8 +155,8 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
     return {
       score: 0,
       usable: false,
-      label: 'Es un carácter repetido',
-      advice: 'Larga no es lo mismo que difícil. Prueba con varias palabras.',
+      label: 'Muy repetitiva',
+      advice: 'Prueba con varias palabras distintas.',
     };
   }
 
@@ -174,7 +174,7 @@ export function passwordStrength(password: string, email = ''): PasswordStrength
     score: 1,
     usable: true,
     label: 'Justa',
-    advice: 'Vale, pero con una palabra más sería bastante mejor. La longitud protege más que los símbolos.',
+    advice: 'Añade una palabra más y quedará mucho mejor.',
   };
 }
 
@@ -206,16 +206,16 @@ export function credentialProblems(input: Credentials): string[] {
  */
 export function signInProblems(input: Credentials): string[] {
   const problems: string[] = [];
-  if (!validateEmail(input.email).ok) problems.push('Ese correo no tiene forma de correo.');
-  if (input.password.length === 0) problems.push('Falta la contraseña.');
+  if (!validateEmail(input.email).ok) problems.push('Revisa tu correo.');
+  if (input.password.length === 0) problems.push('Escribe tu contraseña.');
   return problems;
 }
 
 export const NO_SERVER_NOTE =
-  'En esta versión no hay servidor: no se guarda ninguna contraseña, ni cifrada. Lo que se comprueba de verdad es lo que escribes; entrar abre la cuenta de este teléfono.';
+  'Todavía no hay servidor: no guardamos contraseñas. Al entrar se abre la cuenta de este dispositivo.';
 
 export const PASSWORD_ADVICE =
-  'Cuatro palabras seguidas son mejor contraseña que ocho caracteres con símbolos, y se recuerdan. Aquí no se pide ni mayúscula ni número: lo que protege es la longitud.';
+  'Usa varias palabras. No pedimos mayúsculas ni símbolos: lo que protege es que sea larga.';
 
 export const FORGOT_NOTE =
-  'Recuperar la contraseña necesita un servidor que mande el correo, y todavía no lo hay. Cuando lo haya, el enlace caduca y solo sirve una vez.';
+  'Todavía no podemos enviarte el correo de recuperación.';

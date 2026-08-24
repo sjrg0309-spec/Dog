@@ -70,7 +70,7 @@ export default function AcomodosScreen() {
 
   return (
     <Screen>
-      <BackBar title="Lo que necesitas tú" subtitle="Privado" />
+      <BackBar title="Sobre ti" subtitle="Privado" />
 
       <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
         <Notice>
@@ -83,18 +83,17 @@ export default function AcomodosScreen() {
                 fontSize: theme.fontSize.base,
               }}
             >
-              Nada de esto se publica
+Solo lo ves tú
             </Text>
           </View>
           <Caption>
-            No hay insignia, no sale en tu perfil y no se lo enseñamos a nadie con quien quedes. Lo
-            que esa persona ve es que le propones quedar el martes a las siete en un sitio concreto.
+            No aparece en tu perfil ni lo ve nadie. Solo cambia cómo funciona la app para ti.
           </Caption>
         </Notice>
 
         <Row
           label="Soy autista"
-          hint="Marca los acomodos de abajo. Puedes cambiarlos uno a uno, y también encenderlos sin decir esto."
+          hint="Marca las opciones de abajo. Puedes cambiarlas una a una."
           on={handler.autistic === true}
           onToggle={toggleAutistic}
         />
@@ -112,10 +111,8 @@ export default function AcomodosScreen() {
         </View>
 
         <Caption>
-          Cada uno cambia algo de verdad; si no cambiara nada no estaría en la lista. «Sitios
-          tranquilos» reordena el mapa por cuánta gente hay ahora —cuenta cabezas, no caras, así que
-          funciona aunque el mapa de gente esté cerrado— y «menos movimiento» enciende el ajuste que
-          apaga el pulso del radar.
+          Contamos cuánta gente hay en cada sitio, no quién. Por eso «sitios tranquilos» funciona
+          aunque todavía no hayas verificado el chip.
         </Caption>
       </ScrollView>
     </Screen>

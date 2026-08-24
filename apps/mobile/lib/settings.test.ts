@@ -78,7 +78,10 @@ describe('el índice de configuración', () => {
        permite discutirlo: si el motivo es malo, se ve. */
     for (const row of rows.filter((candidate) => candidate.kind === 'missing')) {
       expect(row.why, `«${row.label}» falta sin explicar por qué`).toBeTruthy();
-      expect(row.why!.length).toBeGreaterThan(40);
+      /* Corto a propósito: lo que hace falta es que haya motivo, no que sea
+         largo. «No guardamos contraseñas, así que no hay ninguna que cambiar»
+         basta y cabe en la pantalla. */
+      expect(row.why!.length).toBeGreaterThan(25);
     }
   });
 
@@ -115,7 +118,7 @@ describe('el buscador de ajustes', () => {
        plana parece otra casilla más. */
     const groups = searchSettings('rescatista');
     expect(groups).toHaveLength(1);
-    expect(groups[0]?.title).toBe('Quién te ve');
+    expect(groups[0]?.title).toBe('Privacidad');
   });
 
   it('lo que no está construido también se encuentra', () => {

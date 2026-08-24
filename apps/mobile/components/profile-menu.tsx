@@ -145,8 +145,8 @@ export function ProfileMenu({
         <View style={{ paddingHorizontal: theme.space[5], paddingTop: theme.space[3] }}>
           <Caption>
             {onWalkMode
-              ? 'Lo de aquí es tuyo y no lo ve nadie con quien quedes. Lo que se enseña es lo de arriba: el nombre, la raza y las fotos.'
-              : 'Lo de aquí es de la cuenta del colectivo. Lo que se enseña fuera es el nombre y el perfil público que disteis.'}
+              ? 'Esto solo lo ves tú. En tu perfil se ve el nombre, la raza y las fotos.'
+              : 'Esto solo lo veis vosotros. Fuera se ve el nombre y vuestro perfil público.'}
           </Caption>
         </View>
       </View>

@@ -204,11 +204,11 @@ export function whyNot(level: AccessLevel, capability: Capability): string | nul
   if (can(level, capability)) return null;
 
   if (level === 'none') {
-    return 'Para esto hace falta una cuenta: da de alta a tu animal, o entra como protectora enseñando el perfil público del colectivo. Aquí no se entra a mirar.';
+    return 'Da de alta a tu mascota para entrar. Si rescatas y no tienes, entra como protectora.';
   }
 
   if (level === 'shelter_pending') {
-    return 'Estamos mirando el perfil que enseñaste. Hasta entonces ves lo mismo que una cuenta recién hecha: los sitios. Si esperar abriera algo, esperar sería la vía de entrada.';
+    return 'Estamos revisando vuestro perfil. Mientras tanto solo veréis sitios.';
   }
 
   if (level === 'shelter') {
@@ -216,10 +216,10 @@ export function whyNot(level: AccessLevel, capability: Capability): string | nul
   }
 
   if (capability === 'host') {
-    return `Esto se abre al llevar ${ESTABLISHED_MIN_WALKS} paseos registrados o una quedada a la que hayas ido. No se pide nada: sale solo.`;
+    return `Se abre con ${ESTABLISHED_MIN_WALKS} paseos registrados o una quedada a la que hayas ido.`;
   }
 
-  return REASON_VERIFIED[capability] ?? 'Hace falta verificar el chip con la cartilla.';
+  return REASON_VERIFIED[capability] ?? 'Verifica el chip con la cartilla para ver esto.';
 }
 
 /**
@@ -233,23 +233,19 @@ export function whyNot(level: AccessLevel, capability: Capability): string | nul
  */
 const REASON_SHELTER: Partial<Record<Capability, string>> = {
   live_people:
-    'Ver quién pasea ahora no entra en la cuenta de una protectora. No es desconfianza: es que rescatar no necesita saber a qué hora sale cada vecino, y esa lista no se abre por enseñar un enlace.',
-  schedules:
-    'Los horarios de los vecinos no entran en la cuenta de una protectora, por lo mismo: no hacen falta para ayudar a un animal.',
-  check_in:
-    'El check-in dice que tu animal está fuera, y esta cuenta no tiene animal dado de alta.',
-  host: 'Organizar quedadas es cosa de tutores con animal dado de alta.',
+    'Las cuentas de protectora no ven quién pasea. Rescatar no necesita saber a qué hora sale cada vecino.',
+  schedules: 'Las cuentas de protectora no ven horarios de vecinos.',
+  check_in: 'No tienes animal dado de alta, así que no hay presencia que publicar.',
+  host: 'Las quedadas las organizan tutores con animal dado de alta.',
 };
 
 const REASON_VERIFIED: Partial<Record<Capability, string>> = {
   live_people:
-    'Ver quién está paseando ahora pide el chip verificado. Es la lista de a quién y a qué hora, y es exactamente lo que buscaría quien anda mirando qué animal llevarse. Los sitios se ven sin esto; las personas no.',
-  schedules:
-    'Los horarios pide el chip verificado. Un horario de paseo es la rutina diaria de alguien: a qué hora sale de casa y qué días no está.',
-  message_first:
-    'Escribir el primero a alguien con quien no has quedado pide el chip verificado. Responder no: quien te escribe ya decidió.',
+    'Verifica el chip para ver quién pasea ahora. Los sitios se ven siempre; las personas, no.',
+  schedules: 'Verifica el chip para ver horarios. El horario de alguien es su rutina diaria.',
+  message_first: 'Verifica el chip para escribir primero. Responder no hace falta.',
   rescue_alerts:
-    'Los avisos de rescate a varios kilómetros piden el chip verificado. Son animales heridos, perdidos o sin dueño —la lista más fácil de aprovechar que hay aquí—, así que se abre a quien ha dejado algo comprobable.',
+    'Verifica el chip para recibir avisos de rescate. Son animales heridos o perdidos, y no se abren a cualquiera.',
 };
 
 /**
@@ -304,12 +300,12 @@ export function isComplete(draft: PetDraft): boolean {
 }
 
 export const STEP_LABEL: Record<RegistrationStep, string> = {
-  name: 'Cómo se llama',
+  name: 'Su nombre',
   species: 'Qué animal es',
-  age: 'Qué edad tiene',
-  size: 'Cuánto ocupa',
-  temperament: 'Cómo es',
-  schedule: 'Cuándo salís',
+  age: 'Su edad',
+  size: 'Su tamaño',
+  temperament: 'Su carácter',
+  schedule: 'Vuestro horario',
 };
 
 /**
@@ -320,13 +316,13 @@ export const STEP_LABEL: Record<RegistrationStep, string> = {
  * de una comunidad.
  */
 export const GATE_NOTE =
-  'Aquí no se entra a mirar. Para registrarte tienes que dar de alta a tu animal, porque lo que hay dentro es a quién y a qué hora se pasea por tu barrio, y eso no es un catálogo público.';
+  'Para entrar tienes que dar de alta a tu mascota. Dentro está quién pasea por tu barrio y a qué hora.';
 
 export const CHIP_NOTE =
-  'El chip no localiza a nadie: es un código que se lee con un lector a pocos centímetros. Sirve para dos cosas: que te lo devuelvan si se pierde, y abrir aquí lo que enseña gente en vez de sitios.';
+  'El chip no localiza a tu perro. Sirve para que te lo devuelvan si se pierde, y aquí para ver a otras personas.';
 
 export const HONESTY_NOTE =
-  'Esto no impide que alguien que roba animales se registre: cualquiera puede escribir un nombre. Lo que impide es mirar sin dejar nada, y que una cuenta recién hecha vea quién sale y a qué hora.';
+  'Esto no impide que alguien se registre con datos falsos. Sí impide que una cuenta nueva vea quién sale y a qué hora.';
 
 /**
  * El enlace del colectivo.
@@ -386,7 +382,7 @@ export function validateShelterProfile(input: string): ShelterProfileCheck {
   if (SHORTENERS.includes(host)) {
     return {
       ok: false,
-      reason: 'Los enlaces acortados no se pueden revisar: no dicen a dónde llevan. Pega la dirección completa del perfil.',
+      reason: 'Pega la dirección completa. Los enlaces acortados no podemos revisarlos.',
     };
   }
 
@@ -401,7 +397,7 @@ export function validateShelterProfile(input: string): ShelterProfileCheck {
     if (platform.postPaths.includes(first)) {
       return {
         ok: false,
-        reason: 'Eso es una publicación, no un perfil. Hace falta la cuenta entera: es lo que se puede mirar.',
+        reason: 'Eso es una publicación. Pega el enlace del perfil.',
       };
     }
     const handle = first.replace(/^@/, '');
@@ -445,10 +441,10 @@ export function missingShelterFields(draft: ShelterDraft): string[] {
 }
 
 export const SHELTER_GATE_NOTE =
-  'Si rescatas y no tienes animal propio, entras por aquí: enseñando el perfil público del colectivo. Es la cuenta que ya tenéis y que ya se puede mirar.';
+  'Si rescatas y no tienes mascota propia, entra con el perfil público de tu colectivo.';
 
 export const SHELTER_REVIEW_NOTE =
-  'La revisión la hace una persona. Aquí no se puede comprobar en automático que un perfil exista ni que sea tuyo: no hay forma de preguntárselo a esas redes, y un enlace ajeno lo pega cualquiera. Mientras tanto ves los sitios y no ves a nadie.';
+  'Revisa el perfil una persona: no podemos comprobarlo en automático. Mientras tanto solo veréis sitios.';
 
 export const SHELTER_SCOPE_NOTE =
-  'Aprobada, la cuenta abre los avisos de rescate a kilómetros y poder escribir el primero. No abre quién pasea ahora ni los horarios de nadie: para ayudar a un animal no hace falta saber a qué hora sale cada vecino.';
+  'Al aprobarla recibiréis avisos de rescate de varios kilómetros. No veréis quién pasea ni los horarios de nadie.';

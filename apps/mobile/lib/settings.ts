@@ -163,19 +163,19 @@ export type SettingGroup = {
 export const SETTINGS: readonly SettingGroup[] = [
   {
     id: 'visibility',
-    title: 'Quién te ve',
+    title: 'Privacidad',
     rows: [
       {
         id: 'ghost',
         label: 'Modo fantasma',
-        hint: 'Desapareces del mapa y el radar deja de ofrecerte salir',
+        hint: 'Desapareces del mapa',
         keywords: ['invisible', 'esconder', 'privacidad', 'mapa', 'ubicación'],
         kind: 'switch',
       },
       {
         id: 'rescuer',
         label: 'Soy rescatista',
-        hint: 'Te llegan los avisos desde mucho más lejos, y también los que no son peligro para tu paseo',
+        hint: 'Recibes avisos de más lejos',
         keywords: ['rescate', 'protectora', 'voluntaria', 'maltrato', 'avisos'],
         kind: 'switch',
         only: 'tutor',
@@ -184,21 +184,21 @@ export const SETTINGS: readonly SettingGroup[] = [
   },
   {
     id: 'trust',
-    title: 'Lo que abre tu cuenta',
-    note: 'Quién pasea ahora y a qué hora sale cada uno no se ve por tener cuenta: se ve al dejar algo comprobable. Los sitios sí.',
+    title: 'Tu cuenta',
+    note: 'Los sitios se ven siempre. Para ver a otras personas, verifica el chip.',
     rows: [
       {
         id: 'chip',
         label: 'Chip verificado',
-        hint: 'Abre el mapa de gente, los horarios y escribir el primero',
+        hint: 'Ver quién pasea, los horarios y escribir primero',
         keywords: ['microchip', 'verificar', 'cartilla', 'tutor verificado', 'identidad'],
         kind: 'switch',
         only: 'tutor',
       },
       {
         id: 'shelter',
-        label: 'Revisión de la cuenta',
-        hint: 'Aprobada, abre los avisos de rescate a kilómetros',
+        label: 'Cuenta revisada',
+        hint: 'Recibir avisos de rescate',
         keywords: ['protectora', 'albergue', 'perfil', 'revisión', 'aprobar'],
         kind: 'switch',
         only: 'rescuer',
@@ -207,26 +207,26 @@ export const SETTINGS: readonly SettingGroup[] = [
   },
   {
     id: 'display',
-    title: 'Lo que ves',
+    title: 'Preferencias',
     rows: [
       {
         id: 'feedRadius',
-        label: 'Radio del vecindario',
-        hint: 'Cuánto barrio entra en el feed cercano',
+        label: 'Distancia del feed',
+        hint: 'Cuánto barrio ves en «cerca de mí»',
         keywords: ['distancia', 'kilómetros', 'feed', 'cerca'],
         kind: 'choice',
       },
       {
         id: 'theme',
         label: 'Tema',
-        hint: 'Claro, oscuro, o el que tenga puesto el teléfono',
+        hint: 'Claro, oscuro o el del sistema',
         keywords: ['oscuro', 'claro', 'noche', 'color', 'apariencia'],
         kind: 'choice',
       },
       {
         id: 'motion',
         label: 'Reducir movimiento',
-        hint: 'El anillo del radar deja de pulsar y las entradas no se animan',
+        hint: 'Menos animaciones',
         keywords: ['animación', 'accesibilidad', 'mareo', 'pulso'],
         kind: 'choice',
       },
@@ -234,13 +234,13 @@ export const SETTINGS: readonly SettingGroup[] = [
   },
   {
     id: 'handler',
-    title: 'Lo que necesitas tú',
-    note: 'Privado, y no se publica. Quien quede contigo ve un plan con hora y sitio, no por qué se lo propones así.',
+    title: 'Sobre ti',
+    note: 'Privado. No aparece en tu perfil ni lo ve nadie.',
     rows: [
       {
         id: 'needs',
-        label: 'Acomodos',
-        hint: 'Sitios tranquilos primero, quedar con antelación, menos movimiento, escribir antes',
+        label: 'Ajustes personales',
+        hint: 'Sitios tranquilos, quedar con antelación, menos movimiento',
         keywords: [
           'autismo', 'autista', 'tea', 'accesibilidad', 'sensorial', 'ansiedad',
           'ruido', 'tranquilo', 'planes', 'antelación',
@@ -252,13 +252,13 @@ export const SETTINGS: readonly SettingGroup[] = [
   },
   {
     id: 'private',
-    title: 'Tuyo y privado',
-    note: 'Nada de esto lo ve con quien quedes. Está aquí porque es donde se busca.',
+    title: 'Tu contenido',
+    note: 'Solo lo ves tú.',
     rows: [
       {
         id: 'walks',
         label: 'Historial de paseos',
-        hint: 'El mes, el ritmo semanal y cada salida con su resumen',
+        hint: 'Tus salidas y tu ritmo semanal',
         keywords: ['paseos', 'rutina', 'estadísticas', 'ritmo'],
         kind: 'link',
         href: '/historial',
@@ -266,7 +266,7 @@ export const SETTINGS: readonly SettingGroup[] = [
       {
         id: 'record',
         label: 'Ficha médica',
-        hint: 'Vacunas, desparasitación y lo que está vencido',
+        hint: 'Vacunas y desparasitación',
         keywords: ['vacunas', 'antirrábica', 'veterinario', 'desparasitación', 'salud'],
         kind: 'link',
         href: '/perfil?tab=record',
@@ -274,7 +274,7 @@ export const SETTINGS: readonly SettingGroup[] = [
       {
         id: 'saved',
         label: 'Guardados',
-        hint: 'Las publicaciones que has guardado. No lo ve nadie más',
+        hint: 'Solo tú los ves',
         keywords: ['favoritos', 'marcadores', 'publicaciones'],
         kind: 'link',
         href: '/perfil?tab=saved',
@@ -282,7 +282,7 @@ export const SETTINGS: readonly SettingGroup[] = [
       {
         id: 'walkmode',
         label: 'Modo Paseo',
-        hint: 'El código para quien encuentre a tu perro solo en la calle',
+        hint: 'Código por si se pierde',
         keywords: ['qr', 'código', 'perdido', 'chip', 'emergencia', 'teléfono'],
         kind: 'link',
         href: '/perfil?modo=paseo',
@@ -290,7 +290,7 @@ export const SETTINGS: readonly SettingGroup[] = [
       {
         id: 'activity',
         label: 'Tu actividad',
-        hint: 'Reacciones, avistamientos y recordatorios',
+        hint: 'Reacciones y avisos',
         keywords: ['notificaciones', 'novedades', 'avisos'],
         kind: 'link',
         href: '/actividad',
@@ -299,40 +299,40 @@ export const SETTINGS: readonly SettingGroup[] = [
   },
   {
     id: 'missing',
-    title: 'Lo que todavía no hay',
-    note: 'Se dice en vez de enseñar un interruptor apagado. Un ajuste que no hace nada es peor que no tenerlo: se apaga y se confía en él.',
+    title: 'Todavía no disponible',
+    note: 'Preferimos decirlo antes que poner un botón que no hace nada.',
     rows: [
       {
         id: 'account',
         label: 'Cambiar la contraseña',
-        hint: 'Hace falta servidor',
+        hint: 'Falta el servidor',
         keywords: ['correo', 'contraseña', 'sesión', 'cerrar sesión', 'borrar cuenta'],
         kind: 'missing',
-        why: 'El correo con el que entraste está en este teléfono; la contraseña no se guarda en ninguna parte, así que aquí no hay nada que cambiar. Cambiarla, cerrar sesión en otros dispositivos o borrar la cuenta son cosas que hace un servidor, y todavía no lo hay.',
+        why: 'No guardamos contraseñas, así que no hay ninguna que cambiar. Cambiarla, cerrar sesión o borrar la cuenta necesitan servidor.',
       },
       {
         id: 'push',
-        label: 'Notificaciones del teléfono',
-        hint: 'Los avisos se ven dentro de la aplicación',
+        label: 'Notificaciones',
+        hint: 'Por ahora, solo dentro de la app',
         keywords: ['push', 'sonido', 'silenciar', 'alertas'],
         kind: 'missing',
-        why: 'El reparto de avisos está construido y probado contra la base local, pero enviarlos al teléfono necesita credenciales de Expo que este entorno no tiene. Prefiero decirlo a poner un interruptor que no llega a ningún sitio.',
+        why: 'El reparto de avisos está construido y probado, pero enviarlos al teléfono necesita credenciales que este entorno no tiene.',
       },
       {
         id: 'blocks',
         label: 'Bloquear a alguien',
-        hint: 'Hace falta cuenta',
+        hint: 'Falta el servidor',
         keywords: ['bloqueo', 'silenciar', 'denunciar', 'reportar'],
         kind: 'missing',
-        why: 'Bloquear tiene sentido cuando hay cuentas de verdad detrás. Con datos de demostración sería un botón que no protege de nada.',
+        why: 'Bloquear solo protege cuando hay cuentas reales detrás. Con datos de demo no protegería de nada.',
       },
       {
         id: 'export',
         label: 'Descargar tus datos',
-        hint: 'Cuando haya servidor',
+        hint: 'Falta el servidor',
         keywords: ['exportar', 'datos', 'copia', 'rgpd'],
         kind: 'missing',
-        why: 'Lo que hay ahora vive en el teléfono y se va al cerrar. Cuando los datos estén en el servidor, poder llevárselos es obligatorio, no una funcionalidad.',
+        why: 'Ahora los datos viven en el teléfono y se borran al cerrar. Cuando estén en el servidor podrás descargarlos.',
       },
     ],
   },

@@ -343,7 +343,7 @@ function Bienvenida({ onSignup, onLogin }: { onSignup: () => void; onLogin: () =
                 letterSpacing: -0.5,
               }}
             >
-              Con quién pasea tu perro, y a qué hora
+Encuentra con quién pasear
             </Text>
             <Text
               style={{
@@ -354,8 +354,7 @@ function Bienvenida({ onSignup, onLogin }: { onSignup: () => void; onLogin: () =
                 lineHeight: theme.fontSize.sm * 1.5,
               }}
             >
-              Se cruzan horarios de paseo, así que funciona a las once de la noche igual que a las
-              siete de la mañana — que es cuando de verdad se pasea solo.
+Cruzamos horarios de paseo. Funciona a las siete de la mañana y a las once de la noche.
             </Text>
           </View>
         </Appear>
@@ -424,8 +423,8 @@ function Bienvenida({ onSignup, onLogin }: { onSignup: () => void; onLogin: () =
           {why !== null ? (
             <Caption>
               {why === 'apple'
-                ? 'Entrar con Apple exige una cuenta de desarrollador de Apple y un servidor que valide el token que devuelve. Todavía no lo hay.'
-                : 'Entrar con Google necesita las claves del proyecto y un servidor que compruebe el token. Todavía no lo hay.'}
+                ? 'Todavía no. Falta la cuenta de desarrollador de Apple y el servidor que valide la sesión.'
+                : 'Todavía no. Faltan las claves de Google y el servidor que valide la sesión.'}
             </Caption>
           ) : null}
 
@@ -495,7 +494,7 @@ function Login({ onBack, onCreate }: { onBack: () => void; onCreate: () => void 
                 letterSpacing: -0.6,
               }}
             >
-              Entrar
+Entrar
             </Text>
 
             <Input
@@ -535,7 +534,7 @@ function Login({ onBack, onCreate }: { onBack: () => void; onCreate: () => void 
             signIn(check.normalized);
           }}
         />
-        <TextLink label="No tengo cuenta: crear una" onPress={onCreate} />
+        <TextLink label="Crear una cuenta" onPress={onCreate} />
       </View>
     </Screen>
   );
@@ -593,7 +592,7 @@ function Puertas({
               letterSpacing: -0.6,
             }}
           >
-            ¿Con quién vienes?
+¿Tienes perro?
           </Text>
         </Appear>
 
@@ -610,8 +609,7 @@ function Puertas({
             onPress={() => onPick('rescuer')}
           />
           <Caption>
-            Protectoras, albergues, casas de acogida y quien alimenta colonias entran por la
-            segunda, enseñando el perfil público del colectivo.
+Protectoras, albergues y casas de acogida entran con el perfil de su colectivo.
           </Caption>
         </Appear>
       </View>
@@ -730,8 +728,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   const steps: Step[] = [
     {
       id: 'account',
-      title: 'Tu cuenta',
-      why: 'El correo es con lo que se entra. La contraseña se comprueba aquí y no se guarda en ningún sitio: en esta versión no hay servidor, y guardar una de mentira no protegería nada.',
+      title: 'Crea tu cuenta',
+      why: 'Usarás el correo para entrar. La contraseña no la guardamos: todavía no hay servidor.',
       ready: credentialProblems({ email, password }).length === 0,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -761,16 +759,16 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'breed',
-      title: 'De qué raza es',
-      why: 'Mestizo cuenta, y es la respuesta más común. La raza no es para presumir: de ella salen la talla, la energía y —si es de hocico chato— cuatro grados menos de techo de calor.',
+      title: '¿De qué raza es?',
+      why: 'Mestizo cuenta. Con la raza rellenamos su tamaño y su energía.',
       ready: breeds.length > 0,
       onLeave: applyBreeds,
       content: <BreedPicker selected={breeds} onChange={setBreeds} />,
     },
     {
       id: 'name',
-      title: 'Cómo se llama',
-      why: 'Es como te van a llamar a ti en el parque.',
+      title: '¿Cómo se llama?',
+      why: 'Es el nombre que verán los demás.',
       ready: name.trim().length >= 2,
       content: (
         <Input
@@ -784,8 +782,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'age',
-      title: 'Qué edad tiene',
-      why: 'Por debajo del año es un cachorro, y hay tutores que piden no cruzarse con cachorros muy revoltosos. El algoritmo lo respeta.',
+      title: '¿Qué edad tiene?',
+      why: 'Por debajo del año cuenta como cachorro.',
       ready: draft.ageMonths !== null,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -805,7 +803,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
             />
           )}
           <TextLink
-            label={exactAge ? 'Elegirla de la lista' : 'Sé la edad exacta'}
+            label={exactAge ? 'Elegir de la lista' : 'Sé la edad exacta'}
             onPress={() => setExactAge(!exactAge)}
           />
         </View>
@@ -813,8 +811,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'sex',
-      title: 'Es macho o hembra',
-      why: 'Hay tutores que prefieren un sexo u otro para los encuentros, y el algoritmo lo tiene en cuenta.',
+      title: '¿Macho o hembra?',
+      why: 'Algunos tutores lo tienen en cuenta al quedar.',
       ready: sex !== null,
       content: (
         <Chips
@@ -832,8 +830,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'size',
-      title: 'Cuánto ocupa',
-      why: 'Tres escalones de diferencia es un veto duro: no es cuestión de carácter, es riesgo de lesión.',
+      title: '¿Qué tamaño tiene?',
+      why: 'No juntamos perros con mucha diferencia de tamaño.',
       ready: size !== null,
       hint: sizeFromBreed ? 'Puesto por la raza. Cámbialo si no encaja.' : undefined,
       content: (
@@ -850,8 +848,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'energy',
-      title: 'Cuánta cuerda tiene',
-      why: 'Es el peso más grande de la afinidad: un perro de sofá con un velocista es la causa número uno de un mal encuentro.',
+      title: '¿Cuánta energía tiene?',
+      why: 'Es lo que más pesa al buscarle compañía.',
       ready: energy !== null,
       hint: energyFromBreed ? 'Puesto por la raza. Cámbialo si no encaja.' : undefined,
       live: <LiveMatches draft={livePet} />,
@@ -869,8 +867,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'play',
-      title: 'Cómo juega',
-      why: 'Marca todas las que valgan. A dos perros les basta una forma compartida de jugar, así que cuantas más pongas, más fácil es encontrarle a alguien.',
+      title: '¿Cómo juega?',
+      why: 'Marca todas las que quieras. Con una en común ya encajan.',
       ready: play.length > 0,
       live: <LiveMatches draft={livePet} />,
       content: (
@@ -887,8 +885,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'role',
-      title: 'Qué hace tu perro',
-      why: 'La mayoría son de compañía y no hay nada que explicar. Los que trabajan cambian dos cosas aquí: lo que se les propone, y lo que se le dice a quien se los cruza.',
+      title: '¿Qué hace tu perro?',
+      why: 'La mayoría son de compañía. Los que trabajan reciben otras propuestas.',
       ready: true,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -928,9 +926,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
                   sale de aquí. Decirlo donde se pregunta es lo que hace que se
                   pueda contestar; ponerlo en una política que nadie abre, no. */}
               <Caption>
-                Esto se queda en tu teléfono y no se publica nunca. «Alerta médica» es una
-                enfermedad y «autismo» es un diagnóstico tuyo, no de tu perro: no va al lado de su
-                foto. Se guarda para no proponerle lo que le estorba.
+                Esto no se publica nunca. Solo lo usamos para no proponerle lo que le estorba.
               </Caption>
               <Chips
                 options={ASSISTANCE_TYPES.map((option) => ({
@@ -942,8 +938,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
               />
               <Separator />
               <Toggle
-                label="Enseñar que es perro de asistencia"
-                hint="Es lo que evita que lo distraigan trabajando. Enseñarlo dice que tienes una discapacidad, así que lo decides tú."
+                label="Mostrar que es de asistencia"
+                hint="Evita que lo distraigan mientras trabaja. Tú decides si se muestra."
                 on={showRole}
                 onToggle={() => setShowRole(!showRole)}
               />
@@ -955,15 +951,15 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'handler',
-      title: 'Y tú, ¿qué necesitas?',
-      why: 'Opcional, privado y no se publica. Lo que ve la otra persona no es esto: es que le propones quedar el martes a las siete en un sitio concreto.',
+      title: 'Sobre ti',
+      why: 'Opcional. Solo lo ves tú: no aparece en tu perfil.',
       ready: true,
       skippable: true,
       content: (
         <View style={{ gap: theme.space[4] }}>
           <Toggle
             label="Soy autista"
-            hint="No pone ninguna insignia: marca los acomodos de abajo, y los puedes cambiar uno a uno."
+            hint="No aparece en tu perfil. Solo marca las opciones de abajo."
             on={autistic}
             onToggle={() => {
               const next = !autistic;
@@ -996,17 +992,14 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
             })}
           </View>
 
-          <Caption>
-            Cada uno cambia algo de verdad; si no cambiara nada no estaría en la lista. Se pueden
-            encender sin decir por qué, y se cambian después en Configuración.
-          </Caption>
+          <Caption>Puedes cambiarlas luego en Configuración.</Caption>
         </View>
       ),
     },
     {
       id: 'trust',
-      title: 'Con quién se lleva',
-      why: 'Esto no ordena la lista: veta. «De su tamaño» quita de en medio a los que le sacan dos escalones, y «cachorros no» impide que le propongan un cachorro que no para.',
+      title: '¿Con quién se lleva bien?',
+      why: 'Quitamos de su lista a los que no encajan.',
       ready: trust.length > 0,
       skippable: true,
       /* Aquí la vista previa hace algo que no hace en los otros pasos: al
@@ -1027,8 +1020,8 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'schedule',
-      title: 'Cuándo salís',
-      why: 'Es la mitad de la aplicación: cruzar horarios es lo que hace que sirva a las once de la noche, cuando no hay nadie conectado. Tu horario exacto no se publica; solo se dice con quién coincides.',
+      title: '¿Cuándo salís a pasear?',
+      why: 'No publicamos tu horario. Solo decimos con quién coincides.',
       ready: days.length > 0 && slot !== null,
       live: (
         <LiveSchedule
@@ -1065,7 +1058,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'chip',
-      title: 'El chip, si lo tiene',
+      title: '¿Tiene chip?',
       why: CHIP_NOTE,
       ready: chipCheck?.valid === true,
       skippable: true,
@@ -1088,7 +1081,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
               />
               <Caption>
                 {chipCheck.valid
-                  ? `${formatMicrochip(chipCheck.normalized)} · formato correcto. Queda como declarado: verificarlo de verdad pide la cartilla del veterinario.`
+                  ? `${formatMicrochip(chipCheck.normalized)} · el formato es correcto. Para verificarlo hace falta la cartilla.`
                   : chipCheck.reason}
               </Caption>
             </View>
@@ -1099,7 +1092,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
     {
       id: 'done',
       title: `Listo${name.trim() ? `, ${name.trim()}` : ''}`,
-      why: 'Esto es lo que se guarda. Se puede cambiar entero después desde el perfil.',
+      why: 'Puedes cambiarlo cuando quieras desde tu perfil.',
       ready: complete,
       cta: 'Entrar',
       content: (
@@ -1173,12 +1166,9 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
                   fontSize: theme.fontSize.base,
                 }}
               >
-                Lo que la raza trae puesto
+Por su raza
               </Text>
-              <Caption>
-                Baja el techo de temperatura a partir del cual no se propone salir y acorta el rato
-                que se sugiere. Quítalo si no es su caso.
-              </Caption>
+              <Caption>Ajustamos la temperatura y el rato que le proponemos. Quítalo si no es su caso.</Caption>
               <Chips
                 options={flags.map((flag) => ({
                   id: flag,
@@ -1212,16 +1202,12 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
                     fontSize: theme.fontSize.base,
                   }}
                 >
-                  Esto se queda en tu teléfono
+                  Solo lo ves tú
                 </Text>
               </View>
               <Caption>
-                {assistanceType !== null
-                  ? 'Para qué asiste tu perro y '
-                  : ''}
-                lo que has marcado sobre ti no se publica ni se enseña a nadie: cambia cómo se
-                comporta la aplicación contigo. Quien quede contigo ve un plan con hora y sitio, no
-                por qué se lo propones así.
+                Nada de esto aparece en tu perfil ni lo ve nadie. Solo cambia cómo funciona la app
+                para ti.
               </Caption>
             </View>
           ) : null}
@@ -1243,14 +1229,12 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
                   fontSize: theme.fontSize.base,
                 }}
               >
-                Los sitios se ven; las personas no
+Qué verás al entrar
               </Text>
             </View>
             <Caption>
-              Al entrar verás el mapa de parques, fuentes, sombra y veterinarios, y el feed del
-              vecindario. Quién está paseando ahora y a qué hora sale cada uno se abre al verificar
-              el chip con la cartilla, porque la cara, el sitio y la hora son justo lo que buscaría
-              quien anda mirando qué animal llevarse.
+              Verás el mapa y el feed del vecindario desde el principio. Para ver quién pasea
+              ahora, verifica el chip con la cartilla.
             </Caption>
             <Caption>{HONESTY_NOTE}</Caption>
           </View>
@@ -1448,8 +1432,7 @@ function BreedPicker({
       <View style={{ gap: theme.space[2] }}>
         {results.length === 0 ? (
           <Caption>
-            Ninguna raza se llama así. Si no la encuentras, «Mestizo» o «No lo sé» valen: es mejor
-            que apuntar una que no es.
+  No encontramos esa raza. Puedes poner «Mestizo» o «No lo sé».
           </Caption>
         ) : null}
         {results
@@ -1491,7 +1474,7 @@ function BreedPicker({
 
       {mixed && extras < MAX_BREEDS ? (
         <Caption>
-          Puedes añadir de qué es mezcla, si lo sabes. Hasta {MAX_BREEDS}, y no hace falta ninguna.
+Si sabes de qué es mezcla, añádelo. Hasta {MAX_BREEDS}.
         </Caption>
       ) : null}
     </View>
@@ -1654,8 +1637,8 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
   const steps: Step[] = [
     {
       id: 'account',
-      title: 'Vuestra cuenta',
-      why: 'El correo es con lo que se entra, y por donde os avisaremos de la revisión. La contraseña se comprueba aquí y no se guarda: todavía no hay servidor.',
+      title: 'Crear la cuenta',
+      why: 'Usaréis el correo para entrar, y ahí os avisaremos de la revisión.',
       ready: credentialProblems({ email, password }).length === 0,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -1681,8 +1664,8 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'name',
-      title: 'Cómo os llamáis',
-      why: 'El nombre con el que os conocen, el mismo del perfil.',
+      title: '¿Cómo os llamáis?',
+      why: 'El nombre con el que os conocen.',
       ready: name.trim().length >= 3,
       content: (
         <Input
@@ -1696,8 +1679,8 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'profile',
-      title: 'El perfil público',
-      why: 'Instagram, Facebook, TikTok, X o vuestra web. Tiene que ser el perfil entero, no una publicación: lo que se puede mirar es la cuenta.',
+      title: 'Vuestro perfil público',
+      why: 'Instagram, Facebook, TikTok, X o vuestra web. El perfil, no una publicación.',
       ready: link.ok,
       content: (
         <View style={{ gap: theme.space[3] }}>
@@ -1718,7 +1701,7 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
               />
               <Caption>
                 {link.ok
-                  ? `${link.platform}${link.handle ? ` · @${link.handle}` : ''}. La forma está bien; que la cuenta sea vuestra lo mira una persona.`
+                  ? `${link.platform}${link.handle ? ` · @${link.handle}` : ''}. Lo revisará una persona.`
                   : link.reason}
               </Caption>
             </View>
@@ -1728,8 +1711,8 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'activities',
-      title: 'Qué hacéis',
-      why: 'Decide qué avisos os llegan cuando la cuenta esté aprobada.',
+      title: '¿Qué hacéis?',
+      why: 'Decide qué avisos recibiréis.',
       ready: activities.length > 0,
       content: (
         <Chips
@@ -1748,7 +1731,7 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
     },
     {
       id: 'done',
-      title: 'Lo miramos y os decimos',
+      title: 'Ya está',
       why: SHELTER_REVIEW_NOTE,
       ready: missing.length === 0,
       cta: 'Enviar a revisión',
@@ -1770,7 +1753,7 @@ function AltaProtectora({ onBack }: { onBack: () => void }) {
                 fontSize: theme.fontSize.base,
               }}
             >
-              Distinta puerta, distinta habitación
+              Qué podréis ver
             </Text>
           </View>
           <Caption>{SHELTER_SCOPE_NOTE}</Caption>

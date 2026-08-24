@@ -120,9 +120,14 @@ describe('los acomodos de la persona', () => {
   it('cada uno dice qué hace la aplicación distinto', () => {
     /* Si no cambia nada, no entra en la lista: es la misma regla que en la
        pantalla de configuración. Un acomodo decorativo es peor que ninguno,
-       porque alguien lo enciende y cuenta con él. */
+       porque alguien lo enciende y cuenta con él.
+
+       El mínimo es corto a propósito. Antes pedía treinta caracteres y eso
+       empujaba a explicar en vez de decir: «verás primero los sitios con menos
+       gente» es mejor copia que el párrafo que había, y cabe en una línea. Lo
+       que se comprueba es que haya frase, no que sea larga. */
     for (const need of HANDLER_NEEDS) {
-      expect(need.effect.length, `«${need.label}» no dice qué hace`).toBeGreaterThan(30);
+      expect(need.effect.length, `«${need.label}» no dice qué hace`).toBeGreaterThan(15);
       expect(describeNeed(need.id)).toBe(need.effect);
     }
   });

@@ -61,7 +61,7 @@ describe('sin animal no se entra', () => {
   });
 
   it('dice qué falta en vez de dejar la puerta muda', () => {
-    expect(whyNot('none', 'places')).toContain('da de alta');
+    expect(whyNot('none', 'places')).toContain('Da de alta');
   });
 });
 
@@ -85,7 +85,7 @@ describe('con el animal declarado', () => {
     /* La cara, el sitio y la hora son las tres cosas que le sirven a quien
        busca animales para llevárselos, y las tres están detrás del chip. */
     expect(can(level, 'live_people')).toBe(false);
-    expect(whyNot(level, 'live_people')).toContain('chip verificado');
+    expect(whyNot(level, 'live_people')).toContain('Verifica el chip');
   });
 
   it('NO se ven los horarios de nadie', () => {
@@ -238,7 +238,7 @@ describe('la segunda puerta: quien rescata y no tiene animal', () => {
   it('no hay check-in sin animal propio', () => {
     const level = accessLevel(shelter({ shelterReviewed: true }));
     expect(can(level, 'check_in')).toBe(false);
-    expect(whyNot(level, 'check_in')).toContain('no tiene animal');
+    expect(whyNot(level, 'check_in')).toContain('No tienes animal');
   });
 });
 

@@ -811,8 +811,8 @@ function RescueSection() {
           Rescate
         </Text>
         <Caption>
-          Cuando el animal que necesita ayuda no es el tuyo. Los avisos son sobre sitios y
-          situaciones, nunca sobre personas.
+          Cuando el animal que necesita ayuda no es el tuyo. Los avisos son sobre sitios, nunca
+          sobre personas.
         </Caption>
       </View>
 
@@ -932,8 +932,8 @@ function RoleRow() {
         <Body>{rescuer ? 'Te llegan como rescatista' : 'Te llegan como tutor'}</Body>
         <Caption>
           {rescuer
-            ? 'Desde varios kilómetros, y también lo que no es peligro para tu paseo.'
-            : 'Lo que tienes a mano, y solo lo que afecta a vuestro paseo.'}
+            ? 'Recibes avisos de varios kilómetros.'
+            : 'Recibes solo lo que afecta a vuestro paseo.'}
         </Caption>
       </View>
       <Icon icon={ChevronRight} size="base" color={theme.colors.mutedForeground} decorative />
@@ -1004,8 +1004,8 @@ function RescueCard({
       <Caption>{scenario.description}</Caption>
       <Caption>
         {reach === 0
-          ? 'No te avisa: no es un peligro para tu paseo. A una rescatista sí le llega.'
-          : `Te avisa si pasa a menos de ${km(reach)}.`}
+          ? 'No te avisamos: no afecta a tu paseo. A una rescatista sí.'
+          : `Te avisamos si pasa a menos de ${km(reach)}.`}
       </Caption>
 
       {open ? (

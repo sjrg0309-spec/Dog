@@ -104,7 +104,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <BackBar title="Configuración" subtitle="Solo lo que hace algo" />
+      <BackBar title="Configuración" />
 
       <ScrollView
         keyboardShouldPersistTaps="handled"
@@ -173,10 +173,7 @@ export default function SettingsScreen() {
         {groups.length === 0 ? (
           <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[2] }}>
             <Caption>Nada coincide con «{query}».</Caption>
-            <Caption>
-              Puede que lo que buscas esté en el último grupo: hay cosas que todavía no existen y
-              están escritas ahí con el motivo, en vez de aparecer como un interruptor apagado.
-            </Caption>
+            <Caption>Mira en «Todavía no disponible»: puede que esté ahí.</Caption>
           </View>
         ) : null}
 
@@ -367,9 +364,7 @@ function SwitchRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
             <RescuerReach />
           ) : row.id === 'chip' || row.id === 'shelter' ? (
             <Caption>
-              En esta versión es un atajo de demostración, para poder ver funcionando los dos lados
-              de la regla. La verificación de verdad pide la cartilla del veterinario; la revisión
-              de una protectora la hace una persona mirando el perfil.
+              Atajo de demostración. La verificación real pide la cartilla del veterinario.
             </Caption>
           ) : null
         }
@@ -438,7 +433,7 @@ function RescuerReach() {
             }}
           >
             {scenario.label}: {km(rescuer)}
-            {tutor === 0 ? ' (a un tutor no le llega)' : ` en vez de ${km(tutor)}`}
+            {tutor === 0 ? ' · a un tutor no le llega' : ` en vez de ${km(tutor)}`}
           </Text>
         );
       })}
@@ -490,8 +485,7 @@ function ChoiceRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
                 onChange={(id) => setSetting('motion', id)}
               />
               <Caption>
-                Esto solo puede reducir. Con la preferencia puesta en el teléfono, nada de aquí la
-                cancela: quien la activó no lo hizo por gusto.
+                Si ya lo tienes activado en el teléfono, esto no lo desactiva.
               </Caption>
             </View>
           ) : null}

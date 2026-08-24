@@ -85,8 +85,8 @@ export function ShelterCard() {
               <Body>{approved ? 'Cuenta aprobada' : 'Pendiente de revisión'}</Body>
               <Caption>
                 {approved
-                  ? 'Alguien miró el perfil y lo aprobó.'
-                  : 'Alguien tiene que mirar el perfil que enseñasteis.'}
+                  ? 'Ya hemos revisado vuestro perfil.'
+                  : 'Estamos revisando vuestro perfil.'}
               </Caption>
             </View>
             <Badge tone={approved ? 'verified' : 'warning'}>
@@ -139,7 +139,7 @@ export function ShelterCard() {
         <Notice>
           <Row gap={2}>
             <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
-            <Body>Distinta puerta, distinta habitación</Body>
+            <Body>Qué podéis ver</Body>
           </Row>
           <Caption>{SHELTER_SCOPE_NOTE}</Caption>
         </Notice>
@@ -149,9 +149,8 @@ export function ShelterCard() {
             perros propios, que es justo lo contrario de lo que define esta
             puerta. */}
         <Caption>
-          En esta demostración la cuenta conserva a Nina y a Kira para que el resto de pantallas
-          tengan contenido. En una cuenta de protectora de verdad no habría animales propios: por
-          eso esta no puede hacer check-in ni organizar quedadas.
+          En esta demo la cuenta conserva a Nina y a Kira para que haya contenido. Una cuenta de
+          protectora real no tiene mascotas propias.
         </Caption>
       </ScrollView>
 

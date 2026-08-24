@@ -60,23 +60,11 @@ export const DOG_ROLES: ReadonlyArray<{
   label: string;
   hint: string;
 }> = [
-  { id: 'companion', label: 'Compañía', hint: 'La mayoría. Sale a pasear y a jugar' },
-  {
-    id: 'assistance',
-    label: 'Perro de asistencia',
-    hint: 'Trabaja para su persona: guía, alerta, apoyo. Tiene derecho de acceso',
-  },
-  {
-    id: 'therapy',
-    label: 'Perro de terapia',
-    hint: 'Visita hospitales, residencias o colegios acompañado de un profesional',
-  },
-  {
-    id: 'working',
-    label: 'Perro de trabajo',
-    hint: 'Búsqueda y rescate, detección, pastoreo, guarda de ganado',
-  },
-  { id: 'sport', label: 'Deportivo', hint: 'Agility, canicross, mantrailing, obediencia' },
+  { id: 'companion', label: 'Compañía', hint: 'La mayoría' },
+  { id: 'assistance', label: 'De asistencia', hint: 'Guía, alerta médica, apoyo' },
+  { id: 'therapy', label: 'De terapia', hint: 'Visitas a hospitales o colegios' },
+  { id: 'working', label: 'De trabajo', hint: 'Rescate, detección, pastoreo' },
+  { id: 'sport', label: 'Deportivo', hint: 'Agility, canicross, obediencia' },
 ];
 
 /**
@@ -99,16 +87,12 @@ export const ASSISTANCE_TYPES: ReadonlyArray<{
   label: string;
   hint: string;
 }> = [
-  { id: 'guide', label: 'Guía', hint: 'Para una persona ciega o con baja visión' },
-  { id: 'hearing', label: 'Señal', hint: 'Avisa de sonidos a una persona sorda' },
-  { id: 'mobility', label: 'Movilidad', hint: 'Apoyo, recogida de objetos, abrir puertas' },
-  { id: 'medical_alert', label: 'Alerta médica', hint: 'Avisa de crisis: diabetes, epilepsia' },
-  {
-    id: 'autism',
-    label: 'Acompañamiento en autismo',
-    hint: 'Ancla, evita fugas, ayuda a regular en sitios difíciles',
-  },
-  { id: 'psychiatric', label: 'Apoyo psiquiátrico', hint: 'Interrumpe crisis, da anclaje' },
+  { id: 'guide', label: 'Guía', hint: 'Ceguera o baja visión' },
+  { id: 'hearing', label: 'Señal', hint: 'Avisa de sonidos' },
+  { id: 'mobility', label: 'Movilidad', hint: 'Apoyo y recogida de objetos' },
+  { id: 'medical_alert', label: 'Alerta médica', hint: 'Avisa de crisis' },
+  { id: 'autism', label: 'Autismo', hint: 'Ancla y ayuda a regular' },
+  { id: 'psychiatric', label: 'Apoyo psiquiátrico', hint: 'Interrumpe crisis' },
 ];
 
 export const WORKING_TYPES = [
@@ -131,13 +115,13 @@ export function worksInPublic(role: DogRole): boolean {
  */
 export function approachNote(role: DogRole): string | null {
   if (role === 'assistance') {
-    return 'Está trabajando. No lo llames, no lo silbes y no lo acaricies sin preguntar a su persona: distraerlo es dejarla sin lo que necesita para moverse.';
+    return 'Está trabajando. No lo llames ni lo acaricies sin preguntar.';
   }
   if (role === 'working') {
-    return 'Es un perro de trabajo. Fuera de servicio es un perro más, pero con el arnés puesto está en faena.';
+    return 'Con el arnés puesto está trabajando.';
   }
   if (role === 'therapy') {
-    return 'Es un perro de terapia. Trabaja acompañado y en sitios concretos; en el parque es un perro corriente.';
+    return 'Perro de terapia. En el parque es un perro más.';
   }
   return null;
 }
@@ -173,7 +157,7 @@ export function joinsOpenMeetups(role: DogRole): boolean {
  * insignia de aquí para entrar en un sitio se lleva el disgusto en la puerta.
  */
 export const ASSISTANCE_ACCESS_NOTE =
-  'Un perro de asistencia tiene derecho a acompañar a su persona en sitios públicos, y cada país lo regula distinto. Esto no es un carnet ni acredita nada: es lo que ve quien se cruza con vosotros aquí.';
+  'Esto no es un carnet ni acredita nada. Cada país regula el acceso a su manera.';
 
 /* ------------------------------------------------------------------------ */
 /*  La persona                                                               */
@@ -189,18 +173,18 @@ export const HANDLER_NEEDS: ReadonlyArray<{
 }> = [
   {
     id: 'quiet_places',
-    label: 'Prefiero sitios tranquilos',
-    effect: 'Los sitios con menos gente ahora salen primero en el mapa, y se dice cuánta hay.',
+    label: 'Sitios tranquilos',
+    effect: 'Verás primero los sitios con menos gente.',
   },
   {
     id: 'plan_ahead',
-    label: 'Prefiero quedar con antelación',
-    effect: 'Primero las quedadas con hora y sitio; el «salir ahora» deja de ser lo primero que ves.',
+    label: 'Quedar con antelación',
+    effect: 'Verás antes las quedadas con hora y sitio.',
   },
   {
     id: 'less_motion',
-    label: 'Menos movimiento en pantalla',
-    effect: 'Enciende movimiento reducido: el anillo del radar deja de pulsar y nada entra animado.',
+    label: 'Menos movimiento',
+    effect: 'Se reducen las animaciones de la app.',
   },
 ];
 

@@ -119,7 +119,7 @@ export function LiveCard({
             lineHeight: theme.fontSize.xs * 1.4,
           }}
         >
-          {facts.length > 0 ? facts.join(' · ') : 'Se va dibujando con lo que contestes'}
+          {facts.length > 0 ? facts.join(' · ') : 'Se completa con lo que respondas'}
         </Text>
       </View>
     </View>
@@ -174,7 +174,7 @@ export function LiveMatches({ draft }: { draft: DraftPet }) {
 
   return (
     <View style={{ gap: theme.space[2] }}>
-      <Caption>Con lo que llevas contestado, en tu barrio</Caption>
+      <Caption>Ya encaja con</Caption>
       {matches.map(({ other, result }) => (
         <Pop key={other.id} trigger={result.score}>
           <View
@@ -276,9 +276,7 @@ export function LiveSchedule({
   if (matches.length === 0) {
     return (
       <Caption>
-        Con ese horario no coincides con nadie del barrio todavía. No es un problema: la
-        aplicación existe justo para las horas en las que se pasea solo, y puedes añadir más
-        franjas después desde tu perfil.
+        Con ese horario todavía no coincides con nadie. Puedes añadir más franjas desde tu perfil.
       </Caption>
     );
   }
@@ -287,8 +285,8 @@ export function LiveSchedule({
     <View style={{ gap: theme.space[2] }}>
       <Caption>
         {matches.length === 1
-          ? 'Con ese horario coincides con 1 perro del barrio'
-          : `Con ese horario coincides con ${matches.length} perros del barrio`}
+          ? 'Coincides con 1 perro'
+          : `Coincides con ${matches.length} perros`}
       </Caption>
       {matches.map(({ other, overlap }) => (
         <Pop key={other.id} trigger={overlap.totalMinutes}>

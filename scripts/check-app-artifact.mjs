@@ -102,7 +102,7 @@ if (/no encontr|unmatched|not found/i.test(body.slice(0, 400))) {
  * texto solamente —un cartel se puede dejar puesto con la aplicación detrás—,
  * sino que **no exista la barra de pestañas**: si hay pestañas, hay aplicación.
  */
-if (!/Petnav/i.test(body) || !/no se entra a mirar/i.test(body)) {
+if (!/Petnav/i.test(body) || !/dar de alta a tu mascota/i.test(body)) {
   problems.push('la aplicación no arrancó en la bienvenida: la puerta no está puesta');
 }
 if (await page.getByRole('tab', { name: /Explorar/i }).count()) {
@@ -219,7 +219,7 @@ await page.getByLabel('Correo', { exact: true }).fill('ana@correo.com');
 await page.getByLabel('Contraseña', { exact: true }).fill('password');
 await page.waitForTimeout(400);
 const weak = (await page.locator('#root').innerText()).trim();
-if (!/de las más usadas/i.test(weak)) {
+if (!/muy usada/i.test(weak)) {
   problems.push('el alta acepta una contraseña de las que se prueban primero');
 }
 const blockedWeak = await page
@@ -282,7 +282,7 @@ await next();
  * Es justo el texto que se cae de una pantalla en el primer rediseño, así que
  * se comprueba aquí y no en un test de interfaz.
  */
-await chip('Perro de asistencia');
+await chip('De asistencia');
 await page.waitForTimeout(400);
 const roleStep = (await page.locator('#root').innerText()).trim();
 if (!/no se publica nunca/i.test(roleStep)) {
@@ -312,7 +312,7 @@ if (!(await autistic.count())) {
   await autistic.click();
   await page.waitForTimeout(400);
 }
-const quiet = page.getByRole('switch', { name: /Prefiero sitios tranquilos/i }).first();
+const quiet = page.getByRole('switch', { name: /Sitios tranquilos/i }).first();
 if (!(await quiet.count())) {
   problems.push('el alta no ofrece los acomodos de la persona');
 } else if ((await quiet.getAttribute('aria-checked')) !== 'true') {
@@ -337,7 +337,7 @@ await page.waitForTimeout(400);
  * una sección vacía, y las dos se ven igual de bien en una captura.
  */
 const preview = (await page.locator('#root').innerText()).trim();
-if (!/coincides con \d+ perros? del barrio|no coincides con nadie/i.test(preview)) {
+if (!/coincides con \d+ perros?|no coincides con nadie/i.test(preview)) {
   problems.push('el paso del horario no enseña con quién coincidirías');
 }
 if (!/Coincidís/.test(preview)) {
