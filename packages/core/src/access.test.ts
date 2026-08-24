@@ -207,6 +207,25 @@ describe('la segunda puerta: quien rescata y no tiene animal', () => {
     expect(can(level, 'places')).toBe(true);
   });
 
+  it('no tiene feed social, y esa es la decisión que define esta cuenta', () => {
+    /* Una protectora no entra a ver fotos del perro de nadie: entra a ver qué
+       animal necesita ayuda cerca. Dejarle el feed sería convertir una
+       herramienta de trabajo en otra aplicación de la que salir. */
+    for (const level of ['shelter_pending', 'shelter'] as const) {
+      expect(can(level, 'feed'), level).toBe(false);
+      expect(can(level, 'rescue_board'), level).toBe(true);
+    }
+    expect(whyNot('shelter', 'feed')).toContain('no tienen feed social');
+  });
+
+  it('el tablero está desde el primer momento, incluso en revisión', () => {
+    /* Es a lo que vienen, y es información ya publicada: quien abre un aviso de
+       perro perdido quiere que lo vea el máximo de gente. Lo que la espera no
+       abre son los avisos a kilómetros. */
+    expect(can('shelter_pending', 'rescue_board')).toBe(true);
+    expect(can('shelter_pending', 'rescue_alerts')).toBe(false);
+  });
+
   it('aprobada, abre el rescate entero', () => {
     const level = accessLevel(shelter({ shelterReviewed: true }));
     expect(level).toBe('shelter');

@@ -12,10 +12,12 @@ import {
   MessageCircleMore,
   PawPrint,
   type LucideIcon,
+  Siren,
 } from '@/lib/icons';
 import { useCriticalCount } from '@/lib/safety';
 import { Avatar } from '@/components/avatar';
 import { useActivePet } from '@/lib/active-pet';
+import { useAccount } from '@/lib/account';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -38,6 +40,7 @@ import { useTheme } from '@/lib/theme';
 export default function TabsLayout() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const rescuer = useAccount().kind === 'rescuer';
   const { location } = useWeatherState();
   const criticalNearby = useCriticalCount(location);
 
@@ -70,12 +73,19 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] },
       }}
     >
+      {/*
+        La primera pestaña cambia de nombre y de icono con el tipo de cuenta.
+
+        No es cosmética: detrás hay otra pantalla. Una protectora no tiene feed
+        social —entra a ver qué animal necesita ayuda— y llamarlo «Feed» sería
+        prometerle fotos del perro de alguien.
+      */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Feed',
+          title: rescuer ? 'Rescate' : 'Feed',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon icon={PawPrint} color={color} focused={focused} />
+            <TabIcon icon={rescuer ? Siren : PawPrint} color={color} focused={focused} />
           ),
         }}
       />

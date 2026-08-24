@@ -832,6 +832,82 @@ const loadedFonts = await page.evaluate(() => [...document.fonts].filter((font) 
 console.log(`tipografías cargadas: ${loadedFonts}`);
 if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada');
 
+/*
+ * La otra puerta, en una pestaña nueva.
+ *
+ * Una cuenta de protectora ve un tablero de rescate donde el tutor ve el feed
+ * social, y esa es la decisión que la define. Se comprueba entrando de verdad
+ * —no se puede reutilizar la sesión anterior, que ya es de un tutor— y mirando
+ * las dos caras: que **está** lo que tiene que estar y que **no está** lo que
+ * no.
+ */
+{
+  const shelter = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+  });
+  await shelter.goto(FILE, { waitUntil: 'load' });
+  await shelter.waitForSelector('#root > *', { timeout: 30_000 });
+  await shelter.waitForTimeout(1500);
+
+  const step = async (label) => {
+    const button = shelter.getByRole('button', { name: label, exact: true }).first();
+    if (!(await button.count())) {
+      problems.push(`el alta de protectora no ofrece «${label}»`);
+      return false;
+    }
+    await button.click();
+    await shelter.waitForTimeout(600);
+    return true;
+  };
+
+  await step('Comenzar ahora');
+  await step('Rescato y no tengo perro');
+  await shelter.getByLabel('Correo', { exact: true }).fill('patitas@protectora.org');
+  await shelter.getByLabel('Contraseña', { exact: true }).fill('el perro come pasto');
+  await step('Siguiente');
+  await shelter.getByLabel('Nombre del colectivo').fill('Patitas del Sur');
+  await step('Siguiente');
+  await shelter.getByLabel('Enlace al perfil del colectivo').fill('instagram.com/patitasdelsur');
+  await step('Siguiente');
+  await step('Casas de acogida');
+  await step('Siguiente');
+  await step('Enviar a revisión');
+  await shelter.waitForTimeout(1200);
+
+  const home = (await shelter.locator('#root').innerText()).trim();
+  /*
+   * El nombre de una pestaña se lee **por su papel**, no por `aria-label`.
+   *
+   * Primero se leyó el atributo y salieron cinco cadenas vacías: React Native
+   * Web pone el nombre accesible de la pestaña en el texto de dentro, y solo
+   * escribe `aria-label` cuando se le pasa uno a mano —como en SOS, que era la
+   * única que devolvía algo—. Preguntar por el papel y el nombre deja que
+   * Playwright calcule el nombre accesible igual que lo hace un lector de
+   * pantalla, que es lo que aquí se quiere comprobar.
+   */
+  const tabs = await shelter.getByRole('tab').evaluateAll((nodes) =>
+    nodes.map((node) => (node.getAttribute('aria-label') || node.textContent || '').trim()),
+  );
+
+  if (!(await shelter.getByRole('tab', { name: /Rescate/i }).count())) {
+    problems.push(`la cuenta de protectora no abre en Rescate: ${tabs.join(', ')}`);
+  }
+  if (/Añadir estado|Reels|Cerca de mí/i.test(home)) {
+    problems.push('la cuenta de protectora ve el feed social');
+  }
+  if (!/Rescate/i.test(home)) {
+    problems.push('el tablero de rescate no llegó a dibujarse');
+  }
+  if (!/revisión/i.test(home)) {
+    problems.push('la cuenta en revisión no lo dice en su tablero');
+  }
+  console.log(`protectora: pestañas ${tabs.filter(Boolean).join(', ')}`);
+  await shelter.close();
+}
+
 await browser.close();
 server.close();
 

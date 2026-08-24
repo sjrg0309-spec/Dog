@@ -13,7 +13,8 @@ import { Body, Caption, Notice, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { haptics } from '@/lib/haptics';
 import { useConditions, useWeatherState } from '@/lib/conditions';
-import { useCan } from '@/lib/account';
+import { RescueBoard } from '@/components/rescue-board';
+import { useAccount, useCan } from '@/lib/account';
 import { useVisibleBy, useVisiblePets } from '@/lib/moderation';
 import { discover, petHasMeetups, walkingNow } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
@@ -71,6 +72,19 @@ import { useTheme } from '@/lib/theme';
  * barrio, y un barrio va en orden cronológico.
  */
 export default function FeedScreen() {
+  /*
+   * Una cuenta de protectora no tiene feed social.
+   *
+   * No es un filtro sobre el feed: es otra pantalla. Filtrar dejaría la
+   * estructura del feed —historias, reels, publicar— alrededor de una lista
+   * vacía, y lo que hace falta aquí es lo contrario: que lo primero que se vea
+   * al abrir sea qué animal necesita ayuda cerca.
+   */
+  if (useAccount().kind === 'rescuer') return <RescueBoard />;
+  return <PetFeed />;
+}
+
+function PetFeed() {
   const theme = useTheme();
   const router = useRouter();
   const pet = useActivePet();

@@ -92,6 +92,11 @@ export type Capability =
   | 'places'
   /** El feed del vecindario y los perfiles públicos de otros animales. */
   | 'feed'
+  /**
+   * El tablero de rescate: animales perdidos, en peligro o que necesitan ayuda
+   * cerca. Es lo único que enseña una cuenta de protectora, y es a propósito.
+   */
+  | 'rescue_board'
   /** Publicar tu propia presencia. Expone solo a quien la pulsa. */
   | 'check_in'
   /** Las caras de quién está fuera ahora mismo. */
@@ -115,11 +120,21 @@ export type Capability =
  */
 const ALLOWED: Record<AccessLevel, readonly Capability[]> = {
   none: [],
-  declared: ['places', 'feed', 'check_in'],
-  verified: ['places', 'feed', 'check_in', 'live_people', 'schedules', 'message_first', 'rescue_alerts'],
+  declared: ['places', 'feed', 'rescue_board', 'check_in'],
+  verified: [
+    'places',
+    'feed',
+    'rescue_board',
+    'check_in',
+    'live_people',
+    'schedules',
+    'message_first',
+    'rescue_alerts',
+  ],
   established: [
     'places',
     'feed',
+    'rescue_board',
     'check_in',
     'live_people',
     'schedules',
@@ -127,18 +142,36 @@ const ALLOWED: Record<AccessLevel, readonly Capability[]> = {
     'rescue_alerts',
     'host',
   ],
-  /* Mientras se mira el perfil, lo mismo que una cuenta recién hecha: sitios.
-     Si la espera diera acceso a algo, la espera sería la vía de entrada. */
-  shelter_pending: ['places', 'feed'],
-  /* Aprobada: todo el rescate y ninguna persona. `check_in` tampoco, porque no
-     hay animal propio que esté fuera. */
-  shelter: ['places', 'feed', 'rescue_alerts', 'message_first'],
+  /*
+   * Mientras se mira el perfil: los sitios y el tablero de rescate.
+   *
+   * El tablero está desde el principio porque es a lo que vienen —animales
+   * perdidos o en peligro cerca— y porque es información que ya está publicada:
+   * quien abre un aviso de perro perdido quiere que lo vea el máximo de gente.
+   * Lo que la espera no abre son los avisos a kilómetros ni escribir el
+   * primero. Si la espera abriera eso, la espera sería la vía de entrada.
+   */
+  shelter_pending: ['places', 'rescue_board'],
+  /*
+   * Aprobada: todo el rescate y ninguna persona.
+   *
+   * **Sin `feed`**, y esa es la decisión que define esta cuenta. Una protectora
+   * no entra a ver fotos del perro de nadie: entra a ver qué animal necesita
+   * ayuda cerca. Dejarle el feed social sería convertir una herramienta de
+   * trabajo en otra aplicación de la que salir, y de paso darle a una cuenta
+   * que no tiene animal propio una ventana al vecindario que no necesita para
+   * nada.
+   *
+   * `check_in` tampoco, porque no hay animal propio que esté fuera.
+   */
+  shelter: ['places', 'rescue_board', 'rescue_alerts', 'message_first'],
 };
 
 /** Todas las capacidades, para que un test pueda recorrerlas sin listarlas. */
 export const CAPABILITIES: readonly Capability[] = [
   'places',
   'feed',
+  'rescue_board',
   'check_in',
   'live_people',
   'schedules',
@@ -232,6 +265,7 @@ export function whyNot(level: AccessLevel, capability: Capability): string | nul
  * justo la lista que esta aplicación protege.
  */
 const REASON_SHELTER: Partial<Record<Capability, string>> = {
+  feed: 'Las cuentas de protectora no tienen feed social. Aquí veis lo que necesita ayuda, no fotos.',
   live_people:
     'Las cuentas de protectora no ven quién pasea. Rescatar no necesita saber a qué hora sale cada vecino.',
   schedules: 'Las cuentas de protectora no ven horarios de vecinos.',
