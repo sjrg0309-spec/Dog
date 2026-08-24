@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { scheduleOverlap, splitCost, toWeeklyIntervals } from '@coincide/core';
+import { scheduleOverlap, splitCost, toWeeklyIntervals } from '@petnav/core';
 import { asService, asUser, createPool, type Db } from './client.js';
 import { SEED_IDS, seed } from './seed.js';
 

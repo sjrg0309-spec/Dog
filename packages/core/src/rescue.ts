@@ -281,7 +281,7 @@ export const EVIDENCE_CHECKLIST: readonly string[] = [
  * el hueco marcado como hueco.
  */
 export const REPORTING_CHANNELS_NOTE =
-  'A dónde se denuncia cambia según el país y a veces según el municipio. Coincide todavía no ' +
+  'A dónde se denuncia cambia según el país y a veces según el municipio. Petnav todavía no ' +
   'trae los contactos verificados de cada sitio, y prefiere decirlo a darte un número que no ' +
   'conteste: búscalo como «denuncia por maltrato animal» más el nombre de tu municipio, o ' +
   'pregúntalo en tu veterinario, que suele saberlo.';

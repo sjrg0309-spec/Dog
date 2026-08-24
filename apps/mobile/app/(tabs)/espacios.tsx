@@ -1,6 +1,6 @@
 import { ScrollView, View } from 'react-native';
 
-import { formGroup, formatCents, splitCost } from '@coincide/core';
+import { formGroup, formatCents, splitCost } from '@petnav/core';
 
 import { NavBar, useScrolled } from '@/components/chrome';
 import { PetSwitcher } from '@/components/pet-switcher';
@@ -28,7 +28,7 @@ import { useTheme } from '@/lib/theme';
  *
  * Aquí está la diferencia con un directorio de sitios en alquiler: alquilar un
  * patio a una persona es fácil, y saber qué cinco animales pueden compartirlo
- * sin pelearse requiere conocerlos. Coincide ya lo sabe, así que propone el
+ * sin pelearse requiere conocerlos. Petnav ya lo sabe, así que propone el
  * grupo que maximiza el mínimo y reparte el importe.
  *
  * Para las especies de grupo pequeño esto no es un lujo: presentar dos conejos

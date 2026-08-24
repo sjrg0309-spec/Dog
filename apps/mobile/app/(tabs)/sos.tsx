@@ -45,7 +45,7 @@ import {
   describeZone,
   type RescueScenario,
   type SafetyScenario,
-} from '@coincide/core';
+} from '@petnav/core';
 
 /**
  * SOS.

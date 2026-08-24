@@ -19,7 +19,7 @@
 
 import { Pressable, Text, View } from 'react-native';
 
-import type { AffinityBand } from '@coincide/core';
+import type { AffinityBand } from '@petnav/core';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';

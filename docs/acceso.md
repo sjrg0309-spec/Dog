@@ -1,6 +1,6 @@
 # Quién entra, y qué ve el que entra
 
-Este documento explica la puerta de Coincide: por qué no hay modo mirón, qué
+Este documento explica la puerta de Petnav: por qué no hay modo mirón, qué
 abre cada peldaño, cómo entra quien rescata sin tener animal propio, y qué
 parte de todo esto es comprobable y cuál no.
 

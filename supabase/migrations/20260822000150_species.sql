@@ -1,6 +1,6 @@
 -- Catálogo de especies.
 --
--- Es la tabla que convierte Coincide en una aplicación de mascotas y no en una
+-- Es la tabla que convierte Petnav en una aplicación de mascotas y no en una
 -- de perros con excepciones. Cada fila trae tres cosas que deciden el producto:
 --
 --   1. `social_model`  — si la especie participa en encuentros, y de qué forma.
@@ -42,7 +42,7 @@ create index species_taxon_idx on public.species (taxon_group);
 -- ---------------------------------------------------------------------------
 -- Estado legal por jurisdicción.
 --
--- Coincide NO da asesoramiento legal. Guarda un estado con su nota y su fuente,
+-- Petnav NO da asesoramiento legal. Guarda un estado con su nota y su fuente,
 -- y lo muestra tal cual; la lista vigente es siempre la del organismo
 -- competente. Por eso `source` es obligatorio: un estado legal sin fuente no
 -- debería poder existir en esta base.
@@ -106,7 +106,7 @@ values
 
   ('cat', 'Gato', 'Felis catus', 'mammal_carnivore', 'solitary',
    '{chase,toys}', '{rat,hamster,canary,budgerigar,gerbil}', '{}', 12,
-   'Los gatos son territoriales: llevar al tuyo a conocer a otro gato le genera estrés, no compañía. Coincide no organiza encuentros de gatos. Lo que sí ofrece es comunidad de tutores, veterinarios felinos y alojamientos que los admiten.'),
+   'Los gatos son territoriales: llevar al tuyo a conocer a otro gato le genera estrés, no compañía. Petnav no organiza encuentros de gatos. Lo que sí ofrece es comunidad de tutores, veterinarios felinos y alojamientos que los admiten.'),
 
   ('ferret', 'Hurón', 'Mustela putorius furo', 'mammal_carnivore', 'small_group',
    '{chase,wrestle,toys,forage}',
@@ -131,7 +131,7 @@ values
 
   ('hamster', 'Hámster sirio', 'Mesocricetus auratus', 'mammal_rodent', 'solitary',
    '{forage}', '{dog,cat,ferret}', '{}', 2,
-   'El hámster sirio es solitario de forma estricta: juntar dos adultos termina en peleas que pueden ser mortales. Coincide no organiza encuentros de hámsteres, y esto no es una limitación de la aplicación sino de la especie.'),
+   'El hámster sirio es solitario de forma estricta: juntar dos adultos termina en peleas que pueden ser mortales. Petnav no organiza encuentros de hámsteres, y esto no es una limitación de la aplicación sino de la especie.'),
 
   ('gerbil', 'Jerbo', 'Meriones unguiculatus', 'mammal_rodent', 'solitary',
    '{forage}', '{dog,cat,ferret}', '{}', 3,
@@ -139,7 +139,7 @@ values
 
   ('budgerigar', 'Periquito', 'Melopsittacus undulatus', 'bird', 'solitary',
    '{forage,side_by_side}', '{cat,dog,ferret}', '{}', 8,
-   'Son muy sociales dentro de su bandada, pero juntar aves de casas distintas es una vía directa de contagio —psitacosis, entre otras—. Coincide ofrece comunidad y veterinarios de exóticos, no encuentros.'),
+   'Son muy sociales dentro de su bandada, pero juntar aves de casas distintas es una vía directa de contagio —psitacosis, entre otras—. Petnav ofrece comunidad y veterinarios de exóticos, no encuentros.'),
 
   ('canary', 'Canario', 'Serinus canaria domestica', 'bird', 'solitary',
    '{side_by_side}', '{cat,dog,ferret}', '{}', 8,
@@ -155,7 +155,7 @@ values
 
   ('greek_tortoise', 'Tortuga mora', 'Testudo graeca', 'reptile', 'solitary',
    '{}', '{dog}', '{}', 60,
-   'Solitaria y de vida muy larga. Coincide se centra en el papeleo, los veterinarios y la comunidad de tutores, no en encuentros.'),
+   'Solitaria y de vida muy larga. Petnav se centra en el papeleo, los veterinarios y la comunidad de tutores, no en encuentros.'),
 
   ('betta', 'Pez betta', 'Betta splendens', 'fish', 'solitary',
    '{}', '{}', '{}', 6,
@@ -214,5 +214,5 @@ values
    'CITES / Reglamento (CE) 338/97 — https://cites.org/esp'),
 
   ('monk_parakeet', 'ES', 'excluded',
-   'Incluida en el Catálogo Español de Especies Exóticas Invasoras: su tenencia, cría y comercio están prohibidos. No puede registrarse en Coincide.',
+   'Incluida en el Catálogo Español de Especies Exóticas Invasoras: su tenencia, cría y comercio están prohibidos. No puede registrarse en Petnav.',
    'Catálogo Español de Especies Exóticas Invasoras — https://www.miteco.gob.es/');

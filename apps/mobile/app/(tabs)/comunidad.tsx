@@ -24,7 +24,7 @@ import { useTheme } from '@/lib/theme';
 /**
  * Comunidad y servicios.
  *
- * Esta pestaña es la razón por la que Coincide sirve a un tutor de gato, de
+ * Esta pestaña es la razón por la que Petnav sirve a un tutor de gato, de
  * gecko o de betta. Sin ella, la mitad del catálogo de especies tendría una
  * ficha bonita y ningún motivo para volver a abrir la aplicación.
  *
@@ -148,7 +148,7 @@ export default function CommunityScreen() {
             </Body>
             {legalSource(species) ? <Caption>Fuente: {legalSource(species)}</Caption> : null}
             <Caption>
-              Coincide no da asesoramiento legal. Esta información es orientativa y puede quedar
+              Petnav no da asesoramiento legal. Esta información es orientativa y puede quedar
               desactualizada: la lista vigente es siempre la del organismo competente.
             </Caption>
           </Notice>

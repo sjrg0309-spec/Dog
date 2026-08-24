@@ -37,7 +37,7 @@ import {
   scheduleOverlap,
   type Availability,
   type MatchablePet,
-} from '@coincide/core';
+} from '@petnav/core';
 
 import { Avatar } from './avatar';
 import { Pop } from './motion';

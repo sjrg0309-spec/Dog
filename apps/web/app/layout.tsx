@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Atkinson_Hyperlegible, Plus_Jakarta_Sans } from 'next/font/google';
 
-import '@coincide/tokens/tokens.css';
+import '@petnav/tokens/tokens.css';
 import './globals.css';
 
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -33,15 +33,15 @@ const display = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Coincide — paseos que sí ocurren',
-    template: '%s · Coincide',
+    default: 'Petnav — paseos que sí ocurren',
+    template: '%s · Petnav',
   },
   description:
     'Encuentra perros compatibles con el tuyo, coincide con quien pasea a tu misma hora y organizad la salida. Funciona a las siete de la mañana y a las once de la noche.',
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    siteName: 'Coincide',
+    siteName: 'Petnav',
   },
 };
 
@@ -100,7 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   opacity="0.6"
                 />
               </svg>
-              <span className="brand__word">Coincide</span>
+              <span className="brand__word">Petnav</span>
             </Link>
 
             <nav className="site-nav" aria-label="Principal">
@@ -127,7 +127,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="site-footer">
           <div className="shell stack">
             <p>
-              Coincide es un MVP en construcción. Los datos que se muestran son una semilla de
+              Petnav es un MVP en construcción. Los datos que se muestran son una semilla de
               demostración, no usuarios reales.
             </p>
             <p>

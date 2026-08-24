@@ -71,7 +71,7 @@ for (const theme of [
 
     await page.goto(`${BASE}${screen.path}`, { waitUntil: 'networkidle' });
     await page.waitForSelector(
-      'text=/Coincide|SOS|Explorar|Mensajes|Radar|Quedadas|Con quién|Cita de juego|Reels|Actividad|Publicar|Caduca|estado/i',
+      'text=/Petnav|SOS|Explorar|Mensajes|Radar|Quedadas|Con quién|Cita de juego|Reels|Actividad|Publicar|Caduca|estado/i',
       { timeout: 15_000 },
     );
 

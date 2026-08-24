@@ -31,7 +31,7 @@ import { useRouter, type Href } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { alertReachM, RESCUE_SCENARIOS } from '@coincide/core';
+import { alertReachM, RESCUE_SCENARIOS } from '@petnav/core';
 
 import { BackBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';

@@ -120,7 +120,7 @@ export default function FeedScreen() {
   return (
     <Screen>
       <NavBar
-        title="Coincide"
+        title="Petnav"
         scrolled={scrolled}
         trailing={
           <>

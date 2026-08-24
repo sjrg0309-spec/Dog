@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { distanceMeters, formatDistance } from '@coincide/core';
+import { distanceMeters, formatDistance } from '@petnav/core';
 
 import { Separator } from '@/components/chrome';
 import { Icon } from '@/components/icon';

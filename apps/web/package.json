@@ -1,5 +1,5 @@
 {
-  "name": "@coincide/web",
+  "name": "@petnav/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,8 +13,8 @@
     "screenshots": "node ../../scripts/screenshots.mjs"
   },
   "dependencies": {
-    "@coincide/core": "workspace:*",
-    "@coincide/tokens": "workspace:*",
+    "@petnav/core": "workspace:*",
+    "@petnav/tokens": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@radix-ui/react-tooltip": "^1.2.16",
     "lucide-react": "^1.33.0",

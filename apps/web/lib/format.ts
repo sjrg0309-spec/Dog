@@ -6,7 +6,7 @@
  * lugar de que se cuele un identificador en bruto en la interfaz.
  */
 
-import { formatCents } from '@coincide/core';
+import { formatCents } from '@petnav/core';
 
 export const SIZE_LABEL: Record<string, string> = {
   mini: 'Mini',
@@ -101,7 +101,7 @@ export const SERVICE_KIND_LABEL: Record<string, string> = {
  * dato viaja sin su advertencia.
  */
 export const LEGAL_DISCLAIMER =
-  'Coincide no da asesoramiento legal. Esta información es orientativa y puede quedar ' +
+  'Petnav no da asesoramiento legal. Esta información es orientativa y puede quedar ' +
   'desactualizada: la lista vigente es siempre la del organismo competente.';
 
 export const KIND_LABEL: Record<string, string> = {

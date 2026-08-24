@@ -12,7 +12,7 @@
  * | Precisión | Anclada al lugar | Punto exacto |
  *
  * El catálogo de escenarios, el radio y su crecimiento viven en
- * `@coincide/core`: son lógica pura y están cubiertos por tests. Aquí solo está
+ * `@petnav/core`: son lógica pura y están cubiertos por tests. Aquí solo está
  * el estado —qué alertas hay abiertas y qué se ha visto— y la consulta de a
  * quién le importan.
  */
@@ -25,7 +25,7 @@ import {
   findScenario,
   formatDistance,
   type SafetyScenario,
-} from '@coincide/core';
+} from '@petnav/core';
 
 export type Sighting = {
   id: string;

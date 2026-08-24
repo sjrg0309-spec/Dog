@@ -1,7 +1,7 @@
 /**
  * La capa de datos del móvil, comprobada.
  *
- * No prueba el algoritmo —eso ya lo hacen los 104 casos de `@coincide/core`—,
+ * No prueba el algoritmo —eso ya lo hacen los 104 casos de `@petnav/core`—,
  * sino las decisiones de producto que viven aquí y que ningún otro paquete
  * conoce: que una especie solitaria no entra al descubrimiento, que el radar no
  * enseña animales de otra especie, y que los tutores de esas especies sí tienen
@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { distanceMeters, findSpecies } from '@coincide/core';
+import { distanceMeters, findSpecies } from '@petnav/core';
 
 import {
   bark,
@@ -24,7 +24,7 @@ import {
   SEED_POSTS,
   totalReactions,
 } from './posts';
-import { ACCENT_IDS } from '@coincide/tokens';
+import { ACCENT_IDS } from '@petnav/tokens';
 
 import { accentOf, buildPortrait, buildScene, sceneToSvg, timeOfDay } from './artwork';
 import { REPORT_REASONS, reelWarning, reelsSnapshot } from './reels';
@@ -662,7 +662,7 @@ describe('sin saber qué tiempo hace', () => {
  *  · **Determinista.** El mismo animal da siempre el mismo color. Si cambiara
  *    entre arranques, la aplicación parecería estropeada, no personalizada.
  *  · **Válido.** Sale de la lista cerrada de acentos, que es la que ya pasó
- *    contraste y separación de significados en `@coincide/tokens`. Un acento
+ *    contraste y separación de significados en `@petnav/tokens`. Un acento
  *    inventado aquí se saltaría todas esas comprobaciones de golpe.
  *  · **Visible.** Los dos perros de la misma tutora tienen colores distintos.
  *    Si el conmutador de mascota no repintara nada, la función no existiría.

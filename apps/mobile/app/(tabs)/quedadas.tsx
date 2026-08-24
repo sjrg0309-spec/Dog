@@ -1,6 +1,6 @@
 import { ScrollView, View } from 'react-native';
 
-import { groupAffinity, groupWelfare } from '@coincide/core';
+import { groupAffinity, groupWelfare } from '@petnav/core';
 
 import { NavBar, useScrolled } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';

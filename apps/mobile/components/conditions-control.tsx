@@ -2,7 +2,7 @@
  * El tiempo que hace, y quién lo dice.
  *
  * Antes esto pedía la temperatura porque no había forma de saberla. Ahora la
- * trae `@coincide/weather` de Open-Meteo y este componente hace algo distinto:
+ * trae `@petnav/weather` de Open-Meteo y este componente hace algo distinto:
  * **enseña el dato y de dónde sale**.
  *
  * Esa segunda mitad no es cortesía. Un número que aparece solo al lado de un
@@ -19,8 +19,8 @@
 
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
-import type { Surface } from '@coincide/core';
-import { GRID_PRECISION_M, describeSky, estimateGroundC, judgeGround } from '@coincide/weather';
+import type { Surface } from '@petnav/core';
+import { GRID_PRECISION_M, describeSky, estimateGroundC, judgeGround } from '@petnav/weather';
 
 import { Caption, Row } from './ui';
 import {

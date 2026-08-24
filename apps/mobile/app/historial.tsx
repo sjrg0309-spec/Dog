@@ -39,7 +39,7 @@ import {
   weeklyRhythm,
   type RhythmDay,
   type WalkRecord,
-} from '@coincide/core';
+} from '@petnav/core';
 
 import { Avatar } from '@/components/avatar';
 import { BackBar, Separator } from '@/components/chrome';

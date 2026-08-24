@@ -84,7 +84,7 @@ export default async function PlaydatePage({ params }: Params) {
           </div>
           <div>
             <dt>Organiza</dt>
-            <dd>{playdate.host_name ?? 'Un tutor de Coincide'}</dd>
+            <dd>{playdate.host_name ?? 'Un tutor de Petnav'}</dd>
           </div>
           <div>
             <dt>Contacto seguido</dt>
@@ -144,7 +144,7 @@ export default async function PlaydatePage({ params }: Params) {
           </p>
           <p className="card__meta">
             Una tarde puede durar dos horas y estar bien hecha si son sesiones cortas con pausa
-            entre medias. Lo que no se puede es soltarlos dos horas y llamarlo lo mismo. Coincide no
+            entre medias. Lo que no se puede es soltarlos dos horas y llamarlo lo mismo. Petnav no
             deja crear una quedada que se pase de ese límite, y no es una comprobación del
             formulario: la rechaza la base de datos.
           </p>
@@ -256,7 +256,7 @@ export default async function PlaydatePage({ params }: Params) {
           </p>
           <div className="row">
             <button className="button button--primary" type="button" disabled>
-              Abrir en Coincide
+              Abrir en Petnav
             </button>
             <Link className="button button--outline" href="/">
               Ver otras quedadas

@@ -309,5 +309,5 @@ export function reaches(
 }
 
 export const SAFETY_DISCLAIMER =
-  'Coincide no sustituye a un veterinario ni a la policía local. Ante un envenenamiento o un ' +
+  'Petnav no sustituye a un veterinario ni a la policía local. Ante un envenenamiento o un ' +
   'atropello, la llamada va antes que la aplicación.';

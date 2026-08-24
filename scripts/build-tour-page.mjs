@@ -25,7 +25,7 @@ for (const shot of tour.shots) {
 }
 const screens = tour.screens.map((name) => byName.get(name)).filter(Boolean);
 
-const html = `<title>Coincide en el teléfono</title>
+const html = `<title>Petnav en el teléfono</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
@@ -342,7 +342,7 @@ const html = `<title>Coincide en el teléfono</title>
 
 <div class="wrap">
   <header>
-    <p class="eyebrow">Coincide · captura de la aplicación real</p>
+    <p class="eyebrow">Petnav · captura de la aplicación real</p>
     <h1>La aplicación, pantalla por pantalla</h1>
     <p class="lede">
       Veinte pantallas capturadas de la aplicación corriendo, en tema claro y oscuro.
@@ -414,7 +414,7 @@ const html = `<title>Coincide en el teléfono</title>
     for (const theme of ['light', 'dark']) {
       const img = document.createElement('img');
       img.src = screen[theme];
-      img.alt = 'Pantalla «' + screen.name + '» de Coincide en tema ' + (theme === 'light' ? 'claro' : 'oscuro');
+      img.alt = 'Pantalla «' + screen.name + '» de Petnav en tema ' + (theme === 'light' ? 'claro' : 'oscuro');
       img.dataset.index = String(index);
       img.dataset.theme = theme;
       img.loading = index < 2 ? 'eager' : 'lazy';
@@ -481,6 +481,6 @@ const html = `<title>Coincide en el teléfono</title>
 </script>
 `;
 
-const out = '/tmp/claude-0/-home-user-Dog/6263f0bc-0e8f-5994-98c8-11f510938927/scratchpad/coincide-tour.html';
+const out = '/tmp/claude-0/-home-user-Dog/6263f0bc-0e8f-5994-98c8-11f510938927/scratchpad/petnav-tour.html';
 writeFileSync(out, html);
 console.log(`✓ ${screens.length} pantallas · ${(html.length / 1024 / 1024).toFixed(1)} MB · ${out}`);

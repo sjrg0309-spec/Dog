@@ -31,7 +31,7 @@ for (const theme of [
   });
   const page = await context.newPage();
   await page.goto(BASE, { waitUntil: 'networkidle' });
-  await page.waitForSelector('text=/Coincide/i', { timeout: 15_000 });
+  await page.waitForSelector('text=/Petnav/i', { timeout: 15_000 });
 
   // Abre los comentarios de la primera publicación: una tarjeta con la
   // conversación desplegada es la que enseña de verdad de qué va el feed.

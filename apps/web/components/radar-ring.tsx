@@ -1,5 +1,5 @@
 /**
- * El anillo del radar: el elemento distintivo de Coincide.
+ * El anillo del radar: el elemento distintivo de Petnav.
  *
  * Es a la vez la mecánica central del producto —quién está paseando cerca
  * ahora— y la marca. Es el único elemento con movimiento continuo de toda la

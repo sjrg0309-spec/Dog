@@ -41,16 +41,16 @@ importers:
       '@babel/runtime':
         specifier: ^8.0.0
         version: 8.0.0
-      '@coincide/core':
+      '@petnav/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@coincide/tokens':
+      '@petnav/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
-      '@coincide/trackers':
+      '@petnav/trackers':
         specifier: workspace:*
         version: link:../../packages/trackers
-      '@coincide/weather':
+      '@petnav/weather':
         specifier: workspace:*
         version: link:../../packages/weather
       '@expo-google-fonts/atkinson-hyperlegible':
@@ -141,10 +141,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@coincide/core':
+      '@petnav/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@coincide/tokens':
+      '@petnav/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
       '@radix-ui/react-dropdown-menu':
@@ -211,7 +211,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@coincide/core':
+      '@petnav/core':
         specifier: workspace:*
         version: link:../core
       pg:
@@ -239,7 +239,7 @@ importers:
 
   packages/trackers:
     dependencies:
-      '@coincide/core':
+      '@petnav/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -255,7 +255,7 @@ importers:
 
   packages/weather:
     dependencies:
-      '@coincide/core':
+      '@petnav/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

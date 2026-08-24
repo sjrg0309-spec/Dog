@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { chromium } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const body = readFileSync('/home/user/Dog/artifacts/coincide-demo.html', 'utf8');
+const body = readFileSync('/home/user/Dog/artifacts/petnav-demo.html', 'utf8');
 // El visor envuelve el fichero en un esqueleto; aquí se reproduce para
 // comprobar exactamente lo que se va a publicar.
 const page_html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${body}</body></html>`;

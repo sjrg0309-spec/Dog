@@ -19,7 +19,7 @@
  * qué botón enseñar y la base decide qué se guarda.
  */
 
-import { distanceMeters } from '@coincide/core';
+import { distanceMeters } from '@petnav/core';
 
 import { PLACES, type DemoPlace } from './demo-data';
 

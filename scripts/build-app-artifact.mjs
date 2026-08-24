@@ -23,7 +23,7 @@ import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 
 const DIST = new URL('../apps/mobile/dist-web/', import.meta.url).pathname;
-const OUT = new URL('../artifacts/coincide-app.html', import.meta.url).pathname;
+const OUT = new URL('../artifacts/petnav-app.html', import.meta.url).pathname;
 
 /** Las que `lib/fonts.ts` pasa a `useFonts`. El resto no se pide nunca. */
 const USED_FONTS = [
@@ -137,7 +137,7 @@ const packed = gzipSync(Buffer.from(bundle, 'utf8'), { level: 9 }).toString('bas
 const reset = indexHtml.slice(indexHtml.indexOf('<style id="expo-reset">'), indexHtml.indexOf('</style>') + '</style>'.length);
 
 const document_ = `<meta charset="utf-8">
-<title>Coincide en el móvil</title>
+<title>Petnav en el móvil</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
 ${reset}
 <style>
@@ -173,7 +173,7 @@ ${reset}
 </style>
 
 <div id="root"></div>
-<div id="arranque">Cargando Coincide…</div>
+<div id="arranque">Cargando Petnav…</div>
 
 <script>
 /* expo-router resuelve la ruta inicial leyendo \`location.pathname\`. Publicada,
@@ -259,4 +259,4 @@ await writeFile(OUT, document_, 'utf8');
 const mb = (Buffer.byteLength(document_) / 1024 / 1024).toFixed(2);
 const antes = (Buffer.byteLength(bundle) / 1024 / 1024).toFixed(2);
 console.log(`✓ ${inlined} assets incrustados, ${skipped} tipografías sin usar omitidas`);
-console.log(`  bundle ${antes} MB → ${mb} MB en total tras comprimir → artifacts/coincide-app.html`);
+console.log(`  bundle ${antes} MB → ${mb} MB en total tras comprimir → artifacts/petnav-app.html`);

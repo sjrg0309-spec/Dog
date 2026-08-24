@@ -3,7 +3,7 @@
  *
  * `packages/core` juzga si a un animal le conviene salir, pero no consulta
  * nada: recibe temperatura, superficie y duración. Quien las obtiene es esta
- * capa, y ahora las obtiene sola: `@coincide/weather` pregunta a Open-Meteo por
+ * capa, y ahora las obtiene sola: `@petnav/weather` pregunta a Open-Meteo por
  * la celda donde está el tutor y devuelve la temperatura del aire, la sensación
  * térmica y la radiación solar, que es de donde sale la estimación del suelo.
  *
@@ -24,14 +24,14 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 
-import type { Conditions, Surface } from '@coincide/core';
+import type { Conditions, Surface } from '@petnav/core';
 import {
   FAILURE_MESSAGE,
   createOpenMeteoProvider,
   estimateGroundC,
   withCache,
-} from '@coincide/weather';
-import type { WeatherFailure, WeatherObservation } from '@coincide/weather';
+} from '@petnav/weather';
+import type { WeatherFailure, WeatherObservation } from '@petnav/weather';
 
 export type WeatherStatus =
   | { kind: 'idle' }

@@ -19,7 +19,7 @@ import { join } from 'node:path';
 
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:3000';
 const WEB = new URL('../apps/web/', import.meta.url).pathname;
-const OUT = new URL('../artifacts/coincide-web.html', import.meta.url).pathname;
+const OUT = new URL('../artifacts/petnav-web.html', import.meta.url).pathname;
 
 const ROUTES = [
   { id: 'portada', label: 'Portada', path: '/' },
@@ -109,7 +109,7 @@ const sections = pages
    cambió de opinión y «pública» se convirtió en «pÃºblica». Un fallo que
    aparece al crecer el fichero y no al escribirlo. */
 const document_ = `<meta charset="utf-8">
-<title>Coincide</title>
+<title>Petnav</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 ${css}
@@ -137,7 +137,7 @@ ${css}
 }
 </style>
 
-<div class="aviso-estatico">Copia estática de la web de Coincide servida por <code>next start</code> contra la base local. El marcado y los datos son los que produce el servidor; la navegación entre rutas y el conmutador de tema están reimplementados porque aquí no corre el JavaScript de Next.</div>
+<div class="aviso-estatico">Copia estática de la web de Petnav servida por <code>next start</code> contra la base local. El marcado y los datos son los que produce el servidor; la navegación entre rutas y el conmutador de tema están reimplementados porque aquí no corre el JavaScript de Next.</div>
 ${header}
 <nav class="rutas" aria-label="Rutas de la web">${nav}</nav>
 ${sections}
@@ -195,4 +195,4 @@ ${sections}
 await writeFile(OUT, document_, 'utf8');
 
 const kb = (Buffer.byteLength(document_) / 1024).toFixed(0);
-console.log(`✓ ${pages.length} rutas, ${fontCount} tipografías incrustadas, ${kb} KB → artifacts/coincide-web.html`);
+console.log(`✓ ${pages.length} rutas, ${fontCount} tipografías incrustadas, ${kb} KB → artifacts/petnav-web.html`);

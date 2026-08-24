@@ -29,7 +29,7 @@
 
 import { ScrollView, Text, View } from 'react-native';
 
-import { AUTISTIC_DEFAULT_NEEDS, HANDLER_NEEDS, type HandlerNeed } from '@coincide/core';
+import { AUTISTIC_DEFAULT_NEEDS, HANDLER_NEEDS, type HandlerNeed } from '@petnav/core';
 
 import { BackBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';

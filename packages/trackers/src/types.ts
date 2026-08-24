@@ -7,7 +7,7 @@
  * parte de la aplicación sepa qué marca hay detrás.
  */
 
-import type { LatLng } from '@coincide/core';
+import type { LatLng } from '@petnav/core';
 
 export type TrackerVendor = 'phone' | 'webhook' | 'tractive' | 'fi' | 'other';
 

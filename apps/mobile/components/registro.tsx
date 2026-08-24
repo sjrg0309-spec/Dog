@@ -84,8 +84,8 @@ import {
   type HandlerNeed,
   type HealthFlag,
   type PetDraft,
-} from '@coincide/core';
-import { formatMicrochip, validateMicrochip } from '@coincide/trackers';
+} from '@petnav/core';
+import { formatMicrochip, validateMicrochip } from '@petnav/trackers';
 
 import { Icon } from './icon';
 import { Appear } from './motion';
@@ -311,7 +311,7 @@ function Bienvenida({ onSignup, onLogin }: { onSignup: () => void; onLogin: () =
                 letterSpacing: 2,
               }}
             >
-              COINCIDE
+              PETNAV
             </Text>
           </View>
         </Appear>

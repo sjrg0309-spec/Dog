@@ -2,7 +2,7 @@
 --
 -- La diferencia con un directorio de espacios en renta está aquí: alquilar un
 -- patio a una persona es fácil, y saber qué cinco animales pueden compartirlo sin
--- pelearse requiere conocer a los animales. Coincide ya lo sabe, así que puede
+-- pelearse requiere conocer a los animales. Petnav ya lo sabe, así que puede
 -- armar el grupo y repartir el importe.
 --
 -- En esta fase el cobro NO ocurre dentro de la aplicación: `payment_mode` es

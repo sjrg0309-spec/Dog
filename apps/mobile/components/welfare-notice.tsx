@@ -13,7 +13,7 @@
 
 import { View } from 'react-native';
 
-import { WELFARE_DISCLAIMER, type WelfareVerdict } from '@coincide/core';
+import { WELFARE_DISCLAIMER, type WelfareVerdict } from '@petnav/core';
 
 import { Badge, Body, Caption, Card, Heading, Row } from './ui';
 import { Ban, TriangleAlert } from '@/lib/icons';

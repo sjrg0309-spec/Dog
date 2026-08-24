@@ -24,7 +24,7 @@ import {
   Screen,
 } from '@/components/ui';
 import { useAccount } from '@/lib/account';
-import { DOG_ROLES, publicPetCard } from '@coincide/core';
+import { DOG_ROLES, publicPetCard } from '@petnav/core';
 import { useActivePet } from '@/lib/active-pet';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -61,7 +61,7 @@ import {
   type MedicalEntry,
 } from '@/lib/medical';
 import { useTheme } from '@/lib/theme';
-import { HEALTH_FLAG_LABEL, type HealthFlag } from '@coincide/core';
+import { HEALTH_FLAG_LABEL, type HealthFlag } from '@petnav/core';
 
 /**
  * El perfil del animal.

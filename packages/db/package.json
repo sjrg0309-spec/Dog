@@ -1,5 +1,5 @@
 {
-  "name": "@coincide/db",
+  "name": "@petnav/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
     "lint": "echo 'lint via typecheck'"
   },
   "dependencies": {
-    "@coincide/core": "workspace:*",
+    "@petnav/core": "workspace:*",
     "pg": "^8.13.1"
   },
   "devDependencies": {

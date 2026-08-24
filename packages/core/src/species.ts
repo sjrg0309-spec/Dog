@@ -1,7 +1,7 @@
 /**
  * Catálogo de especies.
  *
- * Coincide no es una aplicación de perros con otras especies añadidas encima.
+ * Petnav no es una aplicación de perros con otras especies añadidas encima.
  * Cada especie tiene su propio **modelo social**, y esa es la decisión que
  * gobierna todo lo demás: qué se le ofrece al tutor, si tiene sentido un
  * encuentro y qué rasgos se le preguntan.
@@ -38,7 +38,7 @@ export type SocialModel = (typeof SOCIAL_MODELS)[number];
 /**
  * Estado legal en una jurisdicción.
  *
- * Coincide **no da asesoramiento legal**. Guarda un estado con su fuente y lo
+ * Petnav **no da asesoramiento legal**. Guarda un estado con su fuente y lo
  * muestra tal cual; la lista definitiva es siempre la del organismo competente.
  * Por eso cada entrada lleva nota y enlace: para que el usuario pueda
  * comprobarlo, no para que se fíe de la aplicación.
@@ -239,7 +239,7 @@ export const SPECIES: readonly SpeciesProfile[] = [
     legal: [companionByLaw],
     socialNote:
       'Los gatos son territoriales: llevar al tuyo a conocer a otro gato le genera estrés, no ' +
-      'compañía. Coincide no organiza encuentros de gatos. Lo que sí ofrece es comunidad de ' +
+      'compañía. Petnav no organiza encuentros de gatos. Lo que sí ofrece es comunidad de ' +
       'tutores, veterinarios felinos y alojamientos que los admiten.',
   },
   {
@@ -352,7 +352,7 @@ export const SPECIES: readonly SpeciesProfile[] = [
     legal: [domesticSpecies],
     socialNote:
       'El hámster sirio es solitario de forma estricta: juntar dos adultos termina en peleas ' +
-      'que pueden ser mortales. Coincide no organiza encuentros de hámsteres, y esto no es una ' +
+      'que pueden ser mortales. Petnav no organiza encuentros de hámsteres, y esto no es una ' +
       'limitación de la aplicación sino de la especie.',
   },
   {
@@ -397,7 +397,7 @@ export const SPECIES: readonly SpeciesProfile[] = [
     legal: [domesticSpecies],
     socialNote:
       'Son muy sociales dentro de su bandada, pero juntar aves de casas distintas es una vía ' +
-      'directa de contagio —psitacosis, entre otras—. Coincide ofrece comunidad y veterinarios ' +
+      'directa de contagio —psitacosis, entre otras—. Petnav ofrece comunidad y veterinarios ' +
       'de exóticos, no encuentros.',
   },
   {
@@ -504,7 +504,7 @@ export const SPECIES: readonly SpeciesProfile[] = [
       },
     ],
     socialNote:
-      'Solitaria y de vida muy larga. Coincide se centra en el papeleo, los veterinarios y la ' +
+      'Solitaria y de vida muy larga. Petnav se centra en el papeleo, los veterinarios y la ' +
       'comunidad de tutores, no en encuentros.',
   },
   {
@@ -549,7 +549,7 @@ export const SPECIES: readonly SpeciesProfile[] = [
     legal: [
       excluded(
         'Incluida en el Catálogo Español de Especies Exóticas Invasoras: su tenencia, cría y ' +
-          'comercio están prohibidos. No puede registrarse en Coincide.',
+          'comercio están prohibidos. No puede registrarse en Petnav.',
       ),
     ],
     // El modelo social de una especie prohibida no se llega a usar nunca: la
@@ -628,5 +628,5 @@ export const LEGAL_STATUS_LABEL: Record<LegalStatus, string> = {
  * dato viaja sin su advertencia.
  */
 export const LEGAL_DISCLAIMER =
-  'Coincide no da asesoramiento legal. Esta información es orientativa y puede quedar ' +
+  'Petnav no da asesoramiento legal. Esta información es orientativa y puede quedar ' +
   'desactualizada: la lista vigente es siempre la del organismo competente.';

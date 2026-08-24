@@ -111,7 +111,7 @@ export type Conditions = {
    * es lo que se hacía antes. La diferencia es que el aire acierta de media y
    * falla en los dos extremos —el mediodía despejado de abril, en el que el
    * asfalto ya quema con el aire a 24 °C, y la noche de agosto, en la que no
-   * quema con el aire a 29—. Quien la calcula es `@coincide/weather`, a partir
+   * quema con el aire a 29—. Quien la calcula es `@petnav/weather`, a partir
    * de la radiación solar; aquí solo se usa.
    *
    * `undefined` significa «no se sabe» y `null` también: nunca «está fría».
@@ -124,7 +124,7 @@ export type Conditions = {
  *
  * Vive aquí y no en la capa meteorológica porque es un umbral de bienestar, no
  * una propiedad del tiempo: quien lo discuta lo discute con el resto del
- * catálogo. Coincide con `GROUND_BURN_C` de `@coincide/weather`, y hay un test
+ @@VERBO_PETNAV@@
  * que comprueba que no se separan.
  */
 export const GROUND_BURN_C = 48;
@@ -470,6 +470,6 @@ export function groupWelfare(
 }
 
 export const WELFARE_DISCLAIMER =
-  'Coincide no da consejo veterinario. Estos límites son umbrales prudentes de la propia ' +
+  'Petnav no da consejo veterinario. Estos límites son umbrales prudentes de la propia ' +
   'aplicación, pensados para no proponer de más; ante una duda sobre tu animal, el criterio es ' +
   'el de su veterinario.';

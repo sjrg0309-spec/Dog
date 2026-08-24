@@ -458,13 +458,13 @@ describe('cancelación', () => {
 describe('paridad con el catálogo de bienestar', () => {
   /**
    * El umbral vive en dos sitios porque los dos lo necesitan: aquí para estimar
-   * y en `@coincide/core` para decidir. Que se separen no rompe ningún test de
+   * y en `@petnav/core` para decidir. Que se separen no rompe ningún test de
    * los otros —cada paquete seguiría coherente consigo mismo— y sin embargo la
    * aplicación diría «el suelo quema» en una pantalla y ofrecería la quedada en
    * la siguiente. Es justo la clase de fallo que no se ve hasta que se ve.
    */
   it('el umbral de quemadura es el mismo en las dos capas', async () => {
-    const core = await import('@coincide/core');
+    const core = await import('@petnav/core');
     expect(GROUND_BURN_C).toBe(core.GROUND_BURN_C);
   });
 });

@@ -28,7 +28,7 @@
  * no lo que este generador ha dibujado.
  */
 
-import type { AccentId } from '@coincide/tokens';
+import type { AccentId } from '@petnav/tokens';
 import {
   amber,
   blue,
@@ -37,7 +37,7 @@ import {
   oklchToHex,
   sage,
   terracotta,
-} from '@coincide/tokens';
+} from '@petnav/tokens';
 
 const hex = (value: string) => oklchToHex(value);
 

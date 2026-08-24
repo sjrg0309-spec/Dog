@@ -105,7 +105,7 @@ for (const theme of THEMES) {
     await page.goto(`${BASE}${route.path}`, { waitUntil: 'networkidle' });
     // La aplicación es una SPA: hay que esperar a que React pinte algo.
     await page.waitForSelector(
-      'text=/Coincide|SOS|Explorar|Mensajes|Radar|Quedadas|Espacios|Con quién|Cita de juego|Reels|Actividad|Publicar|Caduca|estado/i',
+      'text=/Petnav|SOS|Explorar|Mensajes|Radar|Quedadas|Espacios|Con quién|Cita de juego|Reels|Actividad|Publicar|Caduca|estado/i',
       { timeout: 15_000 },
     );
 

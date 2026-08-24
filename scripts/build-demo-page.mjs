@@ -48,5 +48,5 @@ const html = template
   .replace('/* {{TOKENS}} */', tokens)
   .replace('"{{DATA}}"', data);
 
-writeFileSync(here('../artifacts/coincide-demo.html'), html);
+writeFileSync(here('../artifacts/petnav-demo.html'), html);
 console.log(`✓ prototipo escrito (${Math.round(html.length / 1024)} KB)`);

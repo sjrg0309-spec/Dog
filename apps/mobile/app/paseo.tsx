@@ -34,7 +34,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { summarizeWalk, weekdayName, type WalkOutcome } from '@coincide/core';
+import { summarizeWalk, weekdayName, type WalkOutcome } from '@petnav/core';
 
 import { Avatar } from '@/components/avatar';
 import { BackBar } from '@/components/chrome';

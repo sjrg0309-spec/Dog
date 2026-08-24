@@ -12,7 +12,7 @@
  * no para nada más: una fila de letras pálidas es lo que hace que un feed se
  * vea apagado. El retrato ocupa el mismo sitio y sí se mira.
  *
- * El **anillo** es el elemento de marca de Coincide y aquí hace un trabajo
+ * El **anillo** es el elemento de marca de Petnav y aquí hace un trabajo
  * concreto: rodea a quien está fuera ahora mismo. Es la misma mecánica que una
  * historia, y no por parecerse a nada: el radar ya era eso, un círculo que
  * indica presencia en vivo y caduca solo.

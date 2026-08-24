@@ -103,7 +103,7 @@ describe('especies excluidas', () => {
 
   it('una especie legal pero todavía no abierta se rechaza con otro motivo', async () => {
     // Son dos noes distintos y el tutor merece leer el que corresponde. Un
-    // dragón barbudo es legal; lo que pasa es que Coincide solo funciona con
+    // dragón barbudo es legal; lo que pasa es que Petnav solo funciona con
     // perros hoy. Decirle que su animal está prohibido sería falso.
     await expect(
       asUser(db, P.sara, async (client) =>

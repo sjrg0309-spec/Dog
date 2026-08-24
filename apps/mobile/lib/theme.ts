@@ -18,7 +18,7 @@ import {
   themeToHex,
   type AccentId,
   type SemanticTokens,
-} from '@coincide/tokens';
+} from '@petnav/tokens';
 
 import { useActivePet } from './active-pet';
 import { accentOf } from './artwork';

@@ -34,7 +34,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { SAFETY_SCENARIOS, type SafetyScenario } from '@coincide/core';
+import { SAFETY_SCENARIOS, type SafetyScenario } from '@petnav/core';
 
 import { Icon } from './icon';
 import { fonts } from '@/lib/fonts';

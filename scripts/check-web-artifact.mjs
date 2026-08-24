@@ -12,7 +12,7 @@
 import { readFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 
-const FILE = 'file://' + new URL('../artifacts/coincide-web.html', import.meta.url).pathname;
+const FILE = 'file://' + new URL('../artifacts/petnav-web.html', import.meta.url).pathname;
 
 const ROUTES = [
   ['portada', 'Portada'],
@@ -77,7 +77,7 @@ if (external.length) problems.push(`peticiones externas: ${external.join(', ')}`
 /* Una referencia a `/_next/` que sobreviva no da error visible al mirar la
    página: el navegador cae a una tipografía del sistema y el texto sigue ahí.
    Por eso se comprueba sobre el fichero y no solo sobre lo que falló al cargar. */
-const source = await readFile(new URL('../artifacts/coincide-web.html', import.meta.url), 'utf8');
+const source = await readFile(new URL('../artifacts/petnav-web.html', import.meta.url), 'utf8');
 const leftovers = [...new Set([...source.matchAll(/\/_next\/[^"')\s]+/g)].map((match) => match[0]))];
 if (leftovers.length) problems.push(`referencias sin incrustar: ${leftovers.join(', ')}`);
 

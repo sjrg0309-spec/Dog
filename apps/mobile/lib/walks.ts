@@ -2,7 +2,7 @@
  * Los paseos que ya ocurrieron, del lado de la aplicación.
  *
  * La lógica —qué es un patrón, cuándo un paseo se pasó del rato, qué le llega
- * al algoritmo— vive en `@coincide/core`, sin red ni almacenamiento. Aquí solo
+ * al algoritmo— vive en `@petnav/core`, sin red ni almacenamiento. Aquí solo
  * está lo que esa capa no puede tener: **dónde se guardan** y **quién los
  * escribe**.
  *
@@ -21,7 +21,7 @@ import {
   type PairHistory,
   type WalkOutcome,
   type WalkRecord,
-} from '@coincide/core';
+} from '@petnav/core';
 
 import { MY_PETS, OTHER_PETS, PLACES } from './demo-data';
 

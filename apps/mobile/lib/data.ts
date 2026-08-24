@@ -7,7 +7,7 @@
  * es sustituir un módulo, no reescribir pantallas.
  *
  * Lo que **no** es local es el cálculo: la afinidad, la coincidencia de horarios
- * y el orden del descubrimiento salen de `@coincide/core`, el mismo código que
+ * y el orden del descubrimiento salen de `@petnav/core`, el mismo código que
  * verifican los tests del paquete y que la base de datos espeja en SQL —incluida
  * la regla de que un encuentro es siempre entre animales de la misma especie.
  */
@@ -33,7 +33,7 @@ import {
   type MeetupPlace,
   type RecurringMeetup,
   type WelfareVerdict,
-} from '@coincide/core';
+} from '@petnav/core';
 
 import {
   COMMUNITIES,

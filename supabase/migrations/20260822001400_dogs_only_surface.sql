@@ -1,4 +1,4 @@
--- Coincide se acota a perros.
+-- Petnav se acota a perros.
 --
 -- Mirando los datos: de las quince especies del catálogo, solo cinco tienen
 -- encuentros y **una sola** —el perro— tiene modelo de manada, que es el que
@@ -67,7 +67,7 @@ begin
     select 1 from public.species s where s.id = new.species_id and s.is_available
   ) then
     raise exception
-      'Coincide todavía no está abierto a %: hoy solo funciona con perros', common;
+      'Petnav todavía no está abierto a %: hoy solo funciona con perros', common;
   end if;
 
   return new;

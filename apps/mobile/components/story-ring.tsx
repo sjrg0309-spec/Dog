@@ -2,7 +2,7 @@
  * El anillo de una historia.
  *
  * Es el patrón que Instagram hizo universal y que aquí ya existía por otro
- * camino: el radar de Coincide era desde el primer día un círculo que indica
+ * camino: el radar de Petnav era desde el primer día un círculo que indica
  * presencia en vivo y caduca solo. Lo que se toma prestado es la **gramática**,
  * no la marca:
  *

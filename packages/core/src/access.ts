@@ -1,7 +1,7 @@
 /**
  * Quién entra, y qué ve el que entra.
  *
- * Coincide **no tiene modo mirón**. Para registrarse hay que dar de alta un
+ * Petnav **no tiene modo mirón**. Para registrarse hay que dar de alta un
  * animal, con su nombre, su especie, su edad, su tamaño, su carácter y su
  * horario de paseo. No es un formulario largo por gusto: es lo único que
  * distingue esta aplicación de un directorio de dónde y a qué hora hay perros

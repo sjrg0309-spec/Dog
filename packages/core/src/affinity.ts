@@ -312,7 +312,7 @@ export function calculateAffinity(
     const reason = isPredatorPreyPair(speciesA, speciesB)
       ? `${speciesA.commonName} y ${speciesB.commonName} son especies con relación de ` +
         'depredador y presa: un encuentro pone en riesgo a uno de los dos'
-      : `Coincide solo organiza encuentros entre animales de la misma especie, y ` +
+      : `Petnav solo organiza encuentros entre animales de la misma especie, y ` +
         `${speciesA.commonName.toLowerCase()} y ${speciesB.commonName.toLowerCase()} no lo son`;
 
     return blocked('different_species', [reason]);

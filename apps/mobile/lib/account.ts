@@ -6,7 +6,7 @@
  * dado de alta se ven **sitios** —parques, fuentes, sombra, veterinarios— pero
  * no **personas**: ni quién está paseando ahora, ni a qué hora sale nadie.
  *
- * La lógica —los cuatro peldaños y qué abre cada uno— está en `@coincide/core`
+ * La lógica —los cuatro peldaños y qué abre cada uno— está en `@petnav/core`
  * con sus tests, sin red y sin React. Aquí solo está el estado de esta cuenta y
  * el alta, que es lo que no se puede probar en un test puro.
  *
@@ -34,7 +34,7 @@ import {
   type Capability,
   type PetDraft,
   type ShelterDraft,
-} from '@coincide/core';
+} from '@petnav/core';
 
 import { setActivePetId } from './active-pet';
 import { setSetting } from './settings';
@@ -142,7 +142,7 @@ export function useWhyNot(capability: Capability): string | null {
  * verificación de verdad necesita un documento veterinario o un acuerdo con un
  * registro nacional: el número del chip no lleva dígito de control, así que
  * validar el formato —que sí se hace, con el validador ISO real de
- * `@coincide/trackers`— no demuestra que el chip exista ni que sea tuyo.
+ * `@petnav/trackers`— no demuestra que el chip exista ni que sea tuyo.
  *
  * Se deja accesible porque sin ello la mitad de la escalera no se podría ver
  * funcionando, igual que la semilla de rescate enseña un parque que se marca y

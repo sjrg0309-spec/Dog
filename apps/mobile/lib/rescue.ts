@@ -2,14 +2,14 @@
  * Avisos de rescate y zonas marcadas, del lado de la aplicación.
  *
  * La lógica —qué marca un sitio, cuánto dura, quién recibe qué— vive en
- * `@coincide/core` sin red ni almacenamiento. Aquí está dónde se guardan y una
+ * `@petnav/core` sin red ni almacenamiento. Aquí está dónde se guardan y una
  * semilla que enseña la regla **funcionando y también no disparándose**, que es
  * la mitad que suele faltar.
  */
 
 import { useSyncExternalStore } from 'react';
 
-import { hazardZones, type HazardZone, type RescueReport } from '@coincide/core';
+import { hazardZones, type HazardZone, type RescueReport } from '@petnav/core';
 
 import { PLACES } from './demo-data';
 

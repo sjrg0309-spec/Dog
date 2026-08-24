@@ -12,7 +12,7 @@ import {
   findSpecies,
   legalStatusIn,
   type SpeciesProfile,
-} from '@coincide/core';
+} from '@petnav/core';
 
 export const SIZE_LABEL: Record<string, string> = {
   mini: 'Mini',

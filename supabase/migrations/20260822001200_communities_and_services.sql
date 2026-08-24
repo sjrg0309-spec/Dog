@@ -1,6 +1,6 @@
 -- Comunidad y servicios.
 --
--- Esto es lo que hace que Coincide sirva a un tutor de gato, de gecko o de
+-- Esto es lo que hace que Petnav sirva a un tutor de gato, de gecko o de
 -- betta. Sin ello, la mitad del catálogo de especies tendría una ficha bonita y
 -- ningún motivo para volver a abrir la aplicación.
 --

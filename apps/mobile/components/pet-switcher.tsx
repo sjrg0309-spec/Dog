@@ -1,7 +1,7 @@
 /**
  * Selector de mascota.
  *
- * Aparece en todas las pantallas porque la respuesta a «qué te ofrece Coincide
+ * Aparece en todas las pantallas porque la respuesta a «qué te ofrece Petnav
  * hoy» cambia según cuál esté seleccionada, y no por la especie —hoy todas son
  * perros— sino por el animal: a 26 grados Nina sale y Kira no.
  *

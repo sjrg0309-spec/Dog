@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Notice } from '@/components/notice';
 import { notFound } from 'next/navigation';
 
-import { formatCents, splitCost } from '@coincide/core';
+import { formatCents, splitCost } from '@petnav/core';
 import { spotBySlug } from '@/lib/db';
 import { formatPrice, triState, triStateLabel } from '@/lib/format';
 
@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
   return {
     title: spot.title,
-    description: spot.description ?? 'Espacio privado para perros en Coincide.',
+    description: spot.description ?? 'Espacio privado para perros en Petnav.',
   };
 }
 
@@ -67,7 +67,7 @@ export default async function SpotPage({ params }: Params) {
           </div>
           <div>
             <dt>Anfitrión</dt>
-            <dd>{spot.host_name ?? 'Un tutor de Coincide'}</dd>
+            <dd>{spot.host_name ?? 'Un tutor de Petnav'}</dd>
           </div>
         </dl>
 
@@ -75,7 +75,7 @@ export default async function SpotPage({ params }: Params) {
         <section className="stack">
           <h2>Reservar en grupo</h2>
           <p className="card__meta">
-            Aquí está la diferencia con alquilar un espacio a título individual: Coincide conoce el
+            Aquí está la diferencia con alquilar un espacio a título individual: Petnav conoce el
             temperamento de cada perro, así que propone el grupo que mejor encaja y reparte el
             importe. Lo que decide si un grupo funciona es su pareja más floja, no su promedio.
           </p>

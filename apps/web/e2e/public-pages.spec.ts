@@ -244,7 +244,7 @@ test('una quedada inexistente devuelve 404 y ofrece salida', async ({ page }) =>
 });
 
 /**
- * El catálogo de especies es la página que mejor explica el producto: Coincide
+ * El catálogo de especies es la página que mejor explica el producto: Petnav
  * no es una aplicación de perros con otras especies añadidas encima, y eso se ve
  * en cuanto se agrupa por modelo social.
  */

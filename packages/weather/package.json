@@ -1,5 +1,5 @@
 {
-  "name": "@coincide/weather",
+  "name": "@petnav/weather",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -21,7 +21,7 @@
     "lint": "echo 'lint via typecheck'"
   },
   "dependencies": {
-    "@coincide/core": "workspace:*"
+    "@petnav/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -1,4 +1,4 @@
-import { WELFARE_DISCLAIMER } from '@coincide/core';
+import { WELFARE_DISCLAIMER } from '@petnav/core';
 import { Notice } from '@/components/notice';
 
 import { RadarRing } from '@/components/radar-ring';
@@ -59,7 +59,7 @@ export default async function HomePage() {
             Que tu perro salga <em>con alguien</em>.
           </h1>
           <p className="lede">
-            Coincide empareja perros por carácter, tamaño y forma de jugar, y cruza vuestros
+            Petnav empareja perros por carácter, tamaño y forma de jugar, y cruza vuestros
             horarios de paseo. Y cuando al tuyo no le conviene salir —porque aprieta el calor,
             porque le falta pauta, porque ya salió hace un rato—, lo dice y deja de proponerlo.
           </p>
@@ -281,7 +281,7 @@ export default async function HomePage() {
           <h2>El plan es del tutor; el cuerpo que lo aguanta, no</h2>
           <p className="lede">
             Casi todas las aplicaciones de perros resuelven el problema de la persona: con quién
-            queda, cómo llena la tarde, dónde encuentra sitio. Coincide hace eso, y además tiene una
+            queda, cómo llena la tarde, dónde encuentra sitio. Petnav hace eso, y además tiene una
             capa que puede contestar que no.
           </p>
         </div>
@@ -338,7 +338,7 @@ export default async function HomePage() {
           <p className="eyebrow">Espacios privados</p>
           <h2>Un espacio cerrado sale barato entre varios</h2>
           <p className="lede">
-            Alquilar un espacio privado a una persona es caro. Lo interesante es que Coincide ya
+            Alquilar un espacio privado a una persona es caro. Lo interesante es que Petnav ya
             sabe qué animales encajan entre sí, así que puede proponer el grupo y repartir el
             importe. Y para presentar conejos o hurones, un terreno neutral no es un lujo: es la
             única forma de hacerlo bien.

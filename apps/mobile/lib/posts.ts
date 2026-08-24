@@ -21,7 +21,7 @@
 
 import { useSyncExternalStore } from 'react';
 
-import { distanceMeters, formatDistance } from '@coincide/core';
+import { distanceMeters, formatDistance } from '@petnav/core';
 
 /**
  * Las reacciones.

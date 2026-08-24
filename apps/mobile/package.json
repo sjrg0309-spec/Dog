@@ -1,5 +1,5 @@
 {
-  "name": "@coincide/mobile",
+  "name": "@petnav/mobile",
   "version": "0.1.0",
   "private": true,
   "main": "expo-router/entry",
@@ -15,10 +15,10 @@
   },
   "dependencies": {
     "@babel/runtime": "^8.0.0",
-    "@coincide/core": "workspace:*",
-    "@coincide/tokens": "workspace:*",
-    "@coincide/trackers": "workspace:*",
-    "@coincide/weather": "workspace:*",
+    "@petnav/core": "workspace:*",
+    "@petnav/tokens": "workspace:*",
+    "@petnav/trackers": "workspace:*",
+    "@petnav/weather": "workspace:*",
     "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/metro-runtime": "^4.0.1",

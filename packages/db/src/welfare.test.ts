@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { findSpecies, sessionCeilingMinutes, heatCeilingC, type HealthFlag } from '@coincide/core';
+import { findSpecies, sessionCeilingMinutes, heatCeilingC, type HealthFlag } from '@petnav/core';
 
 import { asService, asUser, createPool, type Db } from './client.js';
 import { SEED_IDS, seed } from './seed.js';

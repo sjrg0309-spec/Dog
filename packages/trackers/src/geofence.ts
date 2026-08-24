@@ -19,7 +19,7 @@
  *     abre el check-in.
  */
 
-import { distanceMeters, type LatLng } from '@coincide/core';
+import { distanceMeters, type LatLng } from '@petnav/core';
 
 /** Margen del radio de salida sobre el de entrada. */
 export const EXIT_HYSTERESIS = 1.25;

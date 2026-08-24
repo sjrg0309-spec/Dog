@@ -1,4 +1,4 @@
-# Coincide
+# Petnav
 
 Red social de paseos. Empareja perros por temperamento, cruza los horarios de salida de sus tutores
 y facilita que el paseo ocurra de verdad. Y cuando al perro no le conviene salir, lo dice y deja de
@@ -7,7 +7,7 @@ proponerlo.
 ## Es una aplicación para el animal, no para su tutor
 
 Es la diferencia que decide el resto del diseño. Casi todo lo que hay resuelve el problema de la
-persona: con quién queda, cómo llena la tarde, dónde encuentra sitio. Coincide hace eso, y además
+persona: con quién queda, cómo llena la tarde, dónde encuentra sitio. Petnav hace eso, y además
 tiene una capa —`packages/core/src/welfare.ts`— que puede contestar que no.
 
 Cuando contesta que no, **manda**. No se compensa con una afinidad del 100 %, no se entierra en una
@@ -38,7 +38,7 @@ prudentes propios, publicados en el catálogo de especies para que se puedan dis
 
 ## Solo perros, y el catálogo sigue debajo
 
-Coincide llegó a estar abierto a quince especies. Mirando los datos, solo cinco tenían encuentros y
+Petnav llegó a estar abierto a quince especies. Mirando los datos, solo cinco tenían encuentros y
 **una sola** —el perro— tiene modelo de manada, que es el que sostiene el radar, las quedadas
 abiertas y los espacios compartidos. Para las otras cuatro el producto era una presentación
 supervisada de veinte minutos, y para las diez restantes un directorio. Eran tres productos
@@ -130,11 +130,11 @@ pnpm install
 node packages/db/dist/seed-cli.js
 
 # Web en http://localhost:3000
-pnpm --filter @coincide/web build
-pnpm --filter @coincide/web start
+pnpm --filter @petnav/web build
+pnpm --filter @petnav/web start
 
 # Aplicación móvil
-pnpm --filter @coincide/mobile start
+pnpm --filter @petnav/mobile start
 ```
 
 ---
@@ -219,7 +219,7 @@ esquema y no en un documento:
 pnpm test          # 326 tests unitarios y de integración
 pnpm typecheck     # todos los paquetes y aplicaciones
 pnpm lint          # ESLint en la web, typecheck en el resto
-pnpm --filter @coincide/web e2e    # 62 casos en Chromium, dos viewports
+pnpm --filter @petnav/web e2e    # 62 casos en Chromium, dos viewports
 node scripts/screenshots.mjs        # capturas de la web en claro, oscuro y sistema
 node scripts/mobile-screenshots.mjs # capturas del móvil: los dos perros, y a 26 y 34 °C
 ```

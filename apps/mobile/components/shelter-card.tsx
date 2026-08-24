@@ -15,7 +15,7 @@
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { SHELTER_ACTIVITIES, SHELTER_REVIEW_NOTE, SHELTER_SCOPE_NOTE } from '@coincide/core';
+import { SHELTER_ACTIVITIES, SHELTER_REVIEW_NOTE, SHELTER_SCOPE_NOTE } from '@petnav/core';
 
 import { Icon } from './icon';
 import { Badge, Body, Caption, Card, Notice, Row, Screen } from '@/components/ui';

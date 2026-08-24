@@ -71,7 +71,7 @@ export function buildTokensCss(): string {
   ].join('\n\n');
 
   return `/**
- * Coincide — tokens de diseño.
+ * Petnav — tokens de diseño.
  *
  * GENERADO por packages/tokens. No editar a mano: los cambios se pierden en el
  * siguiente build. La fuente está en packages/tokens/src.

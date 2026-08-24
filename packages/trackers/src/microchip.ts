@@ -6,7 +6,7 @@
  * sin GPS, legible solo con un lector a pocos centímetros. No emite, no se
  * puede seguir y no aparece en ningún mapa.
  *
- * Lo que sí aporta a Coincide es identidad: ligar el chip a la cuenta permite
+ * Lo que sí aporta a Petnav es identidad: ligar el chip a la cuenta permite
  * mostrar una insignia de tutor verificado, y en una aplicación donde quedas en
  * un parque con desconocidos y sueltas a tu animal con los suyos, esa señal vale.
  *

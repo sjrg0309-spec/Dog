@@ -19,7 +19,7 @@ import {
   Screen,
   Title,
 } from '@/components/ui';
-import { assessWelfare, type Conditions, type WelfareVerdict } from '@coincide/core';
+import { assessWelfare, type Conditions, type WelfareVerdict } from '@petnav/core';
 
 import { useActivePet } from '@/lib/active-pet';
 import { setLocation, useConditionsBuilder, useWeatherState } from '@/lib/conditions';

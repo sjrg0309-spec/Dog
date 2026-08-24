@@ -37,7 +37,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { RESCUE_SCENARIOS, type RescueScenario } from '@coincide/core';
+import { RESCUE_SCENARIOS, type RescueScenario } from '@petnav/core';
 
 import { Icon } from './icon';
 import { Body, Caption, Screen } from '@/components/ui';

@@ -4,7 +4,7 @@
  * IMPORTANTE, para que nadie se confunda leyendo esto: **son las mismas
  * mascotas que la semilla de la base de datos**, no un conjunto inventado
  * aparte. El algoritmo que se ejecuta sobre ellas es el real, importado de
- * `@coincide/core`; lo único que falta es el transporte.
+ * `@petnav/core`; lo único que falta es el transporte.
  *
  * La razón es concreta: React Native no puede hablar con Postgres directamente,
  * y en el entorno donde se construyó esto no hay un proyecto Supabase
@@ -22,7 +22,7 @@
  * bienestar, y es mucho más frecuente que el de dos especies distintas.
  */
 
-import type { AssistanceType, DogRole, MatchablePet, RoutineWindow } from '@coincide/core';
+import type { AssistanceType, DogRole, MatchablePet, RoutineWindow } from '@petnav/core';
 
 export type DemoPet = MatchablePet & {
   name: string;

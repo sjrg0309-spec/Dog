@@ -13,8 +13,8 @@
 
 import { Pressable, Text, View } from 'react-native';
 
-import { PACE_LABEL } from '@coincide/core';
-import { formatDistance } from '@coincide/core';
+import { PACE_LABEL } from '@petnav/core';
+import { formatDistance } from '@petnav/core';
 
 import { Avatar } from './avatar';
 import type { MeetupSuggestion } from '@/lib/data';

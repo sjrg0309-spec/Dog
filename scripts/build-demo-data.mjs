@@ -2,7 +2,7 @@
  * Los datos del prototipo, calculados con el algoritmo de verdad.
  *
  * El prototipo que se publica es una página estática, así que no puede importar
- * `@coincide/core` ni hablar con Postgres. En lugar de reimplementar el
+ * `@petnav/core` ni hablar con Postgres. En lugar de reimplementar el
  * algoritmo en la página —que sería enseñar otra cosa y llamarla la misma—, este
  * script **ejecuta el real** sobre todas las combinaciones que el prototipo
  * permite elegir y guarda los resultados.

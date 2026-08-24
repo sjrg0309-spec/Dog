@@ -13,7 +13,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 
-const PATH = new URL('../artifacts/coincide-app.html', import.meta.url).pathname;
+const PATH = new URL('../artifacts/petnav-app.html', import.meta.url).pathname;
 const TABS = ['Feed', 'Explorar', 'SOS', 'Mensajes', 'Perfil'];
 
 /* Se sirve por HTTP en vez de abrirlo como fichero. No es un capricho: en
@@ -102,7 +102,7 @@ if (/no encontr|unmatched|not found/i.test(body.slice(0, 400))) {
  * texto solamente —un cartel se puede dejar puesto con la aplicación detrás—,
  * sino que **no exista la barra de pestañas**: si hay pestañas, hay aplicación.
  */
-if (!/Coincide/i.test(body) || !/no se entra a mirar/i.test(body)) {
+if (!/Petnav/i.test(body) || !/no se entra a mirar/i.test(body)) {
   problems.push('la aplicación no arrancó en la bienvenida: la puerta no está puesta');
 }
 if (await page.getByRole('tab', { name: /Explorar/i }).count()) {

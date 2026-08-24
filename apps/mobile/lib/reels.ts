@@ -29,7 +29,7 @@
 
 import { useSyncExternalStore } from 'react';
 
-import { assessWelfare, type Conditions, type Surface } from '@coincide/core';
+import { assessWelfare, type Conditions, type Surface } from '@petnav/core';
 
 import { MY_PETS, OTHER_PETS } from './demo-data';
 
@@ -154,7 +154,7 @@ const ALL_PETS = [...MY_PETS, ...OTHER_PETS];
  * ¿La propia aplicación habría desaconsejado grabar esto?
  *
  * Usa exactamente el mismo juez que el resto —`assessWelfare` de
- * `@coincide/core`— sobre el animal que sale y las condiciones que declaró
+ * `@petnav/core`— sobre el animal que sale y las condiciones que declaró
  * quien lo publicó. No hay un segundo criterio para el contenido: sería la
  * forma más rápida de que los dos dejaran de coincidir.
  */
