@@ -36,6 +36,13 @@ import { alertReachM, RESCUE_SCENARIOS } from '@petnav/core';
 import { BackBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { Caption, Screen, Segmented } from '@/components/ui';
+import {
+  DIRECTIONS,
+  DIRECTION_IDS,
+  setDirection,
+  useDirection,
+  type DirectionId,
+} from '@/lib/direcciones';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
@@ -53,6 +60,7 @@ import {
   Lock,
   MapPinned,
   Moon,
+  Palette,
   QrCode,
   Search,
   Siren,
@@ -80,6 +88,7 @@ import { useTheme } from '@/lib/theme';
 const ICONS: Record<string, LucideIcon> = {
   ghost: EyeOff,
   rescuer: Siren,
+  direccion: Palette,
   feedRadius: MapPinned,
   theme: Moon,
   motion: Accessibility,
@@ -451,6 +460,8 @@ function ChoiceRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
       icon={icon}
       below={
         <View style={{ paddingTop: theme.space[2] }}>
+          {row.id === 'direccion' ? <DirectionPicker /> : null}
+
           {row.id === 'feedRadius' ? (
             <Segmented
               options={NEARBY_RADII_M.map((meters) => ({
@@ -492,6 +503,145 @@ function ChoiceRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
         </View>
       }
     />
+  );
+}
+
+/**
+ * Las tres direcciones, para elegirlas mirándolas.
+ *
+ * Un `Segmented` con tres palabras habría sido la mitad de código y no habría
+ * servido: «Nocturno», «Papel» y «Señal» no significan nada hasta que se ven.
+ * Cada miniatura está pintada **con los colores, la forma y la letra de su
+ * dirección**, no con los del tema activo —por eso los tres nombres salen cada
+ * uno en su tipografía—, así que la elección se hace comparando en vez de
+ * leyendo.
+ *
+ * La miniatura enseña las tres cosas que cambian de una dirección a otra:
+ *
+ *  1. **El color:** el fondo, el texto y la marca, tal cual quedarán.
+ *  2. **La forma:** el radio sale de la propia dirección, así que «Papel» se ve
+ *     de esquina recta y «Señal» blanda sin que nadie lo explique.
+ *  3. **La foto:** a sangre en Nocturno y Papel, con marco en Señal. Es la
+ *     diferencia más visible de las tres y no se deduce de un radio.
+ */
+function DirectionPicker() {
+  const theme = useTheme();
+  const active = useDirection();
+
+  return (
+    <View style={{ gap: theme.space[2] }}>
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Dirección visual"
+        style={{ flexDirection: 'row', gap: theme.space[2] }}
+      >
+        {DIRECTION_IDS.map((id) => (
+          <DirectionCard key={id} id={id} selected={id === active} />
+        ))}
+      </View>
+      <Caption>{DIRECTIONS[active].tagline}. Cambia el color, la letra y la forma a la vez.</Caption>
+    </View>
+  );
+}
+
+function DirectionCard({ id, selected }: { id: DirectionId; selected: boolean }) {
+  const theme = useTheme();
+  const direction = DIRECTIONS[id];
+  /* La miniatura se pinta con el fondo que el usuario tiene puesto, no siempre
+     con el oscuro: si alguien va en claro, enseñarle las tres en negro le hace
+     elegir una pantalla que no va a ver. */
+  const preview = direction[theme.isDark ? 'dark' : 'light'];
+  const inset = direction.media === 'inset' ? 5 : 0;
+
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      /* Igual que en los interruptores: react-native-web no traduce
+         `accessibilityState` en un `Pressable`, y sin esto un lector de
+         pantalla anuncia tres opciones sin decir cuál está puesta. */
+      aria-checked={selected}
+      accessibilityLabel={`${direction.name}. ${direction.tagline}`}
+      onPress={() => {
+        haptics.commit();
+        setDirection(id);
+      }}
+      style={({ pressed }) => ({ flex: 1, gap: theme.space[1], opacity: pressed ? 0.75 : 1 })}
+    >
+      <View
+        style={{
+          height: 96,
+          borderRadius: direction.radius.md,
+          borderWidth: selected ? 2 : 1,
+          borderColor: selected ? theme.colors.primary : theme.colors.border,
+          backgroundColor: preview.background,
+          overflow: 'hidden',
+          paddingVertical: 6,
+          gap: 5,
+        }}
+      >
+        {/* La cabecera: la marca y dos puntos. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6 }}>
+          <View
+            style={{
+              width: 22,
+              height: 5,
+              borderRadius: direction.radius.xs,
+              backgroundColor: preview.foreground,
+            }}
+          />
+          <View style={{ flex: 1 }} />
+          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: preview.mutedForeground }} />
+        </View>
+
+        {/* La foto: a sangre o con marco. Es lo que más se nota. */}
+        <View
+          style={{
+            height: 34,
+            marginHorizontal: inset,
+            borderRadius: inset > 0 ? direction.radius.sm : 0,
+            backgroundColor: preview.surfaceElevated,
+            borderTopWidth: inset > 0 ? 0 : 1,
+            borderBottomWidth: inset > 0 ? 0 : 1,
+            borderColor: preview.border,
+          }}
+        />
+
+        {/* Y la acción, del color de la marca. */}
+        <View style={{ paddingHorizontal: 6, gap: 4 }}>
+          <View
+            style={{
+              height: 5,
+              width: '62%',
+              borderRadius: direction.radius.xs,
+              backgroundColor: preview.mutedForeground,
+            }}
+          />
+          <View
+            style={{
+              height: 16,
+              width: '78%',
+              borderRadius: direction.radius.full,
+              backgroundColor: preview.primary,
+            }}
+          />
+        </View>
+      </View>
+
+      <Text
+        numberOfLines={1}
+        style={{
+          /* Cada nombre en su propia tipografía: es la mitad de la decisión y
+             no se puede enseñar con un rótulo del tema activo. */
+          fontFamily: direction.fonts.displayBold,
+          fontSize: theme.fontSize.sm,
+          color: selected ? theme.colors.primary : theme.colors.foreground,
+          textAlign: 'center',
+        }}
+      >
+        {direction.name}
+      </Text>
+    </Pressable>
   );
 }
 

@@ -36,7 +36,8 @@
       "unrs-resolver"
     ],
     "overrides": {
-      "expo-font": "~13.0.4"
+      "expo-font": "~13.0.4",
+      "@types/react": "~18.3.12"
     }
   }
 }

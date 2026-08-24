@@ -728,6 +728,91 @@ for (const tab of TABS) {
       await page.getByRole('button', { name: /^Configuración$/ }).first().click();
       await page.waitForTimeout(900);
 
+      /*
+       * Las tres direcciones visuales, comprobadas cambiándolas.
+       *
+       * Un selector de tema es el sitio más fácil del mundo para poner tres
+       * botones que no hacen nada, así que aquí no se mira que existan: se
+       * pulsan las tres y se lee **lo que hay pintado en la pantalla** después
+       * de cada una. Dos medidas, porque una dirección es dos cosas:
+       *
+       *  - el fondo de mayor superficie —el color—, y
+       *  - la familia tipográfica de un rótulo del propio panel —la letra—.
+       *
+       * Si las tres dieran lo mismo en cualquiera de las dos, el selector sería
+       * decorado. Se mide un rótulo del panel y no el nombre de la opción a
+       * propósito: cada opción se dibuja con su tipografía siempre, así que
+       * mirarla ahí no demostraría nada.
+       */
+      /*
+       * El color de marca, leído del rótulo de la opción puesta.
+       *
+       * La primera versión medía «el fondo de mayor superficie» y las tres
+       * daban lo mismo: en claro, dos de las tres direcciones tienen el fondo
+       * blanco puro a propósito. Medir el fondo no distingue una dirección; el
+       * color de marca sí, y es además el que se ve en cada icono activo, cada
+       * botón principal y cada anillo.
+       */
+      const brand = (name) =>
+        page.evaluate((label) => {
+          for (const element of document.querySelectorAll('#root *')) {
+            if (element.children.length === 0 && element.textContent.trim() === label) {
+              return getComputedStyle(element).color;
+            }
+          }
+          return null;
+        }, name);
+
+      const pageGround = () =>
+        page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
+
+      const titleFamily = () =>
+        page.evaluate(() => {
+          for (const element of document.querySelectorAll('#root *')) {
+            if (element.children.length === 0 && element.textContent.trim() === 'Privacidad') {
+              return getComputedStyle(element).fontFamily;
+            }
+          }
+          return null;
+        });
+
+      const grounds = [];
+      const families = [];
+      for (const name of ['Nocturno', 'Papel', 'Señal']) {
+        const option = page.getByRole('radio', { name: new RegExp(`^${name}\\.`) }).first();
+        if (!(await option.count())) {
+          problems.push(`configuración no ofrece la dirección ${name}`);
+          continue;
+        }
+        await option.scrollIntoViewIfNeeded().catch(() => {});
+        await option.click();
+        await page.waitForTimeout(550);
+        grounds.push(await brand(name));
+        families.push(await titleFamily());
+      }
+
+      console.log(`direcciones: ${grounds.join(' · ')}`);
+      console.log(`tipografías: ${families.map((f) => String(f).split(',')[0]).join(' · ')}`);
+      if (new Set(grounds).size !== 3) {
+        problems.push(`las tres direcciones no cambian el color de marca: ${grounds.join(', ')}`);
+      }
+      /* Y el fondo del documento, que es lo que asoma por las zonas seguras:
+         tiene que ser un color del tema y no el que trae el empaquetado. */
+      const ground = await pageGround();
+      if (!ground || ground === 'rgba(0, 0, 0, 0)') {
+        problems.push('el documento no hereda el fondo del tema');
+      }
+      console.log(`fondo del documento: ${ground}`);
+      if (new Set(families).size !== 3) {
+        problems.push(`las tres direcciones no cambian la tipografía: ${families.join(', ')}`);
+      }
+
+      /* Se deja como estaba para que lo que venga después no herede otra
+         dirección: una auditoría que se cambia el decorado a sí misma mide otra
+         aplicación a partir de aquí. */
+      await page.getByRole('radio', { name: /^Nocturno\./ }).first().click();
+      await page.waitForTimeout(450);
+
       const chipSwitch = page.getByRole('switch', { name: /Chip verificado/i }).first();
       if (!(await chipSwitch.count())) {
         problems.push('configuración no ofrece verificar el chip');

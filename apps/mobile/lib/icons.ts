@@ -33,6 +33,8 @@ export {
   Users,
   ChevronLeft,
   ChevronRight,
+  /** Las tres direcciones visuales, en ajustes. */
+  Palette,
   /** Las tres rayas del perfil, que es donde Instagram guarda los ajustes. */
   Menu,
   ArrowLeft,

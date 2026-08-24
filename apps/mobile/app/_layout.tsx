@@ -1,9 +1,10 @@
 import { useFonts } from 'expo-font';
+import { useEffect } from 'react';
 
 import { useWeatherBootstrap } from '@/lib/conditions';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -59,6 +60,7 @@ function RootStack() {
      lo que la caché existe para evitar. */
   useWeatherBootstrap();
   const { registered } = useAccount();
+  usePageGround(theme.colors.background);
 
   // Se espera a las fuentes antes de pintar. Sin esto, la primera pasada sale
   // con la fuente del sistema y salta a la definitiva, y el salto de métricas se
@@ -117,4 +119,29 @@ function RootStack() {
       </Stack>
     </>
   );
+}
+
+/**
+ * El fondo de la **página**, no el de la aplicación.
+ *
+ * En web hay un color por debajo de todo lo que pinta React Native: el del
+ * documento. Asoma por las zonas seguras, por el rebote del scroll y —lo que
+ * más se nota— durante el instante en que la aplicación arranca. Estaba escrito
+ * a mano en el empaquetado y se quedó con la paleta antigua, así que al cambiar
+ * de dirección visual seguía viéndose el crema de antes por los bordes: la
+ * aplicación entera repintada y un marco delatando la versión anterior.
+ *
+ * Aquí se ata al token, así que cambia con la dirección como todo lo demás. En
+ * nativo no existe el documento y el efecto no hace nada; se comprueba con
+ * `Platform.OS` y no con un `try`, porque un fallo silencioso escondería
+ * cualquier otro error de dentro.
+ */
+function usePageGround(color: string): void {
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const root = document.documentElement;
+    const { body } = document;
+    root.style.backgroundColor = color;
+    body.style.backgroundColor = color;
+  }, [color]);
 }

@@ -7,11 +7,11 @@
  * JavaScript, y evitarlo ahorra un tercio del peso— y las tipografías como
  * data URI.
  *
- * De las dieciocho tipografías que copia el exportador solo se incrustan las
- * cinco que `lib/fonts.ts` carga de verdad. Las otras trece entran en el grafo
- * por el barril del paquete y no se piden nunca; incrustarlas serían dos megas
- * que alguien descarga con datos móviles para nada. El auditor comprueba que
- * efectivamente no se piden.
+ * De las tipografías que copia el exportador solo se incrustan las nueve que
+ * `lib/fonts.ts` carga de verdad —tres por cada dirección visual—. Las demás
+ * entran en el grafo por el barril del paquete y no se piden nunca;
+ * incrustarlas serían dos megas que alguien descarga con datos móviles para
+ * nada. El auditor comprueba que efectivamente no se piden.
  *
  * Esto no es la app nativa: es la misma base de código corriendo en
  * react-native-web. No hay háptica ni cámara del sistema, y lo que en un
@@ -29,6 +29,10 @@ const OUT = new URL('../artifacts/petnav-app.html', import.meta.url).pathname;
 const USED_FONTS = [
   'AtkinsonHyperlegible_400Regular.',
   'AtkinsonHyperlegible_700Bold.',
+  'BricolageGrotesque_600SemiBold.',
+  'BricolageGrotesque_700Bold.',
+  'BricolageGrotesque_800ExtraBold.',
+  'PlusJakartaSans_400Regular.',
   'PlusJakartaSans_600SemiBold.',
   'PlusJakartaSans_700Bold.',
   'PlusJakartaSans_800ExtraBold.',
@@ -147,10 +151,16 @@ ${reset}
      navegador del móvil no recorte la barra de pestañas—. Y el fondo son los
      tokens del producto, no un gris a ojo: en un móvil este color asoma por las
      zonas seguras y por el rebote del scroll, así que uno que no sea el del
-     tema se ve como un borde equivocado. */
-  :root { --arranque-fondo: oklch(97.7% 0.007 81); --arranque-texto: oklch(45.5% 0.022 281); }
+     tema se ve como un borde equivocado.
+
+     Estos dos valores son los de «Nocturno», que es la dirección de fábrica, y
+     solo mandan **hasta que la aplicación arranca**: a partir de ahí el propio
+     documento se repinta con el token de la dirección activa (ver
+     \`usePageGround\` en \`app/_layout.tsx\`). Antes estaban en la paleta vieja y
+     seguía asomando el crema por los bordes con cualquier dirección puesta. */
+  :root { --arranque-fondo: #ffffff; --arranque-texto: #666666; }
   @media (prefers-color-scheme: dark) {
-    :root { --arranque-fondo: oklch(16.5% 0.028 282); --arranque-texto: oklch(72.5% 0.018 281); }
+    :root { --arranque-fondo: #000000; --arranque-texto: #a3a3a3; }
   }
   html, body { height: 100dvh; margin: 0; background: var(--arranque-fondo); }
   #root { height: 100dvh; }

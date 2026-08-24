@@ -1,16 +1,29 @@
 /**
  * Tipografía de la aplicación móvil.
  *
- * Son las mismas dos familias que la web, y el reparto no es estético:
+ * Aquí ya no hay una pareja fija de familias: hay **tres**, una por dirección
+ * visual, y la que manda sale de `lib/direcciones`.
  *
- *  - **Plus Jakarta Sans** para titulares y etiquetas de interfaz. Es la familia
- *    que pide la especificación visual. De las dos que nombra —Plus Jakarta Sans
- *    o Inter— se toma esta, porque Inter está en la lista de bloqueantes del
- *    proyecto desde el primer día.
- *  - **Atkinson Hyperlegible** para el cuerpo, diseñada para legibilidad en baja
- *    visión. El texto largo de esta aplicación —los pasos de una alerta, la
- *    ficha médica— se lee de pie, en la calle, a contraluz y con una correa en
- *    la otra mano. Es justo la situación para la que se hizo esa fuente.
+ *  - **Nocturno** — Plus Jakarta Sans en todo. Geométrica y neutra: la letra se
+ *    aparta para que mande la foto, que es la tesis de esa dirección.
+ *  - **Papel** — Bricolage Grotesque en los titulares y Atkinson Hyperlegible
+ *    en el cuerpo. Bricolage es una grotesca con manías, y es lo que hace que
+ *    una pantalla sin una sola foto siga teniendo cara.
+ *  - **Señal** — Atkinson Hyperlegible en todo, titulares incluidos. Está
+ *    dibujada para baja visión —distingue la l de la I y el 0 del O— y esta
+ *    aplicación se lee de pie, a contraluz y con una correa en la otra mano.
+ *
+ * En ninguna de las tres aparece Inter, que sigue en la lista de bloqueantes
+ * del proyecto desde el primer día.
+ *
+ * **Por qué `fonts` es un objeto con captadores y no uno normal.** Hay 324 usos
+ * de `fonts.body` y compañía repartidos por cuarenta y tres ficheros. Pasarlos
+ * todos por el tema para poder cambiar de familia sería un refactor enorme con
+ * mucho sitio donde equivocarse; con captadores, cada lectura devuelve la
+ * familia de la dirección activa y **no hay que tocar ni una llamada**. El
+ * repintado lo provoca `useTheme`, del que ya cuelga cualquier componente con
+ * estilos: al cambiar de dirección se vuelve a renderizar y en ese momento
+ * `fonts.body` ya devuelve otra cosa.
  */
 
 import {
@@ -18,14 +31,35 @@ import {
   AtkinsonHyperlegible_700Bold,
 } from '@expo-google-fonts/atkinson-hyperlegible';
 import {
+  BricolageGrotesque_600SemiBold,
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+} from '@expo-google-fonts/bricolage-grotesque';
+import {
+  PlusJakartaSans_400Regular,
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 
+import { DIRECTIONS, readDirection, type FontSet } from './direcciones';
+
+/**
+ * Todo lo que carga `useFonts` al arrancar.
+ *
+ * Se cargan las nueve de las tres direcciones y no solo las de la activa: son
+ * unos cientos de kilobytes que ya viajan en el paquete, y cargarlas a demanda
+ * significaría que cambiar de dirección en ajustes enseña medio segundo de
+ * tipografía del sistema. Un cambio de dirección tiene que ser instantáneo o no
+ * se puede comparar.
+ */
 export const FONT_MAP = {
   AtkinsonHyperlegible_400Regular,
   AtkinsonHyperlegible_700Bold,
+  BricolageGrotesque_600SemiBold,
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+  PlusJakartaSans_400Regular,
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
@@ -34,14 +68,24 @@ export const FONT_MAP = {
 /**
  * Nombres de familia por uso.
  *
- * En React Native el peso no se aplica con `fontWeight` cuando se cargan fuentes
- * por archivo: hay que nombrar la variante concreta. Por eso se exponen así, en
- * lugar de dejar que cada pantalla adivine.
+ * En React Native el peso no se aplica con `fontWeight` cuando se cargan
+ * fuentes por archivo: hay que nombrar la variante concreta. Por eso se exponen
+ * así, en lugar de dejar que cada pantalla adivine.
  */
-export const fonts = {
-  body: 'AtkinsonHyperlegible_400Regular',
-  bodyBold: 'AtkinsonHyperlegible_700Bold',
-  displaySemibold: 'PlusJakartaSans_600SemiBold',
-  displayBold: 'PlusJakartaSans_700Bold',
-  displayExtrabold: 'PlusJakartaSans_800ExtraBold',
-} as const;
+export const fonts: FontSet = {
+  get body() {
+    return DIRECTIONS[readDirection()].fonts.body;
+  },
+  get bodyBold() {
+    return DIRECTIONS[readDirection()].fonts.bodyBold;
+  },
+  get displaySemibold() {
+    return DIRECTIONS[readDirection()].fonts.displaySemibold;
+  },
+  get displayBold() {
+    return DIRECTIONS[readDirection()].fonts.displayBold;
+  },
+  get displayExtrabold() {
+    return DIRECTIONS[readDirection()].fonts.displayExtrabold;
+  },
+};

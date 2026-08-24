@@ -104,6 +104,13 @@ export function resetSettings(): void {
   for (const listener of listeners) listener();
 }
 
+/**
+ * El fondo, dentro de la dirección.
+ *
+ * Sigue existiendo porque una dirección no elige por ti si son las siete de la
+ * mañana o las once de la noche. Lo que ya no hace es elegir la identidad: eso
+ * es la dirección, y vive en `lib/direcciones`.
+ */
 export const THEME_LABEL: Record<ThemeChoice, string> = {
   system: 'El del teléfono',
   light: 'Claro',
@@ -161,6 +168,23 @@ export type SettingGroup = {
 };
 
 export const SETTINGS: readonly SettingGroup[] = [
+  {
+    id: 'look',
+    title: 'Aspecto',
+    note: 'Una dirección es paleta, tipografía y forma a la vez. Se cambian juntas o no se cambian.',
+    rows: [
+      {
+        id: 'direccion',
+        label: 'Dirección visual',
+        hint: 'Nocturno, Papel o Señal',
+        keywords: [
+          'tema', 'aspecto', 'estilo', 'diseño', 'color', 'paleta', 'tipografía',
+          'letra', 'nocturno', 'papel', 'señal', 'instagram',
+        ],
+        kind: 'choice',
+      },
+    ],
+  },
   {
     id: 'visibility',
     title: 'Privacidad',

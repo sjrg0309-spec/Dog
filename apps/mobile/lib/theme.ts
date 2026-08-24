@@ -10,23 +10,10 @@
 
 import { useColorScheme } from 'react-native';
 
-import {
-  ACCENT_IDS,
-  applyAccent,
-  dark as darkTokens,
-  light as lightTokens,
-  themeToHex,
-  type AccentId,
-  type SemanticTokens,
-} from '@petnav/tokens';
+import { type SemanticTokens } from '@petnav/tokens';
 
-import { useActivePet } from './active-pet';
-import { useAccount } from './account';
-import { accentOf } from './artwork';
+import { DIRECTIONS, useDirection, type Direction, type RadiusScale } from './direcciones';
 import { useSettings } from './settings';
-
-export const lightColors = themeToHex(lightTokens as unknown as Record<string, string>) as unknown as SemanticTokens;
-export const darkColors = themeToHex(darkTokens as unknown as Record<string, string>) as unknown as SemanticTokens;
 
 /**
  * Espaciado en números.
@@ -51,22 +38,14 @@ export const space = {
   20: 80,
 } as const;
 
-/**
- * Radios. Mismos pasos que el token de la web.
+/*
+ * Los radios ya no viven aquí: los pone la dirección visual.
  *
- * `lg` y `xl` viven en la franja de 16 a 24 px que pide la especificación
- * visual. Los controles pequeños se quedan por debajo: 20 px de radio en un chip
- * de 32 px de alto lo convierte en una pastilla y borra la jerarquía.
+ * Era una escala sola porque había una sola forma. Con tres direcciones la
+ * forma es parte de la identidad —«Papel» es de imprenta y su filete es recto;
+ * «Señal» es blanda porque se pulsa con guante— y una escala compartida las
+ * habría aplanado a las tres. Ver `lib/direcciones`.
  */
-export const radius = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 18,
-  xl: 24,
-  '2xl': 32,
-  full: 9999,
-} as const;
 
 /**
  * Tamaños de texto.
@@ -123,60 +102,33 @@ export const touchTarget = { min: 44, comfortable: 48, floating: 64 } as const;
 export type Theme = {
   colors: SemanticTokens;
   isDark: boolean;
+  /** La dirección activa entera, para lo que no es color ni radio. */
+  direction: Direction;
   space: typeof space;
-  radius: typeof radius;
+  radius: RadiusScale;
   fontSize: typeof fontSize;
   fontWeight: typeof fontWeight;
-  touchTarget: typeof touchTarget;
+  /** Números y no literales: «Señal» los crece. */
+  touchTarget: { min: number; comfortable: number; floating: number };
 };
 
 /**
- * Tema activo según la preferencia del sistema.
+ * El tema: la dirección visual, con el fondo que toque.
  *
- * `useColorScheme` puede devolver `null` mientras el sistema no ha resuelto la
- * preferencia; se cae a claro en lugar de parpadear.
- */
-/**
- * Los seis juegos de color: tres acentos × dos temas.
+ * Aquí se cruzan dos decisiones que antes eran una sola:
  *
- * Se calculan **una vez al cargar el módulo** y no en cada render. Convertir
- * OKLCH a hexadecimal es barato una vez y caro sesenta veces por segundo, y
- * además un objeto de colores recién creado en cada render invalidaría todos
- * los memos que lo tengan de dependencia —incluido el de las teselas del mapa,
- * que ya costó un bucle de mil peticiones—.
- */
-const PALETTES = Object.fromEntries(
-  ACCENT_IDS.map((accent) => [
-    accent,
-    {
-      light: themeToHex(
-        applyAccent(lightTokens as unknown as SemanticTokens, accent, 'light') as unknown as Record<
-          string,
-          string
-        >,
-      ) as unknown as SemanticTokens,
-      dark: themeToHex(
-        applyAccent(darkTokens as unknown as SemanticTokens, accent, 'dark') as unknown as Record<
-          string,
-          string
-        >,
-      ) as unknown as SemanticTokens,
-    },
-  ]),
-) as Record<AccentId, { light: SemanticTokens; dark: SemanticTokens }>;
-
-/**
- * El tema, teñido del animal que se está mirando.
+ *  1. **Qué dirección** —Nocturno, Papel o Señal—. Es la identidad: color,
+ *     tipografía y forma, de una pieza. Vive en `lib/direcciones`.
+ *  2. **Qué fondo** —claro, oscuro o el del teléfono—. Sigue siendo un ajuste
+ *     porque una aplicación que se usa a las siete de la mañana y a las once de
+ *     la noche no puede tener un solo fondo.
  *
- * Es un `useTheme` y no un proveedor con un color dentro porque el acento no es
- * una preferencia del usuario: **se deduce de qué mascota está activa**, que ya
- * vive en su propio almacén. Cambiar de Nina a Kira repinta la aplicación sin
- * que nadie tenga que acordarse de propagar nada.
- *
- * Lo que se tiñe son los cinco tokens de la acción primaria y el foco. El rojo
- * de extraviados y el terracota de «en vivo» **no**: si el color del peligro
- * dependiera de qué perro tienes seleccionado, el peligro dejaría de tener
- * color.
+ * **Lo que se ha ido: el acento por mascota.** La aplicación se teñía del color
+ * del perro que estuvieras mirando. Era bonito y era incompatible con lo que
+ * pedía cada una de las tres direcciones: un solo acento. Con el tinte por
+ * mascota, «un solo acento» era mentira en cuanto cambiabas de Nina a Kira. El
+ * color del animal no ha desaparecido —sigue en su ilustración y en su anillo,
+ * que es donde identifica a alguien—, pero ya no repinta la interfaz entera.
  */
 export function useTheme(): Theme {
   const scheme = useColorScheme();
@@ -186,32 +138,20 @@ export function useTheme(): Theme {
      que es lo que espera quien nunca abre esta pantalla. */
   const choice = useSettings().theme;
   const isDark = choice === 'system' ? scheme === 'dark' : choice === 'dark';
-  const pet = useActivePet();
-  /*
-   * El acento sale del animal seleccionado… salvo en una cuenta de rescate, que
-   * no tiene animal.
-   *
-   * En la demostración esa cuenta conserva las mascotas de la semilla para que
-   * haya contenido, y sin esta línea la aplicación entera se teñía del color de
-   * un perro que no es suyo. El verde de la casa es lo correcto ahí: una
-   * protectora es la aplicación, no un perro concreto.
-   */
-  const account = useAccount();
-  /* Y lo mismo antes de entrar: durante el alta todavía no hay perro propio,
-     así que el color salía del primero de la semilla. La bienvenida y las once
-     preguntas se veían azules por un perro que no es de quien está
-     contestando. El verde de la casa es lo correcto hasta que haya animal; al
-     terminar el alta, la aplicación se tiñe del suyo, que es un momento y no
-     un accidente. */
-  const accent = account.kind === 'rescuer' || !account.registered ? 'sage' : accentOf(pet.id);
+  const direction = DIRECTIONS[useDirection()];
 
   return {
-    colors: PALETTES[accent][isDark ? 'dark' : 'light'],
+    colors: direction[isDark ? 'dark' : 'light'],
     isDark,
+    direction,
     space,
-    radius,
+    radius: direction.radius,
     fontSize,
     fontWeight,
-    touchTarget,
+    touchTarget: {
+      min: touchTarget.min + direction.touchBoost,
+      comfortable: touchTarget.comfortable + direction.touchBoost,
+      floating: touchTarget.floating + direction.touchBoost,
+    },
   };
 }

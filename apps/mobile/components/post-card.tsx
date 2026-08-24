@@ -780,21 +780,42 @@ function PostCarousel({ post }: { post: Post }) {
   const [index, setIndex] = useState(0);
   const photos = post.photos;
 
+  /*
+   * A sangre o con marco, según la dirección visual.
+   *
+   * No es un adorno: es la diferencia de forma más visible entre las tres.
+   * «Nocturno» y «Papel» cortan la pantalla de lado a lado —la foto manda y
+   * nada la enmarca—; «Señal» la mete en la tarjeta, con esquina blanda y aire
+   * alrededor, porque ahí lo que manda es el dato y no la imagen.
+   *
+   * El ancho de página del carrusel **tiene que descontar el marco**: con
+   * `pagingEnabled` el enganche es del ancho del hijo, así que con márgenes y
+   * páginas de ancho de pantalla la segunda foto quedaba siempre medio
+   * asomando.
+   */
+  const inset = theme.direction.media === 'inset' ? theme.space[3] : 0;
+  const page = width - inset * 2;
+  const corner = inset > 0 ? theme.radius.lg : 0;
+
   if (photos.length === 1) {
     const only = photos[0]!;
     return (
-      <PostImage
-        uri={only.uri}
-        alt={only.alt}
-        seed={post.id}
-        petId={post.petId}
-        at={post.createdAt}
-      />
+      <View style={{ paddingHorizontal: inset }}>
+        <PostImage
+          uri={only.uri}
+          alt={only.alt}
+          seed={post.id}
+          petId={post.petId}
+          at={post.createdAt}
+          size={page}
+          corner={corner}
+        />
+      </View>
     );
   }
 
   return (
-    <View>
+    <View style={{ paddingHorizontal: inset }}>
       <ScrollView
         horizontal
         pagingEnabled
@@ -803,7 +824,7 @@ function PostCarousel({ post }: { post: Post }) {
            pantalla. Con `Math.floor` el punto cambiaba un pelo antes de que la
            foto acabara de encajar, y se veía. */
         onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
-          const next = Math.round(event.nativeEvent.contentOffset.x / width);
+          const next = Math.round(event.nativeEvent.contentOffset.x / page);
           if (next !== index) setIndex(next);
         }}
         scrollEventThrottle={16}
@@ -816,6 +837,8 @@ function PostCarousel({ post }: { post: Post }) {
             seed={`${post.id}-${position}`}
             petId={post.petId}
             at={post.createdAt}
+            size={page}
+            corner={corner}
           />
         ))}
       </ScrollView>
@@ -896,15 +919,19 @@ function PostImage({
   seed,
   petId,
   at,
+  size,
+  corner,
 }: {
   uri: string | null;
   alt: string;
   seed: string;
   petId: string;
   at: Date;
+  /** Ancho de la foto ya descontado el marco, si la dirección lo pone. */
+  size: number;
+  corner: number;
 }) {
   const theme = useTheme();
-  const { width } = useWindowDimensions();
   const scene = useMemo(
     () => buildScene({ seed, petId, at, width: 400, height: 400 }),
     [seed, petId, at],
@@ -916,15 +943,25 @@ function PostImage({
         source={{ uri }}
         accessibilityLabel={alt}
         accessible
-        style={{ width: '100%', aspectRatio: 1, backgroundColor: theme.colors.muted }}
+        style={{
+          width: size,
+          aspectRatio: 1,
+          borderRadius: corner,
+          backgroundColor: theme.colors.muted,
+        }}
         resizeMode="cover"
       />
     );
   }
 
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={alt} style={{ width: '100%' }}>
-      <SceneView scene={scene} width={width} height={width} />
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={alt}
+      style={{ width: size, borderRadius: corner, overflow: 'hidden' }}
+    >
+      <SceneView scene={scene} width={size} height={size} />
       <View
         style={{
           position: 'absolute',

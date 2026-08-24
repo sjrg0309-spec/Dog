@@ -16,6 +16,7 @@
   "dependencies": {
     "@babel/runtime": "^8.0.0",
     "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/metro-runtime": "^4.0.1",
     "@petnav/core": "workspace:*",
