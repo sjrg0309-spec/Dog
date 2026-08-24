@@ -88,7 +88,7 @@ import {
 import { formatMicrochip, validateMicrochip } from '@petnav/trackers';
 
 import { Icon } from './icon';
-import { Appear } from './motion';
+import { Appear, Press } from './motion';
 import { SceneView } from './scene';
 import { LiveCard, LiveMatches, LiveSchedule, portraitSeed } from './registro-live';
 import { Body, Caption, Screen } from '@/components/ui';
@@ -100,6 +100,7 @@ import {
   ArrowLeft,
   BadgeCheck,
   Check,
+  ChevronRight,
   CircleAlert,
   Eye,
   EyeOff,
@@ -583,45 +584,61 @@ function Puertas({
         style={{ flex: 1, justifyContent: 'center', gap: theme.space[5], padding: theme.space[6] }}
       >
         <Appear>
-          <Text
-            accessibilityRole="header"
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: fonts.displayExtrabold,
-              fontSize: theme.fontSize['3xl'],
-              letterSpacing: -0.6,
-            }}
-          >
-¿Vienes con perro?
-          </Text>
+          <View style={{ gap: theme.space[2] }}>
+            <Text
+              accessibilityRole="header"
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.displayExtrabold,
+                fontSize: theme.fontSize['3xl'],
+                letterSpacing: -0.6,
+              }}
+            >
+              Elige tu tipo de cuenta
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.mutedForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.sm,
+                lineHeight: theme.fontSize.sm * 1.5,
+              }}
+            >
+              Determina qué ves y qué puedes hacer dentro.
+            </Text>
+          </View>
         </Appear>
 
+        {/*
+          Dos fichas de opción, no dos botones.
+
+          Aquí no se está confirmando una acción: se está eligiendo entre dos
+          productos distintos —uno tiene feed, mapa y quedadas; el otro, un
+          tablero de rescate— y esa diferencia no cabe en el rótulo de un botón.
+          Una ficha con nombre, descripción y flecha es el patrón con el que se
+          eligen planes y tipos de cuenta en cualquier producto serio, y además
+          deja decir en la misma pantalla que una de las dos se verifica.
+
+          El nombre accesible es el título; la descripción va como pista, que es
+          para lo que existe: un lector de pantalla lee «Tutor, botón» y después
+          la explicación, en vez de una frase de veinte palabras por opción.
+        */}
         <Appear index={1} style={{ gap: theme.space[3] }}>
-          {/*
-            Una pregunta de sí o no, con respuestas de sí y de no.
-
-            Antes ponía «¿Tienes perro?» y debajo «Dar de alta a mi perro» y
-            «Rescato y no tengo perro». Fallaban las tres cosas: la pregunta no
-            se contestaba con ninguno de los dos botones, «dar de alta» es lo
-            que se hace en una gestoría, y a quien rescata se le presentaba por
-            lo que **no** tiene.
-
-            Ahora la pregunta y las respuestas encajan, y quien rescata entra
-            diciendo lo que hace, que además es de lo que uno está orgulloso.
-          */}
-          <BigButton
-            label="Sí, vengo con mi perro"
+          <AccountChoice
             icon={PawPrint}
+            title="Tutor"
+            description="Registras a tu perro y ves quién pasea por tu zona y a qué hora."
             onPress={() => onPick('tutor')}
           />
-          <BigButton
-            label="No, yo rescato"
+          <AccountChoice
             icon={Siren}
-            tone="outline"
+            title="Rescate"
+            description="Protectora, albergue o casa de acogida. Tablero de animales perdidos y en peligro."
             onPress={() => onPick('rescuer')}
           />
           <Caption>
-Protectoras, albergues y casas de acogida entráis con el perfil de vuestro colectivo.
+            Las cuentas de rescate las revisa una persona con el perfil público del colectivo antes
+            de activarlas.
           </Caption>
         </Appear>
       </View>
@@ -2050,6 +2067,102 @@ function Progress({ value }: { value: number }) {
 }
 
 /** El botón de abajo: ancho entero y de una sola cosa, como en un registro. */
+/**
+ * Una ficha de tipo de cuenta.
+ *
+ * Icono, nombre, una línea de qué es y una flecha. La flecha no es adorno: dice
+ * que esto lleva a algún sitio en vez de confirmar algo aquí mismo, que es la
+ * diferencia entre elegir y aceptar.
+ */
+function AccountChoice({
+  icon,
+  title,
+  description,
+  onPress,
+}: {
+  icon: typeof PawPrint;
+  title: string;
+  description: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={description}
+      onPress={() => {
+        haptics.tap();
+        onPress();
+      }}
+      style={{ borderRadius: theme.radius.lg }}
+    >
+      {({ pressed }) => (
+        <Press pressed={pressed}>
+          <View
+            style={{
+              flexDirection: 'row',
+              /* Arriba y no centrado: con una descripción de dos o tres
+                 renglones, un icono centrado en la fila queda a la altura de la
+                 segunda línea y parece que se ha caído. Alineado con el título,
+                 el ojo lee icono y nombre como una sola cosa. */
+              alignItems: 'flex-start',
+              gap: theme.space[4],
+              padding: theme.space[4],
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.surface,
+            }}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: theme.radius.md,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.colors.accent,
+              }}
+            >
+              <Icon icon={icon} size="lg" color={theme.colors.primary} decorative />
+            </View>
+
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.displayBold,
+                  fontSize: theme.fontSize.lg,
+                }}
+              >
+                {title}
+              </Text>
+              <Text
+                style={{
+                  color: theme.colors.mutedForeground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.sm,
+                  lineHeight: theme.fontSize.sm * 1.45,
+                }}
+              >
+                {description}
+              </Text>
+            </View>
+
+            {/* La flecha sí se centra: acompaña a la ficha entera, no al
+                título. */}
+            <View style={{ alignSelf: 'center' }}>
+              <Icon icon={ChevronRight} size="base" color={theme.colors.mutedForeground} decorative />
+            </View>
+          </View>
+        </Press>
+      )}
+    </Pressable>
+  );
+}
+
 function BigButton({
   label,
   icon,

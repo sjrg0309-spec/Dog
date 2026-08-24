@@ -161,7 +161,7 @@ for (const label of ['Comenzar ahora', 'Ya tengo cuenta']) {
 await page.getByRole('button', { name: 'Comenzar ahora', exact: true }).first().click();
 await page.waitForTimeout(600);
 
-if (!(await page.getByRole('button', { name: /No, yo rescato/i }).count())) {
+if (!(await page.getByRole('button', { name: 'Rescate', exact: true }).count())) {
   problems.push('falta la segunda puerta: quien rescata y no tiene animal propio');
 }
 
@@ -194,7 +194,7 @@ const chip = async (label) => {
   await page.waitForTimeout(150);
 };
 
-await page.getByRole('button', { name: /Sí, vengo con mi perro/i }).first().click();
+await page.getByRole('button', { name: 'Tutor', exact: true }).first().click();
 await page.waitForTimeout(600);
 
 /* El botón no se enciende con el paso a medias. Es la promesa que sustituye a
@@ -948,7 +948,7 @@ if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada')
   };
 
   await step('Comenzar ahora');
-  await step('No, yo rescato');
+  await step('Rescate');
   await shelter.getByLabel('Correo', { exact: true }).fill('patitas@protectora.org');
   await shelter.getByLabel('Contraseña', { exact: true }).fill('el perro come pasto');
   await step('Siguiente');
