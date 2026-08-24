@@ -215,6 +215,15 @@ export function registerPet(
     /** Los acomodos de la persona, que se guardan en la cuenta y no en el perro. */
     handler?: Handler;
     /**
+     * La semilla del retrato, que pasa a ser su identificador.
+     *
+     * El dibujo del animal sale de su identificador, así que durante el alta se
+     * dibuja con lo contestado hasta ese momento. Si al registrar se generara
+     * un identificador nuevo, el perro cambiaría de cara al entrar — que es
+     * justo lo que no puede pasar después de haberlo estado mirando.
+     */
+    seed?: string;
+    /**
      * Lo que trae de serie y cambia lo que puede hacer hoy.
      *
      * Sale del catálogo de razas y no de un formulario médico: el hocico chato
@@ -228,7 +237,7 @@ export function registerPet(
   },
 ): void {
   const pet: DemoPet = {
-    id: `mine-${Date.now()}`,
+    id: draft.seed ?? `mine-${Date.now()}`,
     name: draft.name.trim(),
     ownerName: 'Tú',
     ownerId: 'me',

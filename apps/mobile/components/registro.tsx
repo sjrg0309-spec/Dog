@@ -44,8 +44,8 @@
  * nunca de los cálculos de dónde quedar.
  */
 
-import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Easing, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import {
   ASSISTANCE_ACCESS_NOTE,
@@ -82,6 +82,7 @@ import { formatMicrochip, validateMicrochip } from '@coincide/trackers';
 
 import { Icon } from './icon';
 import { Appear } from './motion';
+import { LiveCard, LiveMatches, LiveSchedule, portraitSeed } from './registro-live';
 import { Body, Caption, Screen } from '@/components/ui';
 import { registerPet, registerShelter } from '@/lib/account';
 import { fonts } from '@/lib/fonts';
@@ -97,6 +98,7 @@ import {
   Siren,
   X,
 } from '@/lib/icons';
+import { useReducedMotion } from '@/lib/motion';
 import { useTheme } from '@/lib/theme';
 
 const SIZES = [
@@ -198,6 +200,15 @@ type Step = {
   hint?: string;
   /** Efecto al salir del paso, como rellenar lo que la raza ya dice. */
   onLeave?: () => void;
+  /**
+   * Lo que aparece **debajo** del control: la aplicación funcionando con lo
+   * contestado hasta ahora.
+   *
+   * No es decoración y no es una maqueta: sale del núcleo —`calculateAffinity`,
+   * `scheduleOverlap`— con los perros del barrio. Un registro se abandona
+   * porque das y no recibes; esto es lo que devuelve cada respuesta.
+   */
+  live?: ReactNode;
   /** El último no dice «Siguiente». */
   cta?: string;
 };
@@ -352,6 +363,25 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
   const chipCheck = chip.trim() === '' ? null : validateMicrochip(chip);
   const complete = missingSteps(draft).length === 0;
 
+  /* Lo contestado, escrito para leerse. Va en la ficha de arriba y crece con
+     cada paso: es lo que convierte ocho preguntas en algo que devuelve. */
+  const facts = [
+    breeds.length > 0 ? describeBreeds(breeds) : null,
+    draft.ageMonths !== null ? ageLabel(draft.ageMonths) : null,
+    SIZES.find((option) => option.id === size)?.label ?? null,
+    ENERGY.find((option) => option.id === energy)?.label ?? null,
+    play.length > 0 ? play.map((id) => PLAY.find((option) => option.id === id)?.label).join(', ') : null,
+  ].filter((fact): fact is string => fact !== null);
+
+  const livePet = {
+    size,
+    energy,
+    playStyles: play,
+    ageMonths: draft.ageMonths,
+    sex,
+    trust,
+  };
+
   /**
    * Salir del paso de la raza: rellenar lo que ya se sabe.
    *
@@ -468,6 +498,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       why: 'Es el peso más grande de la afinidad: un perro de sofá con un velocista es la causa número uno de un mal encuentro.',
       ready: energy !== null,
       hint: energyFromBreed ? 'Puesto por la raza. Cámbialo si no encaja.' : undefined,
+      live: <LiveMatches draft={livePet} />,
       content: (
         <Chips
           options={ENERGY}
@@ -485,6 +516,7 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       title: 'Cómo juega',
       why: 'Marca todas las que valgan. A dos perros les basta una forma compartida de jugar, así que cuantas más pongas, más fácil es encontrarle a alguien.',
       ready: play.length > 0,
+      live: <LiveMatches draft={livePet} />,
       content: (
         <Chips
           options={PLAY}
@@ -621,6 +653,10 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       why: 'Esto no ordena la lista: veta. «De su tamaño» quita de en medio a los que le sacan dos escalones, y «cachorros no» impide que le propongan un cachorro que no para.',
       ready: trust.length > 0,
       skippable: true,
+      /* Aquí la vista previa hace algo que no hace en los otros pasos: al
+         marcar «de su tamaño» alguien **desaparece** de la lista. Un veto se
+         entiende viendo a quién quita, no leyendo la palabra «veto». */
+      live: <LiveMatches draft={livePet} />,
       content: (
         <Chips
           options={TRUST}
@@ -638,6 +674,13 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       title: 'Cuándo salís',
       why: 'Es la mitad de la aplicación: cruzar horarios es lo que hace que sirva a las once de la noche, cuando no hay nadie conectado. Tu horario exacto no se publica; solo se dice con quién coincides.',
       ready: days.length > 0 && slot !== null,
+      live: (
+        <LiveSchedule
+          days={days}
+          startTime={chosenSlot?.start ?? null}
+          endTime={chosenSlot?.end ?? null}
+        />
+      ),
       content: (
         <View style={{ gap: theme.space[4] }}>
           <Chips
@@ -868,6 +911,11 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
       steps={steps.length}
       index={index}
       step={step}
+      card={
+        index > 0 ? (
+          <LiveCard name={name} breeds={breeds} size={size} facts={facts} />
+        ) : undefined
+      }
       onBack={() => (index === 0 ? onBack() : setIndex(index - 1))}
       onNext={() => {
         step.onLeave?.();
@@ -879,6 +927,10 @@ function AltaTutor({ onBack }: { onBack: () => void }) {
         haptics.commit();
         registerPet({
           ...draft,
+          /* El mismo identificador con el que se dibujó el retrato durante el
+             alta: así el perro que sale al entrar es el que estabas mirando y
+             no otro que aparece de golpe. */
+          seed: portraitSeed({ name, breeds, size }),
           sex,
           days,
           startTime: chosenSlot.start,
@@ -1382,6 +1434,7 @@ function Wizard({
   index,
   step,
   intro,
+  card,
   onBack,
   onNext,
   onSkip,
@@ -1390,6 +1443,8 @@ function Wizard({
   index: number;
   step: Step;
   intro?: string;
+  /** La ficha que se va rellenando. Fija arriba, fuera del desplazamiento. */
+  card?: ReactNode;
   onBack: () => void;
   onNext: () => void;
   onSkip: () => void;
@@ -1436,22 +1491,19 @@ function Wizard({
             overflow: 'hidden',
           }}
         >
-          <View
-            style={{
-              width: `${((index + 1) / steps) * 100}%`,
-              height: 3,
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.colors.primary,
-            }}
-          />
+          <Progress value={(index + 1) / steps} />
         </View>
       </View>
+
+      {card ? (
+        <View style={{ paddingHorizontal: theme.space[6], paddingTop: theme.space[4] }}>{card}</View>
+      ) : null}
 
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           padding: theme.space[6],
-          paddingTop: theme.space[5],
+          paddingTop: theme.space[4],
           gap: theme.space[5],
         }}
       >
@@ -1498,6 +1550,19 @@ function Wizard({
               </View>
             ) : null}
             <View style={{ paddingTop: theme.space[2] }}>{step.content}</View>
+            {step.live ? (
+              <View
+                style={{
+                  gap: theme.space[2],
+                  marginTop: theme.space[4],
+                  paddingTop: theme.space[4],
+                  borderTopWidth: 1,
+                  borderTopColor: theme.colors.border,
+                }}
+              >
+                {step.live}
+              </View>
+            ) : null}
           </View>
         </Appear>
       </ScrollView>
@@ -1547,6 +1612,51 @@ function Wizard({
         ) : null}
       </View>
     </Screen>
+  );
+}
+
+/**
+ * La barra de progreso, que **se desliza** al pasar de paso.
+ *
+ * Un salto no dice de dónde a dónde ha ido; el recorrido sí, y es la única
+ * respuesta que da la pantalla a haber contestado. Trescientos milisegundos:
+ * lo justo para verlo sin que estorbe al que va rápido.
+ *
+ * Con movimiento reducido salta, que es lo correcto: el estado final es el
+ * mismo y no se pierde nada.
+ */
+function Progress({ value }: { value: number }) {
+  const theme = useTheme();
+  const reduced = useReducedMotion();
+  const progress = useRef(new Animated.Value(value)).current;
+
+  useEffect(() => {
+    if (reduced) {
+      progress.setValue(value);
+      return;
+    }
+    const animation = Animated.timing(progress, {
+      toValue: value,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      /* Se anima el ancho, que no puede ir por el hilo nativo. Es una barra de
+         tres píxeles y no se nota; usar `scaleX` sí se notaría, porque
+         escalaría también el redondeo de las puntas. */
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [progress, reduced, value]);
+
+  return (
+    <Animated.View
+      style={{
+        width: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+        height: 3,
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.primary,
+      }}
+    />
   );
 }
 

@@ -241,6 +241,25 @@ await next('Omitir');
 
 for (const day of ['L', 'X', 'V']) await chip(day);
 await chip('Mañana');
+await page.waitForTimeout(400);
+
+/*
+ * Lo que el alta devuelve mientras se rellena.
+ *
+ * Al elegir días y franja se calcula, con `scheduleOverlap` y contra los perros
+ * del barrio, con quién coincidirías. Es la mitad del producto enseñada antes de
+ * registrarse, y es lo primero que se cae si alguien toca esta pantalla sin
+ * mirar de dónde salían los números: quedaría una lista de nombres inventada o
+ * una sección vacía, y las dos se ven igual de bien en una captura.
+ */
+const preview = (await page.locator('#root').innerText()).trim();
+if (!/coincides con \d+ perros? del barrio|no coincides con nadie/i.test(preview)) {
+  problems.push('el paso del horario no enseña con quién coincidirías');
+}
+if (!/Coincidís/.test(preview)) {
+  problems.push('la vista previa del horario no dice cuántos días ni a qué hora');
+}
+
 await next();
 /* El chip es opcional y el paso lo dice con «Omitir». Se omite a propósito: así
    la auditoría entra con una cuenta recién hecha, que es el estado en el que
