@@ -29,6 +29,7 @@ import { BlurView } from 'expo-blur';
 import { type ReactNode } from 'react';
 import { Platform, View, type ViewStyle } from 'react-native';
 
+import { useReduceTransparency } from '@/lib/a11y';
 import { useTheme } from '@/lib/theme';
 
 /** Con cuánta opacidad se tapa lo de debajo. Menos que esto y el texto sufre. */
@@ -71,6 +72,33 @@ export function Glass({
   const theme = useTheme();
   const base = tone === 'ink' ? theme.colors.foreground : theme.colors.surface;
   const tint = tone === 'scrim' ? 'transparent' : withAlpha(base, TINT_ALPHA);
+
+  /*
+   * Con «reducir transparencia» puesta, esto deja de ser cristal.
+   *
+   * No es un capricho de contraste: quien activa esa preferencia lo hace porque
+   * el contenido moviéndose por debajo de un panel translúcido le dificulta
+   * leer o le marea. Una barra de pestañas de cristal es exactamente el caso.
+   * Se devuelve una superficie **opaca** —no un desenfoque más fuerte—, porque
+   * lo que sobra es la transparencia, no la nitidez.
+   *
+   * El velo de una hoja se queda como está: ahí lo translúcido es el fondo
+   * oscurecido, y taparlo del todo escondería la pantalla de debajo en vez de
+   * aclararla.
+   */
+  const opaque = useReduceTransparency();
+  if (opaque && tone !== 'scrim') {
+    return (
+      <View
+        style={[
+          { backgroundColor: tone === 'ink' ? theme.colors.foreground : theme.colors.surface },
+          style,
+        ]}
+      >
+        {children}
+      </View>
+    );
+  }
 
   /*
    * En web el desenfoque lo hace el navegador con `backdrop-filter`, que Safari

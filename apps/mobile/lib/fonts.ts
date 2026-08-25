@@ -72,9 +72,28 @@ export const FONT_MAP = {
  * fuentes por archivo: hay que nombrar la variante concreta. Por eso se exponen
  * así, en lugar de dejar que cada pantalla adivine.
  */
+/*
+ * «Texto en negrita» del sistema, en una variable de módulo.
+ *
+ * No puede ser un hook porque `fonts` no es un componente: lo lee cualquier
+ * hoja de estilos de la aplicación. Lo pone `app/_layout.tsx`, que sí es un
+ * componente y sí puede suscribirse, y como el repintado ya lo provoca ese
+ * mismo cambio de estado, para cuando alguien vuelve a leer `fonts.body` aquí
+ * ya está el valor nuevo.
+ */
+let bold = false;
+
+export function setBoldText(on: boolean): void {
+  bold = on;
+}
+
 export const fonts: FontSet = {
   get body() {
-    return DIRECTIONS[readDirection()].fonts.body;
+    /* La preferencia de la plataforma, cumplida a mano.
+       Una tipografía del sistema engorda sola con este ajuste; una cargada por
+       fichero se queda como está, así que aquí el cuerpo pasa a su negrita. */
+    const set = DIRECTIONS[readDirection()].fonts;
+    return bold ? set.bodyBold : set.body;
   },
   get bodyBold() {
     return DIRECTIONS[readDirection()].fonts.bodyBold;

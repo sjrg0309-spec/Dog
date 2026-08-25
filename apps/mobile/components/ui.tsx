@@ -16,6 +16,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { Icon } from './icon';
 import { Press } from './motion';
 import { fonts } from '@/lib/fonts';
@@ -23,10 +25,56 @@ import { haptics } from '@/lib/haptics';
 import type { LucideIcon } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
-export function Screen({ children }: { children: ReactNode }) {
+/**
+ * El marco de una pantalla, con las zonas seguras puestas.
+ *
+ * Esto era un `View` con `flex: 1` y nada más, y era el fallo de adaptación más
+ * gordo que tenía la aplicación: en un teléfono con muesca o isla dinámica el
+ * contenido **nacía debajo del reloj**. En el navegador no se veía —no hay
+ * barra de estado que esquivar—, así que todas las capturas salían bien y el
+ * problema solo aparecía en el aparato de verdad.
+ *
+ * Qué lados y por qué cada uno:
+ *
+ *  - **Arriba, siempre.** Es la barra de estado, la muesca y la isla dinámica.
+ *  - **Los costados, siempre.** En horizontal la muesca se pone de lado y se
+ *    come una franja entera; en vertical estos valores son cero y no estorban.
+ *  - **Abajo, solo si se pide.** Las pantallas con barra de pestañas no lo
+ *    quieren: la barra ya reserva el indicador de inicio por su cuenta, y
+ *    sumarlo dos veces deja un hueco muerto de treinta y cuatro puntos. Las que
+ *    van sin barra —una hoja, un chat— lo piden con `bottom`.
+ *
+ * `full` es para lo que de verdad ocupa la pantalla entera y pinta por debajo
+ * de todo: el visor de estados y los reels. Ahí el contenido es la imagen, y
+ * apartarla de los bordes sería enmarcar un vídeo a pantalla completa.
+ */
+export function Screen({
+  children,
+  bottom = false,
+  full = false,
+}: {
+  children: ReactNode;
+  /** Reservar también el indicador de inicio. Para pantallas sin barra. */
+  bottom?: boolean;
+  /** A pantalla completa, sin apartar nada. Para el visor y los reels. */
+  full?: boolean;
+}) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>{children}</View>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        paddingTop: full ? 0 : insets.top,
+        paddingLeft: full ? 0 : insets.left,
+        paddingRight: full ? 0 : insets.right,
+        paddingBottom: bottom && !full ? insets.bottom : 0,
+      }}
+    >
+      {children}
+    </View>
   );
 }
 

@@ -30,7 +30,7 @@
 
 import { type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { PixelRatio, Pressable, Text, View } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -49,6 +49,24 @@ import { useTheme } from '@/lib/theme';
 /** Alto de la barra sin el área segura, entera y condensada. */
 const FULL = 72;
 const TIGHT = 52;
+
+/**
+ * Cuánto crece la barra con el tamaño de letra del sistema.
+ *
+ * La guía es explícita en las dos mitades de esto: hay que **admitir texto
+ * escalable**, y a la vez «cuando alguien sube el tamaño de letra no espera que
+ * los títulos de las pestañas crezcan» —lo que quiere leer más grande es el
+ * contenido, no el cromo—. Con altura fija y el rótulo escalando, la palabra se
+ * recortaba por abajo; con la altura escalando entera, cinco pestañas se comían
+ * un tercio de la pantalla.
+ *
+ * El acuerdo: el rótulo crece hasta un 20 % y la barra le hace sitio, y de ahí
+ * no pasa ninguno de los dos. El contenido de las pantallas sigue escalando sin
+ * tope, que es lo que de verdad importa.
+ */
+const LABEL_CAP = 1.2;
+const barHeight = (base: number): number =>
+  Math.round(base + 14 * (Math.min(PixelRatio.getFontScale(), LABEL_CAP) - 1));
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const theme = useTheme();
@@ -78,7 +96,13 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const [width, setWidth] = useState(0);
   const slot = routes.length > 0 ? width / routes.length : 0;
 
-  const height = useDerivedValue(() => interpolate(chromeCondensed.value, [0, 1], [FULL, TIGHT]));
+  /* Se leen en el render y no dentro del worklet: `PixelRatio` no existe en el
+     hilo de la interfaz, y el tamaño de letra del sistema no cambia mientras se
+     desplaza el dedo —cambia en Ajustes, y al volver la barra ya está pintada
+     con el alto nuevo—. */
+  const full = barHeight(FULL);
+  const tight = barHeight(TIGHT);
+  const height = useDerivedValue(() => interpolate(chromeCondensed.value, [0, 1], [full, tight]));
 
   const barStyle = useAnimatedStyle(() => ({
     height: height.value + insets.bottom,
@@ -194,9 +218,10 @@ function TabButton({
   /* El rótulo se desvanece y **encoge de alto** al condensar. Solo con la
      opacidad, el hueco de la palabra seguía ocupando sitio y la barra no
      bajaba: se veían cinco iconos flotando en el mismo espacio de antes. */
+  const line = Math.round(14 * Math.min(PixelRatio.getFontScale(), LABEL_CAP));
   const labelStyle = useAnimatedStyle(() => ({
     opacity: interpolate(chromeCondensed.value, [0, 0.6], [1, 0]),
-    height: interpolate(chromeCondensed.value, [0, 1], [14, 0]),
+    height: interpolate(chromeCondensed.value, [0, 1], [line, 0]),
   }));
 
   return (
@@ -235,6 +260,11 @@ function TabButton({
             }}
           >
             <Text
+              /* El aviso vive en un círculo de dieciocho puntos. Si el número
+                 escalara, se saldría del círculo; y lo que hay que leer no es
+                 el dígito sino que hay algo, cosa que dice el punto rojo. El
+                 nombre accesible de la pestaña sí lo dice con palabras. */
+              maxFontSizeMultiplier={1}
               style={{
                 color: theme.colors.destructiveForeground,
                 fontFamily: fonts.bodyBold,
@@ -250,6 +280,7 @@ function TabButton({
       <Animated.View style={labelStyle}>
         <Text
           numberOfLines={1}
+          maxFontSizeMultiplier={LABEL_CAP}
           style={{
             color: focused ? theme.colors.primary : theme.colors.mutedForeground,
             fontFamily: focused ? fonts.bodyBold : fonts.body,
@@ -263,5 +294,10 @@ function TabButton({
   );
 }
 
-/** Se exporta el alto máximo para que las pantallas reserven sitio debajo. */
-export const TAB_BAR_HEIGHT = FULL;
+/**
+ * Se exporta el alto máximo para que las pantallas reserven sitio debajo.
+ *
+ * Se calcula con el tamaño de letra puesto, no con la constante: si la barra
+ * crece y esto no, el último elemento de cada lista queda debajo de ella.
+ */
+export const TAB_BAR_HEIGHT = barHeight(FULL);

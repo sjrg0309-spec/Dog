@@ -1,16 +1,17 @@
 import { useFonts } from 'expo-font';
-import { useEffect } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 
 import { useWeatherBootstrap } from '@/lib/conditions';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext, SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Registro } from '@/components/registro';
+import { useBoldText } from '@/lib/a11y';
 import { useAccount } from '@/lib/account';
-import { FONT_MAP } from '@/lib/fonts';
+import { FONT_MAP, setBoldText } from '@/lib/fonts';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -46,7 +47,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <RootStack />
+        <ZonaSeguraSimulada>
+          <RootStack />
+        </ZonaSeguraSimulada>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -61,6 +64,7 @@ function RootStack() {
   useWeatherBootstrap();
   const { registered } = useAccount();
   usePageGround(theme.colors.background);
+  useSystemBoldText();
 
   // Se espera a las fuentes antes de pintar. Sin esto, la primera pasada sale
   // con la fuente del sistema y salta a la definitiva, y el salto de métricas se
@@ -144,4 +148,59 @@ function usePageGround(color: string): void {
     root.style.backgroundColor = color;
     body.style.backgroundColor = color;
   }, [color]);
+}
+
+/**
+ * «Texto en negrita» del sistema, aplicado a una tipografía que no lo trae.
+ *
+ * Las tipografías del sistema engordan solas con ese ajuste. Las que se cargan
+ * por fichero —las tres direcciones de esta aplicación— se quedan en el peso
+ * que pidió el programador, y la preferencia no hace absolutamente nada. La
+ * guía pide que una tipografía propia implemente los mismos comportamientos,
+ * así que aquí el cuerpo pasa a su variante negrita.
+ *
+ * El valor se deja en una variable de módulo de `lib/fonts` en vez de en el
+ * tema porque `fonts.body` lo lee cualquier hoja de estilos de la aplicación,
+ * no solo un componente. El repintado lo provoca este mismo `useState`: cuando
+ * cambia, todo se vuelve a renderizar y para entonces `fonts.body` ya devuelve
+ * la negrita.
+ */
+function useSystemBoldText(): void {
+  const bold = useBoldText();
+  setBoldText(bold);
+}
+
+/**
+ * Una muesca de mentira, para poder mirar lo que en un navegador no existe.
+ *
+ * Las zonas seguras son la parte de la adaptación al teléfono que **no se puede
+ * comprobar desde aquí**: un navegador de escritorio no tiene isla dinámica ni
+ * indicador de inicio, así que `env(safe-area-inset-*)` vale cero y la
+ * aplicación se ve igual con el marco bien puesto que con el marco olvidado.
+ * Que se vea igual es justamente lo que hizo que el fallo durara semanas.
+ *
+ * Con `?zonasegura=59` en la dirección, esto fuerza los márgenes de un iPhone
+ * con isla dinámica —59 arriba, 34 abajo— y entonces sí se ve, y se puede
+ * medir: la auditoría abre la página dos veces y compara dónde empieza la
+ * cabecera.
+ *
+ * Sale de en medio en cuanto no se pide, y **solo existe en web**. En el
+ * teléfono los márgenes de verdad los da el sistema y esto no se monta.
+ */
+function ZonaSeguraSimulada({ children }: { children: ReactNode }) {
+  const forced = useMemo(() => {
+    if (Platform.OS !== 'web') return null;
+    const raw = new URLSearchParams(window.location.search).get('zonasegura');
+    if (raw === null) return null;
+    const top = Number(raw);
+    if (!Number.isFinite(top) || top < 0) return null;
+    /* Los de un iPhone con isla dinámica, que es el caso peor y el más común:
+       arriba lo que se pida, abajo el indicador de inicio. */
+    return { top, bottom: 34, left: 0, right: 0 };
+  }, []);
+
+  if (!forced) return <>{children}</>;
+  return (
+    <SafeAreaInsetsContext.Provider value={forced}>{children}</SafeAreaInsetsContext.Provider>
+  );
 }

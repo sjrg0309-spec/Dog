@@ -16,7 +16,7 @@
 
 import { useRouter } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { PixelRatio, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -30,7 +30,20 @@ import { ArrowLeft } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 
 /** Alto de la barra, sin contar el área segura. 44 es el suelo táctil. */
-export const NAV_BAR_HEIGHT = 48;
+/**
+ * Alto de la barra de navegación, con el tamaño de letra del sistema puesto.
+ *
+ * Era una constante de 48, y con el texto del teléfono a tamaño grande el
+ * rótulo se recortaba por arriba y por abajo. La guía pide admitir texto
+ * escalable **y** priorizar el contenido sobre el cromo, así que el rótulo
+ * crece hasta un 30 % y la barra le hace sitio; el contenido de las pantallas
+ * sigue escalando sin tope.
+ */
+const NAV_TITLE_CAP = 1.3;
+
+export const NAV_BAR_HEIGHT = Math.round(
+  48 + 20 * (Math.min(PixelRatio.getFontScale(), NAV_TITLE_CAP) - 1),
+);
 
 export function NavBar({
   title,
@@ -134,6 +147,7 @@ export function NavBar({
           <Animated.Text
             accessibilityRole="header"
             numberOfLines={1}
+            maxFontSizeMultiplier={NAV_TITLE_CAP}
             style={[
               {
                 color: theme.colors.foreground,

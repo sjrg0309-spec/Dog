@@ -1312,6 +1312,62 @@ if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada')
   await shelter.close();
 }
 
+/*
+ * La adaptación al teléfono: la muesca, medida.
+ *
+ * Es la comprobación que faltaba y la que explica por qué el fallo duró tanto.
+ * En un navegador no hay isla dinámica ni indicador de inicio, así que
+ * `env(safe-area-inset-*)` vale cero: una aplicación que respeta las zonas
+ * seguras y otra que se las salta **se ven exactamente igual aquí**, y todas
+ * las capturas salían bien con el marco olvidado.
+ *
+ * Así que se simulan. La página admite `?zonasegura=59` —los márgenes de un
+ * iPhone con isla dinámica— y se abre dos veces: sin muesca y con ella. Lo que
+ * se mide es dónde empieza la cabecera. Si el marco no aplicara las zonas
+ * seguras, las dos medidas serían la misma.
+ */
+{
+  const notch = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+
+  /* Se mide el hueco reservado y no dónde cae un rótulo: la primera pantalla es
+     el alta —sin animal no se entra— y ahí no hay cabecera que buscar. Lo que
+     tiene que existir con muesca y no existir sin ella es un contenedor que
+     reserve exactamente esos puntos arriba. */
+  const reserved = async (url) => {
+    await notch.goto(url, { waitUntil: 'load' });
+    await notch.waitForSelector('#root > *', { timeout: 30_000 });
+    await notch.waitForTimeout(1400);
+    return notch.evaluate(() => {
+      const tops = new Set();
+      for (const element of document.querySelectorAll('#root *')) {
+        const top = getComputedStyle(element).paddingTop;
+        if (top && top !== '0px') tops.add(top);
+      }
+      return [...tops];
+    });
+  };
+
+  const plain = await reserved(FILE);
+  const withNotch = await reserved(`${FILE}?zonasegura=59`);
+
+  console.log(`zona segura sin muesca: ${plain.includes('59px') ? 'reservada' : 'no'} · con muesca: ${withNotch.includes('59px') ? 'reservada' : 'no'}`);
+
+  if (plain.includes('59px')) {
+    problems.push('se reservan 59 puntos arriba sin que haya muesca ninguna');
+  }
+  if (!withNotch.includes('59px')) {
+    problems.push(
+      `la pantalla no aparta la isla dinámica: ningún contenedor reserva 59 puntos (hay ${withNotch.join(', ') || 'ninguno'})`,
+    );
+  }
+
+  await notch.close();
+}
+
 await browser.close();
 server.close();
 

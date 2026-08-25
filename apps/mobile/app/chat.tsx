@@ -90,7 +90,7 @@ export default function ChatScreen() {
 
   if (!thread) {
     return (
-      <Screen>
+      <Screen bottom>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.space[3] }}>
           <Text
             style={{
@@ -129,7 +129,7 @@ export default function ChatScreen() {
 
   return (
     <Screen>
-      <ChatHeader thread={thread} onBack={() => router.back()} topInset={insets.top} />
+      <ChatHeader thread={thread} onBack={() => router.back()} topInset={0} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -250,7 +250,7 @@ export default function ChatScreen() {
             gap: theme.space[2],
             paddingHorizontal: theme.space[2],
             paddingTop: theme.space[2],
-            paddingBottom: theme.space[2] + insets.bottom,
+            paddingBottom: theme.space[2],
             backgroundColor: theme.colors.surfaceSunken,
           }}
         >

@@ -412,8 +412,12 @@ export default function ExploreScreen() {
     setCanvas({ width, height });
   };
 
+  /* `full`: en una pantalla de mapa la zona segura no se aparta, se cruza. El
+     mapa llega hasta el borde —es lo que hace que parezca un mapa y no una foto
+     de uno— y los controles flotantes se apartan ellos solos con `insets.top`,
+     que es lo que ya venían haciendo aquí abajo. */
   return (
-    <Screen>
+    <Screen full>
       {/* Sin barra encima. El mapa arranca en el borde de arriba y los controles
           flotan sobre él, esquivando el área segura: es lo que hacen Google Maps
           y Waze, y es lo que se pierde en cuanto se le pone una cabecera. Los

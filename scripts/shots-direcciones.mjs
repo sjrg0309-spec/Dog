@@ -45,7 +45,10 @@ for (const scheme of ['light', 'dark']) {
     route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.alloc(0) }),
   );
 
-  await page.goto(URL_, { waitUntil: 'load' });
+  /* Con la muesca simulada: en un navegador `env(safe-area-inset-*)` vale cero,
+     así que sin esto la captura no enseña lo único que hay que mirar aquí —que
+     la cabecera esquiva la isla dinámica y la barra el indicador de inicio—. */
+  await page.goto(`${URL_}?zonasegura=59`, { waitUntil: 'load' });
   await page.waitForSelector('#root > *', { timeout: 30_000 });
   await page.waitForTimeout(1200);
 
