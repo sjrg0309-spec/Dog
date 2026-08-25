@@ -40,7 +40,7 @@ import { useRouter } from 'expo-router';
 
 import { Avatar } from './avatar';
 import { Icon } from './icon';
-import { Pop } from './motion';
+import { Counter, Pop, enter, exit, reflow } from './motion';
 import { Drawer } from './drawer';
 import { PawTrail } from './paw-trail';
 import { SceneView } from './scene';
@@ -426,16 +426,14 @@ export function PostCard({
                   perfectamente— y por eso llevaba aquí desde el principio; lo
                   descubrió una aserción nueva de la paleta. Lo que dice que la
                   reacción es tuya sigue siendo el icono: relleno y en color. */}
-              <Text
+              <Counter
+                value={count}
+                size={theme.fontSize.sm}
                 style={{
                   color: theme.colors.foreground,
                   fontFamily: mine ? fonts.bodyBold : fonts.body,
-                  fontSize: theme.fontSize.sm,
-                  fontVariant: ['tabular-nums'],
                 }}
-              >
-                {count}
-              </Text>
+              />
             </Pressable>
           );
         })}

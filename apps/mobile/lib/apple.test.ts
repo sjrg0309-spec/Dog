@@ -131,3 +131,37 @@ describe('preferencias del sistema', () => {
     expect(read('lib/motion.ts')).toContain('reduceMotionChanged');
   });
 });
+
+describe('la dinámica', () => {
+  const motion = read('components/motion.tsx');
+
+  it('lo que se recoloca se ve recolocarse', () => {
+    /* Cero transiciones de disposición en cuarenta y tres pantallas era lo que
+       hacía que la aplicación se sintiera barata al tocarla: las tarjetas se
+       teletransportaban a su sitio nuevo. */
+    expect(motion).toContain('LinearTransition');
+    expect(motion).toContain('export const reflow');
+    /* Y va donde de verdad llega: `Appear` envuelve a casi todo lo que vive en
+       una lista. */
+    expect(motion).toContain('layout={reduced ? undefined : reflow}');
+  });
+
+  it('los contadores ruedan, y en la dirección del cambio', () => {
+    expect(motion).toContain('export function Counter');
+    expect(motion).toContain('direction.current = value > shown ? 1 : -1');
+    expect(read('components/post-card.tsx')).toContain('<Counter');
+  });
+
+  it('el número que se va no lo anuncia el lector de pantalla', () => {
+    /* Dos números apilados son un truco de dibujo, no dos valores: anunciarlos
+       los dos diría «6 7» en voz alta. */
+    expect(motion).toContain('accessibilityElementsHidden');
+  });
+
+  it('todo lo nuevo respeta movimiento reducido', () => {
+    const counter = /export function Counter\([\s\S]*?\n}\n/.exec(motion)?.[0] ?? '';
+    expect(counter).not.toBe('');
+    expect(counter).toContain('useReducedMotion');
+    expect(counter).toContain('if (reduced)');
+  });
+});

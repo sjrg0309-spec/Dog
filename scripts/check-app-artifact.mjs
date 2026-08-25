@@ -481,6 +481,56 @@ for (const tab of TABS) {
         problems.push('el feed no cambió al bloquear a alguien');
       }
       console.log(`bloqueo: ${label.slice(0, 40)} · feed ${before.length} → ${after.length}`);
+
+/*
+ * El contador rueda, y se comprueba a media animación.
+ *
+ * Es la parte de «cómo se siente» que sí se puede medir. Un contador que
+ * cambia por sustitución y otro que rueda **acaban en el mismo número**, así
+ * que mirar el resultado no distingue uno de otro: los dos ponen 3 donde ponía
+ * 2. Lo que los distingue es el medio segundo de en medio, y ahí el que rueda
+ * tiene los dos números a la vez dentro de una caja recortada, uno saliendo y
+ * otro entrando.
+ *
+ * Así que se pulsa, se espera 120 ms —dentro del muelle, no después— y se
+ * busca esa caja. Si no hay dos números apilados, el número no está rodando.
+ */
+{
+  const reaction = page.getByRole('button', { name: /\d+ en total$/ }).first();
+  if (!(await reaction.count())) {
+    problems.push('el feed no ofrece ninguna reacción con contador');
+  } else {
+    const beforeLabel = (await reaction.getAttribute('aria-label')) ?? '';
+    await reaction.click();
+    await page.waitForTimeout(120);
+
+    const rolling = await page.evaluate(() => {
+      const found = [];
+      for (const element of document.querySelectorAll('#root *')) {
+        if (getComputedStyle(element).overflow !== 'hidden') continue;
+        if (element.children.length !== 2) continue;
+        const numbers = [...element.children].map((child) => child.textContent.trim());
+        if (numbers.every((text) => /^\d+$/.test(text))) found.push(numbers.join('→'));
+      }
+      return found;
+    });
+
+    await page.waitForTimeout(700);
+    const afterLabel = (await reaction.getAttribute('aria-label')) ?? '';
+    console.log(`contador: ${rolling.join(', ') || 'no rueda'} · ${beforeLabel} → ${afterLabel}`);
+
+    if (rolling.length === 0) {
+      problems.push('el contador de reacciones cambia de golpe en vez de rodar');
+    }
+    if (beforeLabel === afterLabel) {
+      problems.push('reaccionar no cambió el contador');
+    }
+
+    /* Y se deja como estaba: lo que venga después cuenta reacciones. */
+    await reaction.click();
+    await page.waitForTimeout(500);
+  }
+}
     }
   }
 }

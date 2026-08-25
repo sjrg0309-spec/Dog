@@ -33,11 +33,15 @@
  * la animación deja el mismo estado final, no un estado peor.
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
-import { type ViewStyle } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { type TextStyle, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
+  FadeInDown,
+  FadeOutUp,
+  LinearTransition,
   cancelAnimation,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -104,7 +108,21 @@ export function Appear({
     transform: [{ translateY: (1 - progress.value) * distance }],
   }));
 
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+  /*
+   * Y además se recoloca.
+   *
+   * `Appear` envuelve a casi todo lo que vive en una lista —publicaciones,
+   * avisos, quedadas, mensajes—, así que es el sitio donde una transición de
+   * disposición llega más lejos con menos: al filtrar, al guardar o al
+   * apuntarse, lo que queda **se desliza** a su posición nueva en vez de
+   * aparecer ya colocado. Con movimiento reducido no se pone, porque un
+   * elemento deslizándose es exactamente lo que esa preferencia pide evitar.
+   */
+  return (
+    <Animated.View layout={reduced ? undefined : reflow} style={[style, animated]}>
+      {children}
+    </Animated.View>
+  );
 }
 
 /**
@@ -279,4 +297,117 @@ export function Pulse({
   if (!active) return <Animated.View style={style}>{children}</Animated.View>;
 
   return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+}
+
+/* ------------------------------------------------------- lo que se recoloca */
+
+/**
+ * Cuando una lista cambia, se recoloca; no salta.
+ *
+ * Es la diferencia de calidad más barata que existe y la que le faltaba a esta
+ * aplicación entera: **cero** transiciones de disposición en cuarenta y tres
+ * pantallas. Al guardar un aviso, al apuntarse a una búsqueda, al filtrar el
+ * feed por distancia, las tarjetas de debajo se teletransportaban a su sitio
+ * nuevo. Nadie sabe decir qué pasó porque no pasó nada visible: el contenido
+ * simplemente **es otro** de un fotograma al siguiente, y el ojo lo lee como un
+ * fallo de dibujo, no como una consecuencia de lo que acaba de tocar.
+ *
+ * Con esto, lo que se mueve se ve moverse, así que se entiende de dónde viene.
+ *
+ * Se usa como propiedad —`layout={reflow}`— y no como envoltorio, porque la
+ * transición la tiene que declarar **el elemento que se mueve**; un `View` de
+ * más alrededor no se recoloca, se recoloca su hijo.
+ */
+export const reflow = LinearTransition.springify().damping(24).stiffness(220).mass(0.8);
+
+/** Entrar cayendo un poco, con muelle. Para lo que aparece en una lista. */
+export const enter = FadeInDown.springify().damping(22).stiffness(240).mass(0.7);
+
+/** Y salir hacia arriba, más rápido: lo que se va no merece que se le espere. */
+export const exit = FadeOutUp.duration(180);
+
+/* ------------------------------------------------------ números que ruedan */
+
+/**
+ * Un número que cambia rodando, no parpadeando.
+ *
+ * Los contadores de esta aplicación —reacciones, comentarios, cuánta gente
+ * busca— cambiaban por sustitución: donde ponía 6 ponía 7 en el mismo
+ * fotograma. Y eso, en la única parte de la interfaz que responde a lo que
+ * acabas de tocar, es exactamente donde se nota que una aplicación es barata:
+ * no hay forma de saber si el número subió porque lo tocaste tú o porque se
+ * recargó la lista.
+ *
+ * Rodando sí: el dígito viejo se va por donde el nuevo entra, y **la dirección
+ * dice el signo**. Sube si sumaste, baja si quitaste.
+ *
+ * Lo que no hace: contar de uno en uno hasta el valor nuevo. Eso es una
+ * animación de tablero de aeropuerto y en un contador de siete reacciones
+ * tarda más que el gesto que lo provocó.
+ */
+export function Counter({
+  value,
+  size,
+  style,
+}: {
+  value: number;
+  /** Tamaño de letra, para poder recortar a la altura de una línea. */
+  size: number;
+  style?: TextStyle;
+}) {
+  const reduced = useReducedMotion();
+  const [shown, setShown] = useState(value);
+  const [leaving, setLeaving] = useState<number | null>(null);
+  const direction = useRef(1);
+  const progress = useSharedValue(1);
+
+  useEffect(() => {
+    if (value === shown) return;
+    if (reduced) {
+      setShown(value);
+      setLeaving(null);
+      return;
+    }
+    direction.current = value > shown ? 1 : -1;
+    setLeaving(shown);
+    setShown(value);
+    progress.value = 0;
+    progress.value = withSpring(1, springs.snappy);
+    return () => cancelAnimation(progress);
+  }, [value, shown, reduced, progress]);
+
+  /* Alto de una línea. Se calcula del tamaño de letra en vez de medirse porque
+     medir obliga a un fotograma con el hueco a cero, y ese fotograma se ve
+     como un parpadeo justo en el elemento que no debe parpadear. */
+  const line = Math.round(size * 1.35);
+  const travel = direction.current * line;
+
+  const arriving = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(progress.value, [0, 1], [travel, 0]) }],
+    opacity: progress.value,
+  }));
+
+  const departing = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(progress.value, [0, 1], [0, -travel]) }],
+    opacity: 1 - progress.value,
+  }));
+
+  const text: TextStyle = { fontSize: size, fontVariant: ['tabular-nums'], ...style };
+
+  return (
+    <Animated.View style={{ height: line, overflow: 'hidden', justifyContent: 'center' }}>
+      {leaving !== null ? (
+        <Animated.Text
+          /* El que se va no lo lee nadie: para un lector de pantalla el valor
+             es uno solo, y anunciar los dos diría «6 7» en voz alta. */
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={[text, { position: 'absolute', width: '100%' }, departing]}
+        >
+          {leaving}
+        </Animated.Text>
+      ) : null}
+      <Animated.Text style={[text, arriving]}>{shown}</Animated.Text>
+    </Animated.View>
+  );
 }
