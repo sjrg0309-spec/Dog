@@ -165,3 +165,25 @@ describe('la dinámica', () => {
     expect(counter).toContain('if (reduced)');
   });
 });
+
+describe('las teselas no se piden dos veces', () => {
+  const layer = read('components/tile-layer.tsx');
+
+  it('cada tesela está aislada de los renders de arriba', () => {
+    /* En react-native-web un `<Image>` reinicia su carga cada vez que se
+       renderiza —no cuando cambia su origen, cuando se renderiza—. Con los
+       manejadores en línea, cualquier render del mapa volvía a pedirlo todo. */
+    expect(layer).toContain('const Tile = memo(');
+    expect(layer).toContain('onOutcome={record}');
+  });
+
+  it('los manejadores son estables, no funciones nuevas por render', () => {
+    /* Se afirma en positivo. La primera versión buscaba que **no** apareciera
+       `onLoad={() => record(...)}` y se ponía roja por el comentario que
+       explica precisamente ese fallo: una aserción que lee los comentarios
+       comprueba la documentación, no el código. */
+    expect(layer).toContain('onLoad={loaded}');
+    expect(layer).toContain('onError={failed}');
+    expect(layer).toContain('useCallback(() => onOutcome(');
+  });
+});

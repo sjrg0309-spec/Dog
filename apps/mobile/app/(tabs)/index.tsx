@@ -641,30 +641,53 @@ function AlertStrip({
       accessibilityLabel={`Alerta abierta cerca: ${title}. ${detail}`}
       accessibilityHint="Abre la pantalla de SOS"
       onPress={onPress}
+      /*
+       * Una pastilla, no una franja de lado a lado.
+       *
+       * La franja a sangre en rojo saturado era lo que más alejaba esta
+       * pantalla de parecerse a una red social: ninguna pone una barra de
+       * alerta del ancho entero encima del contenido — eso es de una aplicación
+       * de utilidad, de las de aviso de incidencia.
+       *
+       * Lo que **no** se ha tocado es que esté siempre y que sea lo primero:
+       * eso era una decisión de seguridad, no de estilo. Lo que cambia es su
+       * peso visual. Fondo teñido en vez de rojo pleno, texto en rojo, borde
+       * fino, márgenes a los lados y esquinas del sistema. Sigue siendo lo
+       * único de la pantalla en el rojo de extraviados y sigue llevando icono
+       * y texto, así que quien no distinga el color se entera igual.
+       */
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.space[2],
         minHeight: theme.touchTarget.min,
-        paddingHorizontal: theme.space[4],
+        marginHorizontal: theme.space[3],
+        marginTop: theme.space[2],
+        paddingHorizontal: theme.space[3],
         paddingVertical: theme.space[1.5],
-        backgroundColor: theme.colors.destructive,
-        opacity: pressed ? 0.9 : 1,
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.destructive,
+        backgroundColor: theme.colors.surfaceElevated,
+        opacity: pressed ? 0.75 : 1,
       })}
     >
-      <Icon icon={Siren} size="base" color={theme.colors.destructiveForeground} decorative />
+      <Icon icon={Siren} size="base" color={theme.colors.destructive} decorative />
       {/* Título y detalle en la misma línea: son doce palabras, y apilarlas
           duplicaba el alto de la franja para no decir nada más. */}
       <Text
         numberOfLines={1}
         style={{
           flex: 1,
-          color: theme.colors.destructiveForeground,
+          color: theme.colors.foreground,
           fontFamily: fonts.body,
           fontSize: theme.fontSize.sm,
         }}
       >
-        <Text style={{ fontFamily: fonts.displayBold }}>{title}</Text> · {detail}
+        <Text style={{ fontFamily: fonts.displayBold, color: theme.colors.destructive }}>
+          {title}
+        </Text>{' '}
+        · {detail}
       </Text>
     </Pressable>
   );

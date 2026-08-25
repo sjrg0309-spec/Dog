@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import Svg, { Defs, Ellipse, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, Ellipse, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import type { Scene } from '@/lib/artwork';
 
@@ -41,14 +41,40 @@ export function SceneView({
       {scene.items.map((item, index) => {
         const key = `${scene.uid}-${index}`;
 
+        if (item.kind === 'vignette') {
+          /*
+           * Los bordes caen y el centro se queda.
+           *
+           * Un degradado radial de negro transparente en el centro a negro con
+           * opacidad en las esquinas. Es la diferencia entre una ilustración de
+           * luz plana —que ninguna cámara produce— y algo que se lee como una
+           * foto. Va la última de la lista, así que oscurece todo lo de debajo.
+           *
+           * El radio es 0,72 y no 0,5: con medio ancho el oscurecimiento
+           * empieza en el centro mismo y la escena se ensucia entera.
+           */
+          const id = `v-${key}`;
+          return (
+            <React.Fragment key={key}>
+              <Defs>
+                <RadialGradient id={id} cx="50%" cy="46%" r="72%">
+                  <Stop offset="0.45" stopColor="#000000" stopOpacity="0" />
+                  <Stop offset="1" stopColor="#000000" stopOpacity={item.strength} />
+                </RadialGradient>
+              </Defs>
+              <Rect x={0} y={0} width={scene.width} height={scene.height} fill={`url(#${id})`} />
+            </React.Fragment>
+          );
+        }
+
         if (item.kind === 'gradientRect') {
           const id = `g-${key}`;
           return (
             <React.Fragment key={key}>
               <Defs>
                 <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={item.from} />
-                  <Stop offset="1" stopColor={item.to} />
+                  <Stop offset="0" stopColor={item.from} stopOpacity={item.fromOpacity ?? 1} />
+                  <Stop offset="1" stopColor={item.to} stopOpacity={item.toOpacity ?? 1} />
                 </LinearGradient>
               </Defs>
               <Rect x={item.x} y={item.y} width={item.w} height={item.h} fill={`url(#${id})`} />

@@ -626,9 +626,13 @@ for (const tab of TABS) {
           `el mapa sigue pidiendo teselas cuando ya no cambia nada: ${settled} → ${tileRequests.length}`,
         );
       }
-      // Holgura de tres por tesela: el primer encuadre y el definitivo pueden
-      // pedir dos veces mientras se mide la pantalla. Un bucle da cientos.
-      if (tileRequests.length > unique * 3) {
+      /* Holgura de dos por tesela, no de tres.
+         Con la tesela memorizada la cuenta real es **una por tesela**, medida:
+         ocho peticiones para ocho teselas en una auditoría entera. Se deja el
+         doble de margen por si un encuadre se mide dos veces, y ni un punto
+         más: el margen de tres dejaba pasar un factor de re-render que se
+         comió doscientas peticiones sin que saltara nada. */
+      if (tileRequests.length > unique * 2) {
         problems.push(`${tileRequests.length} peticiones para ${unique} teselas: se están repitiendo`);
       }
       for (const level of new Set(tileRequests.map((ref) => Number(ref.split('/')[0])))) {

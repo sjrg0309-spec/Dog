@@ -23,7 +23,7 @@
  * las imágenes se colocan donde deben. En un teléfono la red es la del teléfono.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Image, Text, View } from 'react-native';
 
 import { fonts } from '@/lib/fonts';
@@ -133,23 +133,12 @@ export function TileLayer({
   return (
     <View style={{ width, height, overflow: 'hidden', backgroundColor: theme.colors.surfaceSunken }}>
       {tiles.map((tile) => (
-        <Image
+        <Tile
           key={tile.key}
           source={tile.source}
-          onLoad={() => record('loaded')}
-          onError={() => record('failed')}
-          // El mapa no aporta nada a un lector de pantalla: lo que hay en él se
-          // lee en la lista de la hoja, con nombres y distancias. Describir una
-          // imagen de calles como «mapa» es ruido, no información.
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          style={{
-            position: 'absolute',
-            left: tile.left,
-            top: tile.top,
-            width: TILE_SIZE,
-            height: TILE_SIZE,
-          }}
+          left={tile.left}
+          top={tile.top}
+          onOutcome={record}
         />
       ))}
 
@@ -171,10 +160,70 @@ export function TileLayer({
         {/* Once, no nueve. La atribución es letra pequeña por obligación de la
             licencia, y eso no la exime del mínimo de tamaño: una condición
             legal que no se puede leer tampoco se cumple. */}
-        <Text style={{ color: theme.colors.mutedForeground, fontFamily: fonts.body, fontSize: theme.fontSize['2xs'] }}>
+        <Text
+          style={{
+            color: theme.colors.mutedForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize['2xs'],
+          }}
+        >
           {TILE_ATTRIBUTION}
         </Text>
       </View>
     </View>
   );
 }
+
+/**
+ * Una tesela, aislada de todo lo que pase por encima.
+ *
+ * Está separada y memorizada por una razón muy concreta de esta plataforma:
+ * **en react-native-web un `<Image>` reinicia su carga cada vez que se
+ * renderiza**. No cuando cambia su `source` —cuando se renderiza—. Y como los
+ * manejadores se escribían en línea, `onLoad={() => record('loaded')}` creaba
+ * una función nueva en cada render del mapa, así que la imagen recibía props
+ * nuevas y volvía a pedir la tesela.
+ *
+ * El resultado es un fallo que **no se ve**: el mapa sale perfecto, la captura
+ * sale perfecta, y lo único que ocurre es que el servidor comunitario de
+ * OpenStreetMap recibe una ráfaga de peticiones por cada usuario. Se cazó
+ * contando, no mirando: doscientas catorce peticiones para ocho teselas.
+ *
+ * Con esto, un render del mapa entero —por el tema, por el desplazamiento, por
+ * cualquier cosa de arriba— ya no toca las teselas: sus cuatro propiedades son
+ * estables, así que `memo` corta ahí y la imagen no se entera.
+ */
+const Tile = memo(function Tile({
+  source,
+  left,
+  top,
+  onOutcome,
+}: {
+  source: { uri: string };
+  left: number;
+  top: number;
+  onOutcome: (outcome: 'loaded' | 'failed') => void;
+}) {
+  const loaded = useCallback(() => onOutcome('loaded'), [onOutcome]);
+  const failed = useCallback(() => onOutcome('failed'), [onOutcome]);
+
+  return (
+    <Image
+      source={source}
+      onLoad={loaded}
+      onError={failed}
+      // El mapa no aporta nada a un lector de pantalla: lo que hay en él se lee
+      // en la lista de la hoja, con nombres y distancias. Describir una imagen
+      // de calles como «mapa» es ruido, no información.
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      style={{
+        position: 'absolute',
+        left,
+        top,
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+      }}
+    />
+  );
+});

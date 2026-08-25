@@ -168,7 +168,38 @@ export type Primitive =
   | { kind: 'rect'; x: number; y: number; w: number; h: number; r?: number; fill: string; opacity?: number }
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number; fill: string; opacity?: number; rotate?: number }
   | { kind: 'path'; d: string; fill?: string; stroke?: string; width?: number; opacity?: number }
-  | { kind: 'gradientRect'; x: number; y: number; w: number; h: number; from: string; to: string };
+  | {
+      kind: 'gradientRect';
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      from: string;
+      to: string;
+      /**
+       * Opacidad de cada parada.
+       *
+       * Hacía falta para las capas atmosféricas: una bruma o un viraje de color
+       * tienen que **desaparecer** por un lado, y eso no se puede decir con un
+       * color sólido. En SVG la transparencia de una parada es su propio
+       * atributo, no parte del color, así que un `rgba()` en `stopColor` no
+       * hace nada en varios renderizadores.
+       */
+      fromOpacity?: number;
+      toOpacity?: number;
+    }
+  /**
+   * El viñeteado: los bordes caen y el centro se queda.
+   *
+   * Es lo que más barato convierte un dibujo plano en algo que se lee como una
+   * foto. Una ilustración vectorial tiene luz uniforme de esquina a esquina, y
+   * ninguna cámara hace eso: toda lente oscurece los bordes. Sin esto, el feed
+   * parecía un cuento; con esto, parece una foto con filtro — que es exactamente
+   * el registro de Instagram.
+   *
+   * Va siempre la última, encima de todo lo demás.
+   */
+  | { kind: 'vignette'; strength: number };
 
 export type Scene = {
   width: number;
@@ -498,12 +529,64 @@ export function buildScene(options: {
   // Suelo.
   items.push({ kind: 'rect', x: 0, y: horizon, w: width, h: height - horizon, fill: ground.near });
 
+  /*
+   * Nubes: tres manchas blandas, con la opacidad muy baja.
+   *
+   * Un cielo de degradado limpio no existe fuera de un renderizador. No hacen
+   * falta nubes dibujadas —eso volvería a ser ilustración—: bastan tres
+   * elipses solapadas de blanco al 10 %, que es lo que hace un cielo con
+   * bruma alta y lo que rompe la banda perfecta del degradado.
+   */
+  const cloudCount = 2 + Math.floor(random() * 2);
+  for (let index = 0; index < cloudCount; index += 1) {
+    const cx = width * (0.1 + random() * 0.8);
+    const cy = horizon * (0.2 + random() * 0.45);
+    const cw = width * (0.16 + random() * 0.18);
+    for (let puff = 0; puff < 3; puff += 1) {
+      items.push({
+        kind: 'ellipse',
+        cx: cx + (puff - 1) * cw * 0.45,
+        cy: cy + (puff === 1 ? -cw * 0.1 : 0),
+        rx: cw * (0.5 + random() * 0.25),
+        ry: cw * (0.18 + random() * 0.1),
+        fill: '#ffffff',
+        opacity: 0.1 + random() * 0.06,
+      });
+    }
+  }
+
   // Árboles, detrás del perro.
   const treeCount = 2 + Math.floor(random() * 3);
+  const trunks: { x: number; height: number }[] = [];
   for (let index = 0; index < treeCount; index += 1) {
     const tx = width * (0.08 + random() * 0.84);
     const th = height * (0.16 + random() * 0.14);
+    trunks.push({ x: tx, height: th });
     items.push(...tree(tx, horizon + height * 0.02, th, random() > 0.6, { near: ground.near, far: ground.far }));
+  }
+
+  /*
+   * Sombras de contacto, y por qué van **después** de los árboles.
+   *
+   * Es la señal de realismo más barata que existe y la que más se echa de
+   * menos sin saber por qué: un objeto sin sombra no está apoyado en el suelo,
+   * está pegado encima como una calcomanía. Era exactamente lo que pasaba
+   * aquí —árboles flotando sobre una alfombra verde—.
+   *
+   * Van encima del suelo y de los troncos porque una sombra se proyecta sobre
+   * lo que hay, no debajo. Elipse aplastada, oscura y muy transparente: una
+   * sombra opaca es un agujero, no una sombra.
+   */
+  for (const trunk of trunks) {
+    items.push({
+      kind: 'ellipse',
+      cx: trunk.x,
+      cy: horizon + height * 0.025,
+      rx: trunk.height * 0.3,
+      ry: trunk.height * 0.055,
+      fill: '#1d2b1f',
+      opacity: 0.16,
+    });
   }
 
   /*
@@ -589,6 +672,49 @@ export function buildScene(options: {
       opacity: 0.75,
     });
   }
+
+  /*
+   * Las tres capas que separan un dibujo de una foto.
+   *
+   * Ninguna añade un objeto a la escena; las tres cambian **la luz**, que es
+   * justo lo que un dibujo vectorial no tiene: color plano de esquina a esquina
+   * y contraste idéntico al fondo que delante.
+   *
+   *  1. **Bruma en el horizonte.** A distancia el aire aclara y desatura. Sin
+   *     ella, un árbol lejano y uno cercano tienen el mismo verde, y eso es lo
+   *     primero que delata una ilustración.
+   *  2. **Viraje.** Un tono que cruza el cuadro entero —cálido abajo, frío
+   *     arriba, o al revés según la hora—. Es lo que hace una lente, y lo que
+   *     imita cualquier filtro de Instagram.
+   *  3. **Viñeteado.** Los bordes caen. Toda lente lo hace; ninguna ilustración.
+   *
+   * Van en este orden y las tres al final, encima de todo lo demás.
+   */
+  items.push({
+    kind: 'gradientRect',
+    x: 0,
+    y: horizon - height * 0.16,
+    w: width,
+    h: height * 0.24,
+    from: sky.bottom,
+    to: sky.bottom,
+    fromOpacity: 0,
+    toOpacity: 0.42,
+  });
+
+  items.push({
+    kind: 'gradientRect',
+    x: 0,
+    y: 0,
+    w: width,
+    h: height,
+    from: sky.top,
+    to: ground.near,
+    fromOpacity: 0.16,
+    toOpacity: 0.1,
+  });
+
+  items.push({ kind: 'vignette', strength: 0.34 });
 
   return {
     width,

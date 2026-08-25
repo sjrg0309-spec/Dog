@@ -930,8 +930,24 @@ function PostImage({
   corner: number;
 }) {
   const theme = useTheme();
+  /*
+   * Cuatro a cinco, no cuadrado.
+   *
+   * El cuadrado es de la primera Instagram, la de 2010, y hoy no lo usa nadie:
+   * las fotos del feed son verticales 4:5 desde hace años, y la razón es
+   * aritmética y no estética — en una pantalla de 390 × 844 una foto cuadrada
+   * ocupa el 46 % del alto y una de 4:5 el 58 %. Es un cuarto más de foto por
+   * el mismo desplazamiento, en la aplicación donde la foto **es** el
+   * contenido.
+   *
+   * La escena se genera en la misma proporción, no cuadrada y estirada: el
+   * horizonte y el sujeto se calculan sobre el alto, así que una escena
+   * cuadrada dentro de un marco vertical dejaba al perro flotando por encima
+   * del suelo.
+   */
+  const tall = Math.round(size * 1.25);
   const scene = useMemo(
-    () => buildScene({ seed, petId, at, width: 400, height: 400 }),
+    () => buildScene({ seed, petId, at, width: 400, height: 500 }),
     [seed, petId, at],
   );
 
@@ -943,7 +959,7 @@ function PostImage({
         accessible
         style={{
           width: size,
-          aspectRatio: 1,
+          height: tall,
           borderRadius: corner,
           backgroundColor: theme.colors.muted,
         }}
@@ -959,7 +975,7 @@ function PostImage({
       accessibilityLabel={alt}
       style={{ width: size, borderRadius: corner, overflow: 'hidden' }}
     >
-      <SceneView scene={scene} width={size} height={size} />
+      <SceneView scene={scene} width={size} height={tall} />
       <View
         style={{
           position: 'absolute',
