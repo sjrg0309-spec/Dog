@@ -1,0 +1,37 @@
+node_modules/
+dist/
+.next/
+.turbo/
+out/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+.expo/
+.expo-shared/
+android/
+ios/
+
+supabase/.branches/
+supabase/.temp/
+
+.DS_Store
+*.log
+npm-debug.log*
+test-results/
+playwright-report/
+blob-report/
+artifacts/screenshots/*.png
+
+# El prototipo publicable y sus datos: se regeneran con
+# `node scripts/build-demo-data.mjs && node scripts/build-demo-page.mjs`.
+artifacts/coincide-demo.html
+artifacts/coincide-web.html
+artifacts/coincide-app.html
+artifacts/demo-data.json
+scripts/demo-pets.mjs
+apps/mobile/dist-web/

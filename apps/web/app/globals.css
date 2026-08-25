@@ -1,0 +1,720 @@
+/**
+ * Estilos base de la web pública.
+ *
+ * Todo el color, el espaciado, la tipografía y el movimiento salen de las
+ * variables que genera packages/tokens. En este archivo no hay ni un valor de
+ * color literal: si aparece uno, es que algo se ha saltado el sistema.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  /* El fondo se pinta explícitamente: un body transparente toma el color del
+     documento anfitrión y rompe el tema oscuro. */
+  background: var(--co-background);
+  color: var(--co-foreground);
+  font-family: var(--co-font-body);
+  font-size: var(--co-font-size-base);
+  line-height: var(--co-line-height-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--co-font-display);
+  line-height: var(--co-line-height-tight);
+  letter-spacing: var(--co-tracking-tight);
+  margin: 0;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--co-font-size-4xl);
+  font-weight: var(--co-font-weight-extrabold);
+}
+h2 {
+  font-size: var(--co-font-size-2xl);
+  font-weight: var(--co-font-weight-bold);
+}
+h3 {
+  font-size: var(--co-font-size-lg);
+  font-weight: var(--co-font-weight-semibold);
+}
+
+p {
+  margin: 0;
+  max-width: var(--co-measure-base);
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Un solo estilo de foco en toda la interfaz, y nunca se suprime sin
+   sustituirlo. `:focus-visible` evita el anillo tras un clic de ratón sin
+   perderlo para quien navega con teclado. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--co-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--co-radius-xs);
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--co-space-4);
+  top: calc(var(--co-space-4) * -4);
+  z-index: var(--co-z-toast);
+  padding: var(--co-space-2) var(--co-space-4);
+  background: var(--co-surface);
+  color: var(--co-foreground);
+  border: 1px solid var(--co-border-strong);
+  border-radius: var(--co-radius-sm);
+  transition: top var(--co-duration-fast) var(--co-easing-standard);
+}
+.skip-link:focus {
+  top: var(--co-space-4);
+}
+
+/* --------------------------------------------------------------------------
+   Disposición
+   -------------------------------------------------------------------------- */
+
+.shell {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: var(--co-space-5);
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--co-z-sticky);
+  background: color-mix(in oklab, var(--co-background) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--co-border);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--co-space-4);
+  min-height: 64px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--co-space-2);
+  font-family: var(--co-font-display);
+  font-weight: var(--co-font-weight-extrabold);
+  font-size: var(--co-font-size-lg);
+  letter-spacing: var(--co-tracking-tight);
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--co-space-1);
+  margin-inline-start: auto;
+  flex-wrap: nowrap;
+}
+
+/* En pantallas estrechas los enlaces de sección se retiran en lugar de
+   envolverse: son anclas dentro de la propia página, así que en móvil aportan
+   poco y una cabecera de dos filas solapadas aporta menos todavía. El
+   directorio de parques y el conmutador de tema, que sí llevan a otro sitio o
+   cambian algo, se quedan. */
+@media (max-width: 719px) {
+  .site-nav__section {
+    display: none;
+  }
+}
+
+/* Por debajo de 420 px ni siquiera caben la marca escrita, el enlace y el
+   conmutador en una sola fila. Se retiran los rótulos redundantes —el símbolo
+   de la marca sigue enlazando al inicio y el botón conserva su nombre
+   accesible— en lugar de dejar que la cabecera desborde la página. */
+@media (max-width: 419px) {
+  /* Se oculta visualmente, no se retira del árbol de accesibilidad: con
+     `display: none` el enlace de la marca se queda sin nombre, porque su único
+     contenido restante es un SVG decorativo. Es exactamente la infracción que
+     detectó la auditoría de axe. */
+  .brand__word,
+  .theme-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .site-nav a,
+  .site-nav .button {
+    padding-inline: var(--co-space-2);
+  }
+}
+
+.site-nav a {
+  padding: var(--co-space-2) var(--co-space-3);
+  border-radius: var(--co-radius-sm);
+  text-decoration: none;
+  color: var(--co-muted-foreground);
+  font-size: var(--co-font-size-sm);
+  font-weight: var(--co-font-weight-medium);
+  transition: color var(--co-duration-fast) var(--co-easing-standard);
+}
+.site-nav a:hover {
+  color: var(--co-foreground);
+}
+
+.site-footer {
+  border-top: 1px solid var(--co-border);
+  margin-top: var(--co-space-24);
+  padding-block: var(--co-space-8);
+  color: var(--co-muted-foreground);
+  font-size: var(--co-font-size-sm);
+}
+
+.section {
+  padding-block: var(--co-space-16);
+}
+
+.section__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--co-space-2);
+  margin-bottom: var(--co-space-8);
+}
+
+.eyebrow {
+  font-size: var(--co-font-size-xs);
+  font-weight: var(--co-font-weight-bold);
+  letter-spacing: var(--co-tracking-wider);
+  text-transform: uppercase;
+  color: var(--co-muted-foreground);
+}
+
+.lede {
+  font-size: var(--co-font-size-lg);
+  color: var(--co-muted-foreground);
+  max-width: var(--co-measure-base);
+}
+
+.grid {
+  display: grid;
+  gap: var(--co-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--co-space-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--co-space-2);
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   Portada
+   -------------------------------------------------------------------------- */
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--co-space-10);
+  align-items: center;
+  padding-block: var(--co-space-16) var(--co-space-12);
+}
+
+@media (min-width: 900px) {
+  .hero {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--co-space-16);
+  }
+}
+
+.hero__title {
+  margin-bottom: var(--co-space-5);
+}
+
+.hero__title em {
+  font-style: normal;
+  color: var(--co-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Tarjetas
+   -------------------------------------------------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--co-space-3);
+  padding: var(--co-space-5);
+  background: var(--co-surface);
+  border: 1px solid var(--co-border);
+  border-radius: var(--co-radius-lg);
+  /* Sin sombra por defecto: la elevación se comunica con superficie y borde.
+     La sombra se reserva para lo que de verdad flota. */
+}
+
+a.card {
+  text-decoration: none;
+  transition:
+    border-color var(--co-duration-fast) var(--co-easing-standard),
+    transform var(--co-duration-fast) var(--co-easing-standard);
+}
+a.card:hover {
+  border-color: var(--co-border-strong);
+}
+
+.card__title {
+  font-family: var(--co-font-display);
+  font-size: var(--co-font-size-lg);
+  font-weight: var(--co-font-weight-semibold);
+  line-height: var(--co-line-height-snug);
+}
+
+.card__meta {
+  font-size: var(--co-font-size-sm);
+  color: var(--co-muted-foreground);
+}
+
+.card--feature {
+  gap: var(--co-space-2);
+}
+
+.card--feature .card__title {
+  font-size: var(--co-font-size-xl);
+}
+
+/* --------------------------------------------------------------------------
+   Distintivos
+   -------------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--co-space-1);
+  height: 24px;
+  padding-inline: var(--co-space-2);
+  border-radius: var(--co-radius-full);
+  font-size: var(--co-font-size-xs);
+  font-weight: var(--co-font-weight-semibold);
+  background: var(--co-muted);
+  color: var(--co-muted-foreground);
+  white-space: nowrap;
+}
+
+.badge--accent {
+  background: var(--co-accent);
+  color: var(--co-accent-foreground);
+}
+
+.badge--live {
+  background: var(--co-live-surface);
+  color: var(--co-live-foreground);
+}
+
+.badge--verified {
+  background: var(--co-success-surface);
+  color: var(--co-success);
+}
+
+/* --------------------------------------------------------------------------
+   Botones
+   -------------------------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--co-space-2);
+  /* 44 px es el suelo del área táctil, no el objetivo. */
+  min-height: var(--co-touch-min);
+  padding-inline: var(--co-space-5);
+  border: 1px solid transparent;
+  border-radius: var(--co-radius-md);
+  font: inherit;
+  font-weight: var(--co-font-weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--co-duration-fast) var(--co-easing-standard),
+    border-color var(--co-duration-fast) var(--co-easing-standard),
+    color var(--co-duration-fast) var(--co-easing-standard);
+}
+
+.button--primary {
+  background: var(--co-primary);
+  color: var(--co-primary-foreground);
+}
+.button--primary:hover {
+  background: var(--co-primary-hover);
+}
+.button--primary:active {
+  background: var(--co-primary-active);
+}
+
+.button--outline {
+  background: transparent;
+  color: var(--co-foreground);
+  border-color: var(--co-border-strong);
+}
+.button--outline:hover {
+  background: var(--co-secondary);
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--co-muted-foreground);
+  padding-inline: var(--co-space-3);
+}
+.button--ghost:hover {
+  color: var(--co-foreground);
+  background: var(--co-secondary);
+}
+
+.button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Anillo del radar — el elemento distintivo.
+   Es el ÚNICO elemento con movimiento continuo en toda la interfaz, y por eso
+   significa "en vivo".
+   -------------------------------------------------------------------------- */
+
+.radar {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
+  aspect-ratio: 1;
+}
+
+.radar__pulse {
+  transform-origin: center;
+  animation: radar-pulse var(--co-duration-pulse) var(--co-easing-standard) infinite;
+}
+
+.radar__pulse--delayed {
+  animation-delay: calc(var(--co-duration-pulse) / 3);
+}
+
+.radar__pulse--more-delayed {
+  animation-delay: calc(var(--co-duration-pulse) / 3 * 2);
+}
+
+/* Anillo estático que sustituye al pulso cuando se reduce el movimiento. */
+.radar__static {
+  display: none;
+}
+
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.42);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* El pulso desaparece, pero el significado no: queda un anillo doble estático
+     que comunica lo mismo sin movimiento. */
+  .radar__pulse {
+    animation: none;
+    display: none;
+  }
+  .radar__static {
+    display: block;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Listas de propiedades
+   -------------------------------------------------------------------------- */
+
+.facts {
+  display: grid;
+  gap: var(--co-space-3);
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+}
+
+.facts div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--co-space-0_5);
+}
+
+.facts dt {
+  font-size: var(--co-font-size-xs);
+  font-weight: var(--co-font-weight-semibold);
+  letter-spacing: var(--co-tracking-wide);
+  text-transform: uppercase;
+  color: var(--co-muted-foreground);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: var(--co-font-size-base);
+  font-weight: var(--co-font-weight-medium);
+}
+
+/* Los límites de cuidado de una especie: una lista corta de datos duros, sin la
+   estructura de término y definición que usa `.facts` para los bloques largos. */
+.facts--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--co-space-2) var(--co-space-4);
+  list-style: none;
+  padding: 0;
+  border-top: 1px solid var(--co-border);
+  padding-top: var(--co-space-3);
+  font-size: var(--co-font-size-sm);
+  color: var(--co-muted-foreground);
+}
+
+.facts--inline li::before {
+  content: '·';
+  margin-right: var(--co-space-2);
+  color: var(--co-primary);
+}
+
+.facts--inline li:first-child::before {
+  content: none;
+  margin-right: 0;
+}
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--co-space-2);
+}
+
+.checklist li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--co-space-2);
+  font-size: var(--co-font-size-sm);
+}
+
+/* El estado no se comunica solo con color: cada elemento lleva además un
+   símbolo y su texto. */
+.checklist li[data-state='yes']::before {
+  content: '✓';
+  color: var(--co-success);
+  font-weight: var(--co-font-weight-bold);
+}
+.checklist li[data-state='no']::before {
+  content: '×';
+  color: var(--co-muted-foreground);
+  font-weight: var(--co-font-weight-bold);
+}
+.checklist li[data-state='unknown']::before {
+  content: '?';
+  color: var(--co-muted-foreground);
+  font-weight: var(--co-font-weight-bold);
+}
+
+.checklist li[data-state='no'],
+.checklist li[data-state='unknown'] {
+  color: var(--co-muted-foreground);
+}
+
+/* --------------------------------------------------------------------------
+   Aviso
+   -------------------------------------------------------------------------- */
+
+.notice {
+  display: flex;
+  gap: var(--co-space-3);
+  padding: var(--co-space-4);
+  border-radius: var(--co-radius-md);
+  border: 1px solid var(--co-border);
+  /* El filo de color da el tono; el icono lo dice sin depender del color. */
+  border-left-width: 3px;
+  border-left-color: var(--co-border-strong);
+  background: var(--co-surface-sunken);
+  font-size: var(--co-font-size-sm);
+  color: var(--co-muted-foreground);
+}
+
+.notice[data-tone='warning'] {
+  border-left-color: var(--co-warning);
+}
+
+.notice[data-tone='critical'] {
+  border-left-color: var(--co-destructive);
+}
+
+.notice__icon {
+  flex: none;
+  /* Alineado con la primera línea de texto, no con la caja entera. */
+  margin-top: 0.15em;
+  color: var(--co-muted-foreground);
+}
+
+.notice[data-tone='warning'] .notice__icon {
+  color: var(--co-warning);
+}
+
+.notice[data-tone='critical'] .notice__icon {
+  color: var(--co-destructive);
+}
+
+.notice__body {
+  display: grid;
+  gap: var(--co-space-2);
+  min-width: 0;
+}
+
+.notice strong {
+  color: var(--co-foreground);
+}
+
+/* --------------------------------------------------------------------------
+   El hueco de una foto de publicación.
+
+   Cuando no hay imagen se enseña **su descripción**, no un icono de foto rota:
+   el texto alternativo es obligatorio en el esquema justamente para que este
+   hueco tenga algo que decir.
+   -------------------------------------------------------------------------- */
+
+.post__frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--co-space-2);
+  /* Sin imagen no hay hueco que reservar: la relación fija existe para que el
+     feed no dé saltos mientras carga una foto, y aquí no hay ninguna que
+     cargar. Un cuadrado vacío con una línea de texto se come la tarjeta. */
+  padding: var(--co-space-6);
+  border-radius: var(--co-radius-md);
+  background: var(--co-surface-sunken);
+  border: 1px solid var(--co-border);
+  text-align: center;
+}
+
+.post__frame p {
+  color: var(--co-muted-foreground);
+  font-size: var(--co-font-size-sm);
+  max-width: 30ch;
+}
+
+.post__frame span {
+  font-size: var(--co-font-size-xs);
+  font-weight: var(--co-font-weight-semibold);
+  color: var(--co-muted-foreground);
+}
+
+/* --------------------------------------------------------------------------
+   Menú desplegable (Radix). Los estilos son nuestros; el comportamiento —foco
+   atrapado, Escape, flechas, devolución del foco al cerrar— es suyo.
+   -------------------------------------------------------------------------- */
+
+.menu {
+  min-width: 12rem;
+  padding: var(--co-space-1);
+  border-radius: var(--co-radius-md);
+  border: 1px solid var(--co-border);
+  background: var(--co-surface-elevated);
+  box-shadow: var(--co-shadow-md);
+  z-index: 50;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--co-space-2);
+  /* 44 de alto: el mismo suelo táctil que en la aplicación móvil. */
+  min-height: 44px;
+  padding-inline: var(--co-space-3);
+  border-radius: var(--co-radius-sm);
+  font-size: var(--co-font-size-sm);
+  color: var(--co-foreground);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+/* Radix marca la opción bajo el cursor o bajo el teclado con el mismo atributo,
+   así que ratón y teclado se ven igual sin escribir dos reglas. */
+.menu__item[data-highlighted] {
+  background: var(--co-muted);
+}
+
+.menu__item[data-state='checked'] {
+  font-weight: var(--co-font-weight-semibold);
+}
+
+.menu__check {
+  margin-left: auto;
+  color: var(--co-primary);
+  display: inline-flex;
+}
+
+/* --------------------------------------------------------------------------
+   Tablas y contenido ancho: se desplazan dentro de su caja, nunca la página.
+   -------------------------------------------------------------------------- */
+
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

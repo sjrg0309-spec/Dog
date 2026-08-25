@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Petnav",
+    "slug": "petnav",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "petnav",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#F7F4EF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.petnav.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Petnav usa tu ubicaci\u00f3n para mostrarte perros compatibles paseando cerca y para encender el check-in autom\u00e1tico al llegar a tus parques habituales. La ubicaci\u00f3n que se guarda para avisar a otros va redondeada a un kil\u00f3metro.",
+        "NSCameraUsageDescription": "Para la foto y el v\u00eddeo de tu perro."
+      }
+    },
+    "android": {
+      "package": "com.petnav.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#1F2A24"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

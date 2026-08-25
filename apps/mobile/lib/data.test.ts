@@ -1,0 +1,788 @@
+/**
+ * La capa de datos del móvil, comprobada.
+ *
+ * No prueba el algoritmo —eso ya lo hacen los 104 casos de `@petnav/core`—,
+ * sino las decisiones de producto que viven aquí y que ningún otro paquete
+ * conoce: que una especie solitaria no entra al descubrimiento, que el radar no
+ * enseña animales de otra especie, y que los tutores de esas especies sí tienen
+ * comunidad y servicios.
+ *
+ * Es justo la capa donde una regresión no rompe nada visible y aparece como una
+ * quedada de conejos con un hurón dentro.
+ */
+
+import { describe, expect, it } from 'vitest';
+
+import { distanceMeters, findSpecies } from '@petnav/core';
+
+import {
+  bark,
+  countOutsideRadius,
+  feedSnapshot,
+  react,
+  scopePosts,
+  SEED_POSTS,
+  totalReactions,
+} from './posts';
+import { ACCENT_IDS } from '@petnav/tokens';
+
+import { accentOf, buildPortrait, buildScene, sceneToSvg, timeOfDay } from './artwork';
+import { REPORT_REASONS, reelWarning, reelsSnapshot } from './reels';
+import {
+  groupStories,
+  liveStories,
+  SEED_STORIES_SNAPSHOT,
+  STORY_TTL_MS,
+  type Story,
+} from './stories';
+
+import {
+  allPlaydates,
+  communitiesFor,
+  discover,
+  meetupsFor,
+  petById,
+  petHasMeetups,
+  playdatesFor,
+  servicesFor,
+  speciesOf,
+  spotsFor,
+  walkingNow,
+} from './data';
+import { MY_PETS, OTHER_PETS, PLACES } from './demo-data';
+import { petFriendlyPlaces, placeAt } from './geofence';
+import { SEED_POSTS as SEED_FEED, timeAgo } from './posts';
+
+/** Un día templado en hierba: condiciones en las que nada debería impedir salir. */
+const MILD = { temperatureC: 18, surface: 'grass', durationMinutes: 45 } as const;
+
+const nina = MY_PETS[0]!;
+const kira = MY_PETS[1]!;
+
+describe('la demo enseña lo que la aplicación abre de verdad', () => {
+  it('solo hay perros, porque solo se pueden registrar perros', () => {
+    const species = new Set([...MY_PETS, ...OTHER_PETS].map((pet) => pet.speciesId));
+    expect([...species]).toEqual(['dog']);
+  });
+
+  it('el tutor tiene dos perros a los que hoy les conviene algo distinto', () => {
+    // Es el caso que hace visible la capa de bienestar, y es mucho más
+    // frecuente que el de dos especies distintas.
+    expect(MY_PETS).toHaveLength(2);
+    expect(kira.healthFlags).toContain('brachycephalic');
+    expect(nina.healthFlags ?? []).toHaveLength(0);
+  });
+
+  it('cada mascota de la demo existe en el catálogo de especies', () => {
+    for (const pet of [...MY_PETS, ...OTHER_PETS]) {
+      // Una especie inventada en la demo se colaría en la interfaz como un
+      // identificador en bruto, y nadie lo vería hasta la captura de pantalla.
+      expect(speciesOf(pet), `${pet.name} usa una especie que no existe`).not.toBeNull();
+      expect(petById(pet.id)).not.toBeNull();
+    }
+  });
+});
+
+describe('descubrimiento', () => {
+  it('una perra ve solo perros', () => {
+    const { entries } = discover(nina, MILD);
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.every((entry) => entry.pet.speciesId === 'dog')).toBe(true);
+  });
+
+  it('el segundo perro del tutor también descubre, con su propia lista', () => {
+    // No es la misma que la de Nina: Kira es pequeña, tranquila y de otro
+    // carácter, así que el veto por diferencia de tamaño la deja con menos.
+    const paraNina = discover(nina, MILD).entries.map((entry) => entry.pet.name);
+    const paraKira = discover(kira, MILD).entries.map((entry) => entry.pet.name);
+
+    expect(paraNina.length).toBeGreaterThan(0);
+    expect(paraKira).not.toEqual(paraNina);
+  });
+
+  it('los de otra especie se cuentan aparte de los vetados por seguridad', () => {
+    const { safetyVetoed, otherSpeciesNearby } = discover(nina, MILD);
+    const dogs = OTHER_PETS.filter((pet) => pet.speciesId === 'dog').length;
+
+    expect(otherSpeciesNearby).toBe(OTHER_PETS.length - dogs);
+    // Un veto de seguridad es una decisión sobre este par concreto; ser de otra
+    // especie no lo es. Sumarlos daría un número que no significa nada.
+    expect(safetyVetoed).toBeLessThanOrEqual(dogs);
+  });
+
+  it('nadie se descubre a sí mismo', () => {
+    const { entries } = discover(nina, MILD);
+    expect(entries.some((entry) => entry.pet.id === nina.id)).toBe(false);
+  });
+});
+
+describe('radar', () => {
+  it('solo enseña animales de la misma especie', () => {
+    const out = walkingNow('dog');
+    expect(out.length).toBeGreaterThan(0);
+    expect(out.every((pet) => pet.speciesId === 'dog')).toBe(true);
+  });
+
+  it('para una especie solitaria no hay nadie fuera', () => {
+    // Enseñarle a un tutor de gato que hay otro gato a doscientos metros no es
+    // una oportunidad: es un encuentro que no debería ocurrir.
+    expect(walkingNow('cat')).toHaveLength(0);
+  });
+});
+
+describe('quedadas y espacios', () => {
+  it('cada quedada es de una sola especie', () => {
+    for (const speciesId of ['dog', 'ferret', 'rabbit']) {
+      const list = playdatesFor(speciesId);
+      expect(list.every((playdate) => playdate.speciesId === speciesId)).toBe(true);
+    }
+  });
+
+  it('no hay ninguna quedada de una especie que no socializa', () => {
+    expect(playdatesFor('cat')).toHaveLength(0);
+    expect(playdatesFor('leopard_gecko')).toHaveLength(0);
+  });
+
+  it('un espacio declara a qué especies sirve', () => {
+    // El filtro sigue vivo aunque hoy todos los espacios sean de perros: es lo
+    // que impedirá ofrecer un patio canino para presentar conejos el día que la
+    // aplicación se abra a otra especie.
+    expect(spotsFor('dog').length).toBeGreaterThan(0);
+    expect(spotsFor('rabbit')).toHaveLength(0);
+  });
+});
+
+describe('comunidad y servicios: lo que hay además de las quedadas', () => {
+  it('un tutor de perro encuentra su comunidad y la general del barrio', () => {
+    const list = communitiesFor('dog');
+    expect(list.some((community) => community.speciesId === 'dog')).toBe(true);
+    expect(list.some((community) => community.speciesId === null)).toBe(true);
+  });
+
+  it('el directorio filtra por la especie que de verdad atienden', () => {
+    // Sigue vivo aunque hoy todo el directorio sea canino: es lo que impedirá
+    // mandar un gecko a una peluquería de perros el día que se abra.
+    expect(servicesFor('dog').length).toBeGreaterThan(0);
+    expect(servicesFor('leopard_gecko')).toHaveLength(0);
+  });
+
+  it('las urgencias salen primero: es el orden que importa con prisa', () => {
+    expect(servicesFor('dog')[0]?.is24h).toBe(true);
+  });
+
+  it('toda mascota de la demo tiene algo además del descubrimiento', () => {
+    for (const pet of [...MY_PETS, ...OTHER_PETS]) {
+      const offer = communitiesFor(pet.speciesId).length + servicesFor(pet.speciesId).length;
+      expect(offer, `${pet.name} se queda sin nada`).toBeGreaterThan(0);
+      expect(petHasMeetups(pet)).toBe(true);
+    }
+  });
+});
+
+describe('el interés del animal manda sobre el plan del tutor', () => {
+  const hot = { temperatureC: 34, surface: 'grass', durationMinutes: 45 } as const;
+  const asphalt = { temperatureC: 29, surface: 'asphalt', durationMinutes: 45 } as const;
+
+  it('a 34 grados no se propone a nadie, y el estado vacío lo dice', () => {
+    const { entries, emptyReason } = discover(nina, hot);
+    // Ni una tarjeta con un aviso encima: ninguna tarjeta.
+    expect(entries).toEqual([]);
+    expect(emptyReason).toBe('welfare_stop');
+  });
+
+  it('el asfalto caliente para la lista aunque el aire no llegue al techo', () => {
+    expect(discover(nina, asphalt).entries).toEqual([]);
+  });
+
+  it('un día templado sí devuelve candidatos', () => {
+    expect(discover(nina, MILD).entries.length).toBeGreaterThan(0);
+  });
+
+  it('a 26 grados uno de los dos perros del tutor sale y el otro no', () => {
+    // Es el mismo día, el mismo barrio y la misma especie. Lo único que cambia
+    // es de qué animal hablamos, y eso basta para que la respuesta sea distinta.
+    const warm = { temperatureC: 26, surface: 'grass', durationMinutes: 45 } as const;
+
+    expect(discover(nina, warm).welfare?.level).toBe('ok');
+    expect(discover(kira, warm).welfare?.level).toBe('stop');
+    expect(discover(kira, warm).entries).toEqual([]);
+    // Y la lista de Nina sigue llena: no se ha vaciado la aplicación entera.
+    expect(discover(nina, warm).entries.length).toBeGreaterThan(0);
+  });
+
+  it('a 18 grados los dos salen', () => {
+    expect(discover(nina, MILD).welfare?.level).toBe('ok');
+    expect(discover(kira, MILD).welfare?.level).toBe('ok');
+  });
+
+  it('el veredicto se devuelve siempre, también cuando hay lista', () => {
+    // La pantalla tiene que poder decir "se puede, con cuidado" sin deducirlo de
+    // que la lista no esté vacía.
+    expect(discover(nina, MILD).welfare?.level).toBe('ok');
+    expect(discover(nina, hot).welfare?.level).toBe('stop');
+  });
+
+  it('cada quedada declara sus minutos de contacto', () => {
+    const list = playdatesFor('dog');
+    expect(list.length).toBeGreaterThan(0);
+    for (const playdate of list) {
+      expect(playdate.sessionMinutes, playdate.title).toBeGreaterThan(0);
+    }
+  });
+
+  it('ninguna quedada propone más contacto del que aguanta su especie', () => {
+    for (const playdate of allPlaydates()) {
+      const species = findSpecies(playdate.speciesId)!;
+      expect(
+        playdate.sessionMinutes,
+        `${playdate.title} propone más de lo que aguanta un ${species.commonName.toLowerCase()}`,
+      ).toBeLessThanOrEqual(species.care.maxSessionMinutes);
+    }
+  });
+});
+
+describe('el radar solo funciona en zonas pet-friendly', () => {
+  it('dentro de un parque hay zona', () => {
+    const place = placeAt({ lat: PLACES.central.lat, lng: PLACES.central.lng });
+    expect(place?.name).toBe('Parque Central');
+  });
+
+  it('en casa no hay zona', () => {
+    // Es el caso que define la regla: desde el portal no se puede encender el
+    // radar, porque lo que se comparte es el lugar y tu portal no es un sitio al
+    // que nadie pueda ir.
+    expect(placeAt({ lat: 40.38, lng: -3.75 })).toBeNull();
+  });
+
+  it('justo fuera del radio tampoco', () => {
+    // 250 m de radio: a medio kilómetro del centro ya no se está dentro.
+    const lejos = { lat: PLACES.central.lat + 0.005, lng: PLACES.central.lng };
+    expect(placeAt(lejos)).toBeNull();
+  });
+
+  it('gana la zona más pequeña que contiene el punto', () => {
+    // La terraza está dentro del radio de ningún parque en la demo, pero la
+    // regla se comprueba igual: si dos zonas contuvieran el punto, la respuesta
+    // útil es la más específica.
+    const zonas = petFriendlyPlaces();
+    const laMasPequena = zonas.reduce((a, b) => (a.radiusM <= b.radiusM ? a : b));
+    const place = placeAt({ lat: laMasPequena.lat, lng: laMasPequena.lng });
+    expect(place?.id).toBe(laMasPequena.id);
+  });
+
+  it('todas las zonas declaran un radio razonable', () => {
+    for (const place of petFriendlyPlaces()) {
+      expect(place.radiusM, place.name).toBeGreaterThanOrEqual(10);
+      expect(place.radiusM, place.name).toBeLessThanOrEqual(2000);
+    }
+  });
+});
+
+describe('publicaciones', () => {
+  it('el feed trae publicaciones de varios perros', () => {
+    const petIds = new Set(SEED_FEED.map((post) => post.petId));
+    expect(petIds.size).toBeGreaterThan(1);
+  });
+
+  it('ninguna publicación se queda sin describir la foto', () => {
+    // Una imagen sin texto alternativo no la ve todo el mundo, y esta aplicación
+    // eligió su tipografía por accesibilidad: dejarlo opcional sería
+    // contradecirse.
+    for (const post of SEED_FEED) {
+      for (const photo of post.photos) {
+        expect(photo.alt.trim().length, `${post.petName}: ${photo.path}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it('cada publicación es de un perro que existe', () => {
+    const known = new Set([...MY_PETS, ...OTHER_PETS].map((pet) => pet.id));
+    for (const post of SEED_FEED) {
+      expect(known.has(post.petId), `${post.petName} no está en el catálogo`).toBe(true);
+    }
+  });
+
+  it('el tiempo relativo no da falsa precisión', () => {
+    const now = new Date('2026-08-23T12:00:00Z');
+    expect(timeAgo(new Date('2026-08-23T11:59:50Z'), now)).toBe('ahora');
+    expect(timeAgo(new Date('2026-08-23T11:30:00Z'), now)).toBe('hace 30 min');
+    expect(timeAgo(new Date('2026-08-23T09:00:00Z'), now)).toBe('hace 3 h');
+    expect(timeAgo(new Date('2026-08-22T12:00:00Z'), now)).toBe('ayer');
+    expect(timeAgo(new Date('2026-08-20T12:00:00Z'), now)).toBe('hace 3 días');
+  });
+});
+
+/**
+ * El feed de vecindario.
+ *
+ * Las dos pestañas tienen que ser distintas de verdad, no el mismo feed con dos
+ * rótulos, y el radio tiene que recortar. Si alguna de las dos cosas deja de
+ * cumplirse, la pantalla sigue funcionando y el producto deja de ser de barrio.
+ */
+describe('el alcance del feed', () => {
+  const HERE = { lat: 40.4098, lng: -3.6939 };
+
+  it('«siguiendo» solo trae a quien se sigue, y es menos que el total', () => {
+    const following = scopePosts(SEED_POSTS, 'following', HERE, 5000);
+    expect(following.length).toBeGreaterThan(0);
+    expect(following.length).toBeLessThan(SEED_POSTS.length);
+  });
+
+  it('«cerca de mí» trae a quien no se sigue si está en el radio', () => {
+    const nearby = scopePosts(SEED_POSTS, 'nearby', HERE, 5000);
+    const following = new Set(
+      scopePosts(SEED_POSTS, 'following', HERE, 5000).map((entry) => entry.post.id),
+    );
+    // Ese es el punto entero de la pestaña: enseñar el barrio, no la agenda.
+    expect(nearby.some((entry) => !following.has(entry.post.id))).toBe(true);
+  });
+
+  it('el radio recorta de verdad, y lo recortado se puede contar', () => {
+    const near = scopePosts(SEED_POSTS, 'nearby', HERE, 5000);
+    const wide = scopePosts(SEED_POSTS, 'nearby', HERE, 10000);
+    expect(wide.length).toBeGreaterThan(near.length);
+    // Y el número que la pantalla enseña cuadra con lo que falta.
+    expect(countOutsideRadius(SEED_POSTS, HERE, 5000)).toBe(
+      SEED_POSTS.filter((post) => post.point !== null).length - near.length,
+    );
+  });
+
+  it('«siguiendo» ignora el radio: se sigue a quien se sigue, esté donde esté', () => {
+    expect(scopePosts(SEED_POSTS, 'following', HERE, 1).length).toBe(
+      scopePosts(SEED_POSTS, 'following', HERE, 999_999).length,
+    );
+  });
+
+  it('una publicación sin lugar no entra en el feed de vecindario', () => {
+    const homeless = { ...SEED_POSTS[0]!, id: 'sin-lugar', point: null };
+    const scoped = scopePosts([homeless], 'nearby', HERE, 999_999);
+    // Sin coordenadas no se puede afirmar que esté cerca. Colarla con distancia
+    // cero sería inventarse el dato más importante de la pestaña.
+    expect(scoped).toHaveLength(0);
+  });
+});
+
+/**
+ * Las reacciones son excluyentes.
+ *
+ * Sin esta regla una foto podría acabar con «5 lamidos y 5 colas» de las mismas
+ * cinco personas, y el número dejaría de significar nada.
+ */
+describe('reacciones', () => {
+  it('poner una quita la anterior y los totales cuadran', () => {
+    const post = SEED_POSTS.find((candidate) => candidate.myReaction === null);
+    expect(post).toBeDefined();
+    const before = totalReactions(post!);
+
+    react(post!.id, 'lick');
+    const afterFirst = feedSnapshot().find((p) => p.id === post!.id)!;
+    expect(afterFirst.myReaction).toBe('lick');
+    expect(totalReactions(afterFirst)).toBe(before + 1);
+
+    react(post!.id, 'wag');
+    const afterSwap = feedSnapshot().find((p) => p.id === post!.id)!;
+    expect(afterSwap.myReaction).toBe('wag');
+    // Cambiar de reacción no suma otra: sigue siendo una persona.
+    expect(totalReactions(afterSwap)).toBe(before + 1);
+
+    react(post!.id, 'wag');
+    const afterRemove = feedSnapshot().find((p) => p.id === post!.id)!;
+    expect(afterRemove.myReaction).toBeNull();
+    expect(totalReactions(afterRemove)).toBe(before);
+  });
+
+  it('ladrar no se puede deshacer ni repetir', () => {
+    const target = feedSnapshot().find((post) => !post.barkedByMe)!;
+    const before = target.barkCount;
+
+    bark(target.id);
+    bark(target.id);
+
+    const after = feedSnapshot().find((post) => post.id === target.id)!;
+    // Compartir manda la publicación a gente que no la tenía. Retirarla del feed
+    // de otro no está en tu mano, así que el botón no puede fingir que sí.
+    expect(after.barkCount).toBe(before + 1);
+    expect(after.barkedByMe).toBe(true);
+  });
+});
+
+/**
+ * Los estados caducan de verdad.
+ *
+ * No hay ningún proceso que borre nada: la caducidad se calcula al leer. Es la
+ * decisión que hace que la regla no dependa de que alguien se acuerde, y por eso
+ * hay que comprobarla desde fuera y no confiar en que el campo esté puesto.
+ */
+describe('estados', () => {
+  const at = (hoursAgo: number) => Date.now() - hoursAgo * 3_600_000;
+
+  const make = (id: string, petId: string, createdHoursAgo: number, viewed = false): Story => {
+    const createdAt = new Date(at(createdHoursAgo));
+    return {
+      id,
+      petId,
+      petName: 'Perro',
+      authorName: 'Alguien',
+      kind: 'text',
+      uri: null,
+      alt: '',
+      text: 'algo',
+      placeName: null,
+      createdAt,
+      expiresAt: new Date(createdAt.getTime() + STORY_TTL_MS),
+      viewedByMe: viewed,
+      viewers: [],
+    };
+  };
+
+  it('a las 24 horas deja de existir, sin que nadie lo borre', () => {
+    const fresh = make('a', 'p1', 3);
+    const old = make('b', 'p1', 25);
+    expect(liveStories([fresh, old]).map((story) => story.id)).toEqual(['a']);
+  });
+
+  it('el borde son exactamente 24 horas', () => {
+    const story = make('a', 'p1', 24);
+    // Justo en el filo ya no vive: `expiresAt` tiene que ser estrictamente
+    // futuro, o un estado se quedaría un tick de más cada día.
+    expect(liveStories([story])).toHaveLength(0);
+    expect(liveStories([make('b', 'p1', 23.9)])).toHaveLength(1);
+  });
+
+  it('la semilla trae uno vencido, para que la regla se vea funcionar', () => {
+    // Si algún día se quita, este test avisa: una caducidad que nunca se
+    // dispara en la demostración es una línea de código que nadie ha visto
+    // hacer nada.
+    const all = groupStories(SEED_STORIES_SNAPSHOT);
+    const ids = all.flatMap((group) => group.stories.map((story) => story.id));
+    expect(ids).not.toContain('st-nina-viejo');
+  });
+
+  it('primero lo que no has visto, y abre por el primero sin ver', () => {
+    const groups = groupStories([
+      make('v1', 'visto', 2, true),
+      make('v2', 'visto', 1, true),
+      make('n1', 'nuevo', 3, true),
+      make('n2', 'nuevo', 1, false),
+    ]);
+
+    // Un carrete que abre siempre por lo mismo hace que dejes de mirarlo.
+    expect(groups[0]?.petId).toBe('nuevo');
+    expect(groups[0]?.firstUnseenIndex).toBe(1);
+    expect(groups[1]?.hasUnseen).toBe(false);
+  });
+
+  it('cada animal es un carrete, no una lista suelta', () => {
+    const groups = groupStories([make('a', 'p1', 2), make('b', 'p1', 1), make('c', 'p2', 1)]);
+    expect(groups).toHaveLength(2);
+    expect(groups.find((group) => group.petId === 'p1')?.stories).toHaveLength(2);
+  });
+});
+
+/**
+ * La etiqueta de condiciones de un reel.
+ *
+ * Es lo único que impide que el formato contradiga a la capa de bienestar, y usa
+ * el mismo juez que el resto del producto. Si algún día usara otro, los dos
+ * dejarían de coincidir y nadie se enteraría hasta que un tutor viera «hoy no
+ * salgas» encima de un reel sin etiquetar.
+ */
+describe('condiciones de un reel', () => {
+  const reels = reelsSnapshot();
+
+  it('un reel grabado a 19 grados sobre hierba no lleva etiqueta', () => {
+    const calm = reels.find((reel) => reel.id === 'rl-1');
+    expect(calm).toBeDefined();
+    expect(reelWarning(calm!)).toBeNull();
+  });
+
+  it('uno grabado a 33 grados sobre asfalto sí, y explica por qué', () => {
+    const hot = reels.find((reel) => reel.id === 'rl-3');
+    expect(hot).toBeDefined();
+    const warning = reelWarning(hot!);
+    expect(warning?.level).toBe('stop');
+    // El motivo no es un texto escrito a mano: sale del veredicto, así que si
+    // cambia el umbral cambia la etiqueta.
+    expect(warning?.detail.length).toBeGreaterThan(10);
+  });
+
+  it('no se esconde: el reel sigue en la lista, etiquetado', () => {
+    // Quien lo grabó no ha hecho nada ilegal. Borrarlo sería moderación
+    // encubierta; no decir nada sería repartir atención por ello.
+    expect(reels.some((reel) => reel.id === 'rl-3')).toBe(true);
+  });
+
+  it('el primer motivo de denuncia recoge el daño propio de este formato', () => {
+    // Un formulario que solo ofrece «spam» y «desnudos» no sirve aquí.
+    expect(REPORT_REASONS[0]).toMatch(/reto/i);
+  });
+});
+
+/**
+ * La ilustración generada.
+ *
+ * Se comprueba lo que la hace servir de algo, no que dibuje bonito: que el
+ * mismo animal salga siempre igual, que dos vecinos salgan distintos, y que la
+ * hora mande en el cielo. Sin lo primero deja de servir para reconocer a nadie;
+ * sin lo segundo el feed vuelve a parecer una plantilla.
+ */
+describe('ilustración generada', () => {
+  const NINA = '20000000-0000-4000-8000-000000000001';
+  const TOBY = '20000000-0000-4000-8000-000000000002';
+  const at = new Date(2026, 7, 23, 18, 0, 0);
+
+  const build = (seed: string, petId: string, when = at) =>
+    buildScene({ seed, petId, at: when, width: 400, height: 400 });
+
+  it('el mismo animal y la misma publicación dan siempre el mismo dibujo', () => {
+    expect(sceneToSvg(build('post-1', NINA))).toBe(sceneToSvg(build('post-1', NINA)));
+  });
+
+  it('dos vecinos salen distintos', () => {
+    expect(sceneToSvg(build('post-1', NINA))).not.toBe(sceneToSvg(build('post-1', TOBY)));
+  });
+
+  it('dos publicaciones del mismo animal salen distintas', () => {
+    // Si no, el feed de un solo perro sería la misma imagen repetida.
+    expect(sceneToSvg(build('post-1', NINA))).not.toBe(sceneToSvg(build('post-2', NINA)));
+  });
+
+  it('la hora manda en el cielo', () => {
+    const hours: Array<[number, string]> = [
+      [6, 'dawn'],
+      [12, 'day'],
+      [18, 'golden'],
+      [23, 'night'],
+    ];
+    for (const [hour, expected] of hours) {
+      expect(build('post-1', NINA, new Date(2026, 7, 23, hour, 0, 0)).time).toBe(expected);
+    }
+  });
+
+  it('cada escena lleva su propio identificador de degradado', () => {
+    // Los `id` de un degradado SVG son globales al documento. Con dieciséis
+    // escenas en la misma pantalla —y el feed son justo eso— dos que
+    // compartieran `id` harían que la segunda heredara el cielo de la primera.
+    const uids = ['a', 'b', 'c', 'd'].map((seed) => build(seed, NINA).uid);
+    expect(new Set(uids).size).toBe(uids.length);
+    for (const uid of uids) {
+      expect(sceneToSvg(build('a', NINA)).includes('id="g-')).toBe(true);
+      expect(uid.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('el retrato del avatar es estable y propio de cada animal', () => {
+    expect(sceneToSvg(buildPortrait(NINA, 64))).toBe(sceneToSvg(buildPortrait(NINA, 64)));
+    expect(sceneToSvg(buildPortrait(NINA, 64))).not.toBe(sceneToSvg(buildPortrait(TOBY, 64)));
+  });
+});
+
+/**
+ * Ninguna publicación puede estar en el futuro.
+ *
+ * Las horas de la semilla están ancladas a horas de paseo reales —7:40, 18:25,
+ * 23:10— para que el cielo de la ilustración varíe. El efecto secundario es que
+ * abrir la aplicación antes de esa hora ponía la publicación por delante del
+ * reloj, y la tarjeta decía «ahora» para algo que no había pasado.
+ */
+describe('las horas de la semilla', () => {
+  it('ninguna publicación ni ningún reel están por delante del reloj', () => {
+    const now = Date.now();
+    for (const post of SEED_POSTS) {
+      expect(post.createdAt.getTime(), post.id).toBeLessThanOrEqual(now);
+      for (const comment of post.comments) {
+        expect(comment.createdAt.getTime(), comment.id).toBeLessThanOrEqual(now);
+      }
+    }
+    for (const reel of reelsSnapshot()) {
+      expect(reel.createdAt.getTime(), reel.id).toBeLessThanOrEqual(now);
+    }
+  });
+
+  it('cubren las cuatro franjas del día, que es lo que hace variar el dibujo', () => {
+    const times = new Set(SEED_POSTS.map((post) => timeOfDay(post.createdAt)));
+    // Con todas a la misma hora el feed entero saldría del mismo color, que es
+    // exactamente lo que pasaba con las horas relativas.
+    expect(times.size).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('sin saber qué tiempo hace', () => {
+  /**
+   * La postura del proyecto entero, aplicada a un dato que ahora puede faltar.
+   *
+   * Cuando la consulta meteorológica no sale, la tentación es seguir como si
+   * hiciera bueno: la lista se ve llena y nadie se queja. Eso convierte la capa
+   * de bienestar en un adorno el día que se cae la red, que es justo el día en
+   * que nadie se entera de que se ha caído.
+   */
+  it('no propone a nadie', () => {
+    const { entries, emptyReason } = discover(nina, null);
+    expect(entries).toEqual([]);
+    expect(emptyReason).toBe('weather_unknown');
+  });
+
+  it('no devuelve un veredicto inventado', () => {
+    expect(discover(nina, null).welfare).toBeNull();
+  });
+
+  it('no se disfraza de «no hay nadie cerca»', () => {
+    // Decirle a alguien que su barrio está vacío cuando el motivo real es que
+    // falló una consulta es mentirle sobre lo que pasa, y encima le hace
+    // buscar el problema donde no está.
+    expect(discover(nina, null).emptyReason).not.toBe('no_candidates');
+  });
+
+  it('tampoco cuenta vetos de seguridad que no ha llegado a evaluar', () => {
+    const result = discover(nina, null);
+    expect(result.safetyVetoed).toBe(0);
+    expect(result.restingNearby).toBe(0);
+  });
+});
+
+/**
+ * Quién está fuera, y dónde dice que está.
+ *
+ * `placeName` empezó siendo un rótulo suelto —una cadena que se pintaba en una
+ * lista y que nadie podía contrastar con nada—, y así se quedó con Parque
+ * Berlín escrito encima de unas coordenadas que estaban a cinco kilómetros, en
+ * Parque Central. No rompía ninguna pantalla: decía un nombre, y un nombre
+ * siempre se pinta bien.
+ *
+ * Dejó de ser inocuo al poner las caras en el mapa, porque entonces el rótulo
+ * decide **dónde se dibuja** a ese perro. Un tutor que cruza el barrio a un
+ * parque en el que no hay nadie no vuelve a fiarse de la pantalla, y el fallo
+ * que lo causó se lee perfectamente en el código.
+ */
+/**
+ * El acento de cada animal.
+ *
+ * La aplicación se pinta del color del perro activo, así que este mapeo decide
+ * de qué color se ve media pantalla. Lo que hay que sostener es poco y es
+ * exigente:
+ *
+ *  · **Determinista.** El mismo animal da siempre el mismo color. Si cambiara
+ *    entre arranques, la aplicación parecería estropeada, no personalizada.
+ *  · **Válido.** Sale de la lista cerrada de acentos, que es la que ya pasó
+ *    contraste y separación de significados en `@petnav/tokens`. Un acento
+ *    inventado aquí se saltaría todas esas comprobaciones de golpe.
+ *  · **Visible.** Los dos perros de la misma tutora tienen colores distintos.
+ *    Si el conmutador de mascota no repintara nada, la función no existiría.
+ */
+describe('el acento de cada mascota', () => {
+  const dogs = [...MY_PETS, ...OTHER_PETS].filter((pet) => pet.speciesId === 'dog');
+
+  it('sale de la lista cerrada de acentos', () => {
+    for (const pet of dogs) {
+      expect(ACCENT_IDS, `${pet.name} tiene un acento que no existe`).toContain(accentOf(pet.id));
+    }
+  });
+
+  it('el mismo animal da siempre el mismo color', () => {
+    for (const pet of dogs) {
+      expect(accentOf(pet.id)).toBe(accentOf(pet.id));
+    }
+  });
+
+  it('las dos mascotas de la misma tutora se pintan distinto', () => {
+    /* Es lo que hace visible la función: Nina y Kira comparten tutora, y
+       cambiar de una a otra tiene que repintar la aplicación. Con el mismo
+       acento para las dos, el conmutador de mascota no enseñaría nada. */
+    const [nina, kira] = MY_PETS;
+    expect(accentOf(nina!.id)).not.toBe(accentOf(kira!.id));
+  });
+
+  it('nunca es el rojo de extraviados ni el terracota de en vivo', () => {
+    /* Los dos están fuera de la lista de acentos por decisión, y esto lo
+       comprueba desde este lado por si alguien la amplía sin mirar: un botón de
+       acción del color del aviso de perro perdido vacía el aviso. */
+    for (const pet of dogs) {
+      expect(accentOf(pet.id)).not.toBe('red');
+      expect(accentOf(pet.id)).not.toBe('terracotta');
+    }
+  });
+});
+
+describe('quién está fuera y dónde', () => {
+  const places = Object.values(PLACES);
+
+  it('cada perro que está fuera dice un sitio que existe', () => {
+    for (const pet of walkingNow('dog')) {
+      expect(places.some((place) => place.name === pet.placeName)).toBe(true);
+    }
+  });
+
+  it('y ese sitio es donde de verdad está, no otro a cinco kilómetros', () => {
+    /* Se comprueba con la misma distancia que usa la aplicación, y contra el
+       radio del propio sitio: un parque es un área, así que estar «en» él es
+       caber dentro, no coincidir con su centro. */
+    for (const pet of walkingNow('dog')) {
+      const place = places.find((candidate) => candidate.name === pet.placeName);
+      expect(place, `${pet.name} dice estar en un sitio que no existe`).toBeDefined();
+      const distance = distanceMeters(pet.location, place!);
+      expect(distance, `${pet.name} dice estar en ${place!.name} y está a ${Math.round(distance)} m`)
+        .toBeLessThanOrEqual(place!.radiusM);
+    }
+  });
+});
+
+describe('puntos de encuentro', () => {
+  /**
+   * El caso que pidió el usuario, con los datos de la semilla: Marta corre a
+   * las seis y quiere saber con quién de su barrio puede quedar.
+   */
+  it('propone quedar a las seis con quienes también corren', () => {
+    const meetups = meetupsFor(nina);
+    const run = meetups.find((meetup) => meetup.pace === 'run');
+
+    expect(run).toBeDefined();
+    expect(run?.startMinute).toBe(6 * 60);
+    expect(run?.others.length).toBeGreaterThan(0);
+    expect(run?.placeName.length).toBeGreaterThan(0);
+  });
+
+  it('solo enseña los planes en los que estás tú', () => {
+    // Un directorio de las rutinas del barrio sería publicar los horarios de
+    // gente que no los ha compartido contigo.
+    for (const meetup of meetupsFor(nina)) {
+      expect(meetup.attendees).toContain(nina.id);
+    }
+  });
+
+  /**
+   * Este test encontró una fuga de verdad.
+   *
+   * `others` devolvía el `DemoPet` entero, y con él la casa de cada vecino y su
+   * horario completo. El algoritmo del núcleo tiene su propia comprobación de
+   * que no filtra coordenadas; esta capa la había perdido al envolverlo, que es
+   * exactamente donde se pierden estas cosas.
+   */
+  it('dice tu caminata y no dónde vive nadie más', () => {
+    const meetup = meetupsFor(nina)[0];
+    expect(meetup?.myWalkMeters).toBeGreaterThan(0);
+
+    const serialised = JSON.stringify(meetup);
+    for (const companion of OTHER_PETS) {
+      expect(serialised).not.toContain(String(companion.home.lat));
+      expect(serialised).not.toContain(String(companion.home.lng));
+    }
+  });
+
+  it('tampoco publica el horario de los demás', () => {
+    // Publicar el calendario de alguien es publicar su rutina diaria. Lo que se
+    // comparte es la coincidencia, nunca la agenda.
+    const serialised = JSON.stringify(meetupsFor(nina));
+    expect(serialised).not.toContain('startTime');
+  });
+
+  it('a Kira no se le propone una carrera aunque su tutora corra', () => {
+    // Misma casa, misma tutora, mismo barrio. Lo que cambia es el bulldog al
+    // otro extremo de la correa.
+    expect(meetupsFor(kira).some((meetup) => meetup.pace === 'run')).toBe(false);
+  });
+
+  it('una especie sin encuentros no recibe puntos de encuentro', () => {
+    const solitary = { ...nina, speciesId: 'cat' };
+    expect(meetupsFor(solitary)).toEqual([]);
+  });
+});

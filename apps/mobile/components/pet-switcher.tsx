@@ -1,0 +1,139 @@
+/**
+ * Selector de mascota.
+ *
+ * Aparece en todas las pantallas porque la respuesta a «qué te ofrece Petnav
+ * hoy» cambia según cuál esté seleccionada, y no por la especie —hoy todas son
+ * perros— sino por el animal: a 26 grados Nina sale y Kira no.
+ *
+ * Debajo del nombre va la raza y no la especie. Con dos perros, poner «Perro» y
+ * «Perro» era repetir lo que no distingue y callar lo que sí.
+ *
+ * Se oculta solo si el tutor tiene una única mascota: un selector de un elemento
+ * es ruido.
+ */
+
+import { Pressable, Text, View } from 'react-native';
+
+import { Avatar } from './avatar';
+import { myPets, setActivePetId, useActivePet } from '@/lib/active-pet';
+import { speciesName } from '@/lib/labels';
+import { fonts } from '@/lib/fonts';
+import { useTheme } from '@/lib/theme';
+
+export function PetSwitcher() {
+  const theme = useTheme();
+  const active = useActivePet();
+  const pets = myPets();
+
+  if (pets.length < 2) return null;
+
+  return (
+    <View
+      accessibilityRole="tablist"
+      accessibilityLabel="Mascota que estás mirando"
+      style={{
+        flexDirection: 'row',
+        gap: theme.space[2],
+        backgroundColor: theme.colors.surfaceSunken,
+        borderRadius: theme.radius.full,
+        padding: theme.space[1],
+      }}
+    >
+      {pets.map((pet) => {
+        const isActive = pet.id === active.id;
+        return (
+          <Pressable
+            key={pet.id}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            accessibilityHint={`Ver la aplicación para ${pet.name}${
+              pet.breeds.length > 0 ? `, ${pet.breeds[0]}` : ''
+            }`}
+            onPress={() => setActivePetId(pet.id)}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              paddingVertical: theme.space[2],
+              paddingHorizontal: theme.space[3],
+              borderRadius: theme.radius.full,
+              backgroundColor: isActive ? theme.colors.primary : 'transparent',
+            }}
+          >
+            <Text
+              style={{
+                color: isActive ? theme.colors.primaryForeground : theme.colors.mutedForeground,
+                fontFamily: fonts.bodyBold,
+                fontSize: theme.fontSize.sm,
+              }}
+            >
+              {pet.name}
+            </Text>
+            <Text
+              style={{
+                color: isActive ? theme.colors.primaryForeground : theme.colors.mutedForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.xs,
+              }}
+            >
+              {pet.breeds[0] ?? speciesName(pet.speciesId)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * El conmutador, del tamaño de un icono de cabecera.
+ *
+ * En el feed la versión grande ocupaba una franja entera arriba del todo, y
+ * ahí es donde Instagram tiene ya la primera foto. Esta hace lo mismo con un
+ * retrato y un punto: se toca y cambia de animal. El nombre no se pierde —va
+ * en el propio retrato y en la etiqueta accesible—, y con un solo animal
+ * desaparece igual que la otra.
+ */
+export function PetSwitcherCompact() {
+  const theme = useTheme();
+  const active = useActivePet();
+  const pets = myPets();
+
+  if (pets.length < 2) return null;
+
+  const next = pets[(pets.findIndex((pet) => pet.id === active.id) + 1) % pets.length];
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Viendo la aplicación para ${active.name}`}
+      accessibilityHint={next ? `Cambiar a ${next.name}` : undefined}
+      onPress={() => next && setActivePetId(next.id)}
+      style={({ pressed }) => ({
+        width: theme.touchTarget.min,
+        height: theme.touchTarget.min,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: pressed ? 0.5 : 1,
+      })}
+    >
+      <View>
+        <Avatar id={active.id} name={active.name} size={26} />
+        {/* El punto dice que hay otro animal detrás; sin él, el retrato parece
+            decoración y nadie descubre que se puede cambiar. */}
+        <View
+          style={{
+            position: 'absolute',
+            right: -1,
+            bottom: -1,
+            width: 9,
+            height: 9,
+            borderRadius: 5,
+            backgroundColor: theme.colors.primary,
+            borderWidth: 1.5,
+            borderColor: theme.colors.background,
+          }}
+        />
+      </View>
+    </Pressable>
+  );
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@petnav/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000 --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --port 3000 --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint app components lib",
+    "test": "vitest run --passWithNoTests",
+    "e2e": "playwright test",
+    "screenshots": "node ../../scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@petnav/core": "workspace:*",
+    "@petnav/tokens": "workspace:*",
+    "@radix-ui/react-dropdown-menu": "^2.1.24",
+    "@radix-ui/react-tooltip": "^1.2.16",
+    "lucide-react": "^1.33.0",
+    "next": "^15.1.3",
+    "pg": "^8.13.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@eslint/eslintrc": "^3.3.6",
+    "@playwright/test": "^1.49.1",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.23",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
