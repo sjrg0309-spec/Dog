@@ -45,7 +45,19 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ASSISTANCE_ACCESS_NOTE,
@@ -101,6 +113,7 @@ import { registerPet, registerShelter, signIn } from '@/lib/account';
 import { Avatar } from './avatar';
 import { OTHER_PETS } from '@/lib/demo-data';
 import { buildScene } from '@/lib/artwork';
+import { withAlpha } from '@/lib/color';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
@@ -270,53 +283,120 @@ export function Registro() {
  */
 function Bienvenida({ onSignup, onLogin }: { onSignup: () => void; onLogin: () => void }) {
   const theme = useTheme();
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [why, setWhy] = useState<string | null>(null);
 
   /*
-   * La escena, a las seis de la tarde y no a la hora que sea.
+   * La escena, a pantalla completa y a las seis de la tarde.
    *
-   * Es la única de la aplicación con la hora fijada, y es a propósito: «las seis
-   * de la tarde» es la dirección visual del proyecto desde el primer día —luz
-   * cálida y baja, parque, movimiento— y esta es la pantalla que la presenta. El
-   * resto de escenas sí usan la hora de verdad, porque ahí lo que cuentan es
-   * cuándo pasó lo que enseñan; aquí no ha pasado nada todavía.
+   * La hora está fijada a propósito: «las seis de la tarde» es la dirección
+   * visual del proyecto desde el primer día —luz cálida y baja, parque,
+   * movimiento— y esta es la pantalla que la presenta. El resto de escenas usan
+   * la hora de verdad, porque ahí lo que cuentan es cuándo pasó lo que
+   * enseñan; aquí no ha pasado nada todavía.
    *
-   * Se calcula una vez: es un dibujo, no un reloj, y recalcularla en cada render
-   * cambiaría el perro al pulsar cualquier cosa.
+   * Se calcula una vez: es un dibujo, no un reloj, y recalcularla en cada
+   * render cambiaría el perro al pulsar cualquier cosa.
    */
-  const scene = useMemo(() => {
-    const goldenHour = new Date();
-    goldenHour.setHours(18, 0, 0, 0);
-    return buildScene({
-      seed: 'bienvenida',
-      petId: 'coincide',
-      at: goldenHour,
-      width: 320,
-      height: 200,
-      pose: 'run',
-    });
-  }, []);
+  /*
+   * La escena ocupa el 70 % de arriba, no el alto entero.
+   *
+   * Generada a la proporción del teléfono —casi 9:19— el cielo se comía la
+   * pantalla y el perro caía en el 60 %, justo debajo de donde el velo ya es
+   * opaco: la primera versión a pantalla completa **no tenía perro**. El
+   * generador coloca el horizonte al 58 % del alto que se le pida, así que
+   * pidiéndole el 62 % de la pantalla el horizonte cae al 36 % y el animal
+   * justo debajo, sobre el 45 %: por encima del titular, que es donde tiene
+   * que estar.
+   *
+   * El 70 % fue el primer intento y todavía dejaba al perro **detrás de la
+   * palabra «pasear»**. Un titular encima del sujeto de la foto es lo mismo que
+   * no tener foto.
+   */
+  const art = Math.round(height * 0.62);
+  const scene = useMemo(
+    () => {
+      const goldenHour = new Date();
+      goldenHour.setHours(18, 0, 0, 0);
+      return buildScene({
+        seed: 'bienvenida',
+        petId: 'coincide',
+        at: goldenHour,
+        width: Math.round(width),
+        height: art,
+        pose: 'run',
+      });
+    },
+    [width, art],
+  );
 
   return (
-    <Screen>
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: 'center',
-          gap: theme.space[5],
-          padding: theme.space[6],
+    /*
+     * `full`: aquí la imagen **es** la pantalla.
+     *
+     * La versión anterior era una tarjeta de 320 × 200 flotando en medio de un
+     * fondo liso, con un tercio de la pantalla vacío por encima. Eso es una
+     * diapositiva, no una portada: ninguna aplicación de las que se toman como
+     * referencia abre así, y por un motivo que no es de gusto — la primera
+     * pantalla tiene que enseñar de qué va esto en el primer segundo, y una
+     * miniatura no enseña nada.
+     *
+     * Ahora la escena ocupa el alto entero, por debajo de la barra de estado, y
+     * todo lo demás va encima. Es el patrón de Instagram, de Snapchat y de
+     * cualquier portada de los últimos diez años.
+     */
+    <Screen full>
+      <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel="Un perro corriendo por un parque al atardecer"
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: art }}
+      >
+        <SceneView scene={scene} width={width} height={art} />
+      </View>
+
+      {/*
+        El velo.
+        Un degradado del propio fondo, transparente arriba y opaco abajo. No es
+        decoración: es lo que hace legible un texto blanco sobre una imagen que
+        no se controla —aquí el cielo es claro y la hierba oscura—. Sin él, el
+        titular se lee sobre el césped y desaparece sobre el cielo.
+        Las paradas están donde están para que el texto caiga siempre sobre la
+        parte opaca y la imagen se vea entera por arriba.
+      */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[
+          withAlpha(theme.colors.background, 0),
+          withAlpha(theme.colors.background, 0.55),
+          withAlpha(theme.colors.background, 0.94),
+          theme.colors.background,
+        ]}
+        locations={[0, 0.32, 0.5, 0.62]}
+        style={{ ...StyleSheet.absoluteFillObject }}
+      />
+
+      <View
+        style={{
+          flex: 1,
+          paddingTop: insets.top + theme.space[4],
+          paddingBottom: Math.max(insets.bottom, theme.space[4]) + theme.space[2],
+          paddingHorizontal: theme.space[5],
         }}
       >
+        {/* La marca, arriba y pequeña. En una portada el logotipo no es el
+            asunto: es la firma. El asunto es la foto y lo que dice el titular. */}
         <Appear>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space[2] }}>
-            <Icon icon={PawPrint} size="lg" color={theme.colors.primary} decorative />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+            <Icon icon={PawPrint} size="base" color={theme.colors.foreground} decorative />
             <Text
               accessibilityRole="header"
               style={{
                 color: theme.colors.foreground,
                 fontFamily: fonts.displayExtrabold,
-                fontSize: theme.fontSize['2xl'],
-                letterSpacing: 2,
+                fontSize: theme.fontSize.lg,
+                letterSpacing: 1.5,
               }}
             >
               PETNAV
@@ -324,73 +404,83 @@ function Bienvenida({ onSignup, onLogin }: { onSignup: () => void; onLogin: () =
           </View>
         </Appear>
 
-        <Appear index={1}>
-          <View
-            accessible
-            accessibilityRole="image"
-            accessibilityLabel="Un perro corriendo por un parque al atardecer"
+        <View style={{ flex: 1 }} />
+
+        <Appear index={1} style={{ gap: theme.space[2] }}>
+          {/* Alineado a la izquierda, no centrado. Un titular de dos líneas
+              centrado obliga al ojo a buscar el principio de cada una; en una
+              portada, donde solo hay una cosa que leer, eso es fricción
+              gratuita. */}
+          <Text
             style={{
-              alignItems: 'center',
-              borderRadius: theme.radius['2xl'],
-              overflow: 'hidden',
-              backgroundColor: theme.colors.surfaceSunken,
+              color: theme.colors.foreground,
+              fontFamily: fonts.displayExtrabold,
+              fontSize: theme.fontSize['3xl'],
+              lineHeight: theme.fontSize['3xl'] * 1.08,
+              letterSpacing: -0.8,
             }}
           >
-            <SceneView scene={scene} width={320} height={200} />
-          </View>
+            Encuentra con quién pasear
+          </Text>
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              opacity: 0.78,
+              fontFamily: fonts.body,
+              fontSize: theme.fontSize.base,
+              lineHeight: theme.fontSize.base * 1.45,
+            }}
+          >
+            Cruzamos horarios. Funciona a las siete de la mañana y a las once de la noche.
+          </Text>
         </Appear>
 
-        <Appear index={2}>
-          <View style={{ gap: theme.space[2] }}>
-            <Text
-              style={{
-                textAlign: 'center',
-                color: theme.colors.foreground,
-                fontFamily: fonts.displayExtrabold,
-                fontSize: theme.fontSize['2xl'],
-                letterSpacing: -0.5,
-              }}
-            >
-Encuentra con quién pasear
-            </Text>
-            <Text
-              style={{
-                textAlign: 'center',
-                color: theme.colors.mutedForeground,
-                fontFamily: fonts.body,
-                fontSize: theme.fontSize.sm,
-                lineHeight: theme.fontSize.sm * 1.5,
-              }}
-            >
-Cruzamos horarios de paseo. Funciona a las siete de la mañana y a las once de la noche.
-            </Text>
-          </View>
-        </Appear>
-
-        <Appear index={3} style={{ gap: theme.space[3] }}>
+        <Appear index={2} style={{ gap: theme.space[3], paddingTop: theme.space[5] }}>
           <BigButton label="Comenzar ahora" icon={PawPrint} onPress={onSignup} />
-          <BigButton label="Ya tengo cuenta" tone="outline" onPress={onLogin} />
 
           {/*
-            Apple y Google.
-            Están porque es lo que espera cualquiera en esta pantalla, y **no
-            fingen entrar**: al tocarlos dicen qué falta para que funcionen. Un
-            botón que hace como que inicia sesión y no lo hace es la peor
-            versión de los dos mundos; uno que explica por qué todavía no puede
-            es información, que es lo que sí se puede dar hoy.
+            «Ya tengo cuenta» pasa de botón de contorno a enlace.
+            Dos botones del mismo tamaño uno encima de otro obligan a decidir
+            antes de leer. Quien ya tiene cuenta busca esa frase y la encuentra;
+            quien no, ve un solo botón y sabe qué hacer.
           */}
-          <View style={{ flexDirection: 'row', gap: theme.space[3] }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ya tengo cuenta"
+            onPress={() => {
+              haptics.tap();
+              onLogin();
+            }}
+            style={({ pressed }) => ({
+              minHeight: theme.touchTarget.min,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.sm,
+              }}
+            >
+              ¿Ya tienes cuenta?{' '}
+              <Text style={{ fontFamily: fonts.displayBold }}>Entra</Text>
+            </Text>
+          </Pressable>
+
+          {/*
+            Apple y Google, ahora en una línea y sin candado.
+            Están porque es lo que espera cualquiera en esta pantalla, y **no
+            fingen entrar**: al tocarlos dicen qué falta. Un botón que hace como
+            que inicia sesión y no lo hace es la peor versión de los dos mundos;
+            uno que explica por qué todavía no puede es información.
+          */}
+          <View style={{ flexDirection: 'row', gap: theme.space[2] }}>
             {[
-              {
-                id: 'apple',
-                label: 'Apple',
-                note: 'Entrar con Apple exige una cuenta de desarrollador de Apple y un servidor que valide el token que devuelve. Cuando lo haya, además es obligatorio ofrecerlo si se ofrece el de Google.',
-              },
-              {
-                id: 'google',
-                label: 'Google',
-                note: 'Entrar con Google necesita las claves del proyecto y un servidor que compruebe el token. Sin esa parte, el botón solo abriría una ventana que no lleva a ningún sitio.',
-              },
+              { id: 'apple', label: 'Apple' },
+              { id: 'google', label: 'Google' },
             ].map((provider) => (
               <Pressable
                 key={provider.id}
@@ -403,10 +493,8 @@ Cruzamos horarios de paseo. Funciona a las siete de la mañana y a las once de l
                 }}
                 style={({ pressed }) => ({
                   flex: 1,
-                  flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: theme.space[2],
                   minHeight: theme.touchTarget.min,
                   borderRadius: theme.radius.full,
                   borderWidth: 1,
@@ -414,7 +502,6 @@ Cruzamos horarios de paseo. Funciona a las siete de la mañana y a las once de l
                   backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
                 })}
               >
-                <Icon icon={Lock} size="sm" color={theme.colors.mutedForeground} decorative />
                 <Text
                   style={{
                     color: theme.colors.mutedForeground,
@@ -438,7 +525,7 @@ Cruzamos horarios de paseo. Funciona a las siete de la mañana y a las once de l
 
           <Caption>{GATE_NOTE}</Caption>
         </Appear>
-      </ScrollView>
+      </View>
     </Screen>
   );
 }

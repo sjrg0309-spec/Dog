@@ -30,25 +30,11 @@ import { type ReactNode } from 'react';
 import { Platform, View, type ViewStyle } from 'react-native';
 
 import { useReduceTransparency } from '@/lib/a11y';
+import { withAlpha } from '@/lib/color';
 import { useTheme } from '@/lib/theme';
 
 /** Con cuánta opacidad se tapa lo de debajo. Menos que esto y el texto sufre. */
 const TINT_ALPHA = 0.88;
-
-function withAlpha(hex: string, alpha: number): string {
-  const value = hex.replace('#', '');
-  const full =
-    value.length === 3
-      ? value
-          .split('')
-          .map((c) => c + c)
-          .join('')
-      : value;
-  const r = parseInt(full.slice(0, 2), 16);
-  const g = parseInt(full.slice(2, 4), 16);
-  const b = parseInt(full.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 export function Glass({
   children,

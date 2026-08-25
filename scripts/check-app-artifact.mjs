@@ -1408,14 +1408,27 @@ if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada')
   const plain = await reserved(FILE);
   const withNotch = await reserved(`${FILE}?zonasegura=59`);
 
-  console.log(`zona segura sin muesca: ${plain.includes('59px') ? 'reservada' : 'no'} · con muesca: ${withNotch.includes('59px') ? 'reservada' : 'no'}`);
+  /*
+   * Se compara el hueco reservado, no un número exacto.
+   *
+   * La primera versión buscaba literalmente «59px» y se puso roja en cuanto la
+   * portada pasó a ser a sangre: allí el margen es la muesca **más** el respiro
+   * de la pantalla —75 px—, que es lo correcto. Una aserción que exige el
+   * número pelado comprueba una implementación concreta, no la promesa.
+   *
+   * Lo que hay que afirmar es la diferencia: con muesca tiene que aparecer un
+   * hueco que sin muesca no existe, y del tamaño de la muesca.
+   */
+  const biggest = (values) =>
+    Math.max(0, ...values.map((value) => Number.parseFloat(value)).filter(Number.isFinite));
+  const sinMuesca = biggest(plain);
+  const conMuesca = biggest(withNotch);
 
-  if (plain.includes('59px')) {
-    problems.push('se reservan 59 puntos arriba sin que haya muesca ninguna');
-  }
-  if (!withNotch.includes('59px')) {
+  console.log(`zona segura reservada: sin muesca ${sinMuesca}px · con muesca ${conMuesca}px`);
+
+  if (conMuesca - sinMuesca < 50) {
     problems.push(
-      `la pantalla no aparta la isla dinámica: ningún contenedor reserva 59 puntos (hay ${withNotch.join(', ') || 'ninguno'})`,
+      `la pantalla no aparta la isla dinámica: reserva ${conMuesca}px con muesca y ${sinMuesca}px sin ella`,
     );
   }
 
