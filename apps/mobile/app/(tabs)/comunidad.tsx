@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import {
   CardRail,
   EmptyState,
@@ -70,14 +70,18 @@ export default function CommunityScreen() {
         scrolled={false}
         scrollY={scrollY}
         revealAt={52}
+        floating
         trailing={<PetSwitcherCompact />}
       />
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
-        <LargeTitle subtitle={`Tutores de tu zona y quién sabe tratar a ${pet.name}.`}>
+        <LargeTitle
+          scrollY={scrollY}
+          subtitle={`Tutores de tu zona y quién sabe tratar a ${pet.name}.`}
+        >
           Comunidad
         </LargeTitle>
 

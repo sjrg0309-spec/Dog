@@ -38,7 +38,7 @@ import { summarizeWalk, weekdayName, type WalkOutcome } from '@petnav/core';
 
 import { Avatar } from '@/components/avatar';
 import { BackBar } from '@/components/chrome';
-import { EmptyState } from '@/components/list';
+import { EmptyState, LIST_GUTTER, ListGroup } from '@/components/list';
 import { Icon } from '@/components/icon';
 import { Body, Button, Caption, Heading, Notice, Screen } from '@/components/ui';
 import { PLACES } from '@/lib/demo-data';
@@ -116,103 +116,109 @@ export default function WalkSummaryScreen() {
   const overran = summary.overrunMinutes > 0;
 
   return (
-    <Screen>
+    <Screen grouped>
       <BackBar title="Cómo fue" subtitle={dayLabel(walk.startedAt)} />
 
-      <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
+      <ScrollView contentContainerStyle={{ paddingVertical: theme.space[5], gap: theme.space[5] }}>
         {/* El titular es el tiempo, porque es lo que la aplicación sabe de
             verdad. Un kilometraje aquí sería un número con pinta de dato. */}
-        <View style={{ gap: theme.space[1] }}>
-          <Text
-            accessibilityRole="header"
-            accessibilityLabel={`Estuvisteis fuera ${formatMinutes(summary.minutes)}`}
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize['4xl'],
-              fontVariant: ['tabular-nums'],
-            }}
-          >
-            {formatMinutes(summary.minutes)}
-          </Text>
-          <Caption>fuera de casa</Caption>
-        </View>
+        <ListGroup leading="none">
+          <View style={{ padding: theme.space[4], gap: theme.space[3] }}>
+            <View style={{ gap: theme.space[1] }}>
+              <Text
+                accessibilityRole="header"
+                accessibilityLabel={`Estuvisteis fuera ${formatMinutes(summary.minutes)}`}
+                style={{
+                  color: theme.colors.foreground,
+                  fontFamily: fonts.displayBold,
+                  fontSize: theme.fontSize['4xl'],
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {formatMinutes(summary.minutes)}
+              </Text>
+              <Caption>fuera de casa</Caption>
+            </View>
 
-        <View style={{ gap: theme.space[3] }}>
-          <Fact icon={MapPin} label="Dónde">
-            {placeName(walk.placeId)}
-          </Fact>
-          <Fact icon={Clock} label="Rato propuesto">
-            {formatMinutes(summary.recommendedMinutes)}
-          </Fact>
-          <Fact icon={Thermometer} label="Condiciones">
-            {walk.temperatureC === null
-              ? `Sin dato de temperatura · ${SURFACE_LABEL[walk.surface] ?? walk.surface}`
-              : `${walk.temperatureC} °C sobre ${SURFACE_LABEL[walk.surface] ?? walk.surface}`}
-          </Fact>
-        </View>
+            <View style={{ gap: theme.space[3] }}>
+              <Fact icon={MapPin} label="Dónde">
+                {placeName(walk.placeId)}
+              </Fact>
+              <Fact icon={Clock} label="Rato propuesto">
+                {formatMinutes(summary.recommendedMinutes)}
+              </Fact>
+              <Fact icon={Thermometer} label="Condiciones">
+                {walk.temperatureC === null
+                  ? `Sin dato de temperatura · ${SURFACE_LABEL[walk.surface] ?? walk.surface}`
+                  : `${walk.temperatureC} °C sobre ${SURFACE_LABEL[walk.surface] ?? walk.surface}`}
+              </Fact>
+            </View>
+          </View>
+        </ListGroup>
 
-        {/* Lo único de esta pantalla que habla del animal y no del plan. */}
-        {overran ? (
-          <Notice>
-            <Body>
-              Fueron {formatMinutes(summary.overrunMinutes)} más de lo que se propuso al salir.
-            </Body>
-            <Caption>
-              {walk.welfareLevel === 'ok'
-                ? 'No pasa nada por una vez; se apunta para la próxima.'
-                : `El rato corto venía de las condiciones de ese día: ${
-                    walk.temperatureC ?? '—'
-                  } °C sobre ${SURFACE_LABEL[walk.surface] ?? walk.surface}.`}
-            </Caption>
-          </Notice>
-        ) : null}
+        <View style={{ paddingHorizontal: LIST_GUTTER, gap: theme.space[5] }}>
+          {/* Lo único de esta pantalla que habla del animal y no del plan. */}
+          {overran ? (
+            <Notice>
+              <Body>
+                Fueron {formatMinutes(summary.overrunMinutes)} más de lo que se propuso al salir.
+              </Body>
+              <Caption>
+                {walk.welfareLevel === 'ok'
+                  ? 'No pasa nada por una vez; se apunta para la próxima.'
+                  : `El rato corto venía de las condiciones de ese día: ${
+                      walk.temperatureC ?? '—'
+                    } °C sobre ${SURFACE_LABEL[walk.surface] ?? walk.surface}.`}
+              </Caption>
+            </Notice>
+          ) : null}
 
-        {/* No se registra recorrido, y se dice. Callarlo dejaría al usuario
+          {/* No se registra recorrido, y se dice. Callarlo dejaría al usuario
             buscando un mapa que no existe y pensando que falla algo. */}
-        <Caption>
-          No se guarda el recorrido ni los kilómetros: la aplicación registra cuándo empezó y cuándo
-          acabó, no por dónde fuisteis. Un rastro guardado es justo lo que la regla del radar
-          —anclar al lugar y nunca a la persona— existe para no tener.
-        </Caption>
+          <Caption>
+            No se guarda el recorrido ni los kilómetros: la aplicación registra cuándo empezó y
+            cuándo acabó, no por dónde fuisteis. Un rastro guardado es justo lo que la regla del
+            radar —anclar al lugar y nunca a la persona— existe para no tener.
+          </Caption>
 
-        {walk.companions.length > 0 ? (
-          <View style={{ gap: theme.space[3] }}>
-            <Heading>Con quién</Heading>
-            <Caption>
-              Se pregunta por cada uno por separado. La compatibilidad se calcula pareja a pareja,
-              así que una nota del paseo entero ensuciaría a los que no tuvieron nada que ver.
-            </Caption>
+          {walk.companions.length > 0 ? (
+            <View style={{ gap: theme.space[3] }}>
+              <Heading>Con quién</Heading>
+              <Caption>
+                Se pregunta por cada uno por separado. La compatibilidad se calcula pareja a pareja,
+                así que una nota del paseo entero ensuciaría a los que no tuvieron nada que ver.
+              </Caption>
 
-            {walk.companions.map((companion) => (
-              <CompanionRow
-                key={companion.petId}
-                walkId={walk.id}
-                petId={companion.petId}
-                outcome={companion.outcome}
-              />
-            ))}
+              {walk.companions.map((companion) => (
+                <CompanionRow
+                  key={companion.petId}
+                  walkId={walk.id}
+                  petId={companion.petId}
+                  outcome={companion.outcome}
+                />
+              ))}
 
-            <Caption>
-              Un 👎 baja quince puntos de afinidad con ese perro y puede sacarlo de las propuestas.
-              Nadie recibe aviso de lo que marques.
-            </Caption>
-          </View>
-        ) : (
-          <View style={{ gap: theme.space[1] }}>
-            <Body>Este paseo fue solo vuestro.</Body>
-            <Caption>
-              No coincidisteis con nadie del radar. Es lo normal fuera de las horas punta, y por eso
-              la aplicación cruza horarios en vez de depender de quién esté conectado.
-            </Caption>
-          </View>
-        )}
+              <Caption>
+                Un 👎 baja quince puntos de afinidad con ese perro y puede sacarlo de las
+                propuestas. Nadie recibe aviso de lo que marques.
+              </Caption>
+            </View>
+          ) : (
+            <View style={{ gap: theme.space[1] }}>
+              <Body>Este paseo fue solo vuestro.</Body>
+              <Caption>
+                No coincidisteis con nadie del radar. Es lo normal fuera de las horas punta, y por
+                eso la aplicación cruza horarios en vez de depender de quién esté conectado.
+              </Caption>
+            </View>
+          )}
 
-        <Button
-          label="Ver el historial"
-          variant="outline"
-          onPress={() => router.replace('/historial')}
-        />
+          <Button
+            label="Ver el historial"
+            variant="outline"
+            onPress={() => router.replace('/historial')}
+          />
+        </View>
       </ScrollView>
     </Screen>
   );

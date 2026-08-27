@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Avatar } from '@/components/avatar';
-import { LargeTitle, NavBar, Separator } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar, Separator } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
 import {
   CardRail,
@@ -214,12 +214,13 @@ export default function RadarScreen() {
           scrolled={false}
           scrollY={scrollY}
           revealAt={52}
+          floating
           trailing={<PetSwitcherCompact />}
         />
         <Animated.ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingBottom: theme.space[16] }}
+          contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
         >
           <EmptyState
             icon={PawPrint}
@@ -243,14 +244,18 @@ export default function RadarScreen() {
         scrolled={false}
         scrollY={scrollY}
         revealAt={52}
+        floating
         trailing={<PetSwitcherCompact />}
       />
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
-        <LargeTitle subtitle="Quién está fuera ahora, y hasta cuándo estáis vosotros.">
+        <LargeTitle
+          scrollY={scrollY}
+          subtitle="Quién está fuera ahora, y hasta cuándo estáis vosotros."
+        >
           Fuera ahora
         </LargeTitle>
 

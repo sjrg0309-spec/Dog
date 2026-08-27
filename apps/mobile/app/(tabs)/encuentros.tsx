@@ -25,7 +25,7 @@
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { EmptyState, FootNote, ListGroup } from '@/components/list';
 import { MeetupCard } from '@/components/meetup-card';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
@@ -57,14 +57,18 @@ export default function MeetupPointsScreen() {
         scrolled={false}
         scrollY={scrollY}
         revealAt={52}
+        floating
         trailing={<PetSwitcherCompact />}
       />
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
-        <LargeTitle subtitle="Tu rutina cruzada con la de tus vecinos, y el sitio al que llegáis todos andando.">
+        <LargeTitle
+          scrollY={scrollY}
+          subtitle="Tu rutina cruzada con la de tus vecinos, y el sitio al que llegáis todos andando."
+        >
           Dónde y a qué hora
         </LargeTitle>
 

@@ -4,7 +4,7 @@ import Animated from 'react-native-reanimated';
 import { groupAffinity, groupWelfare } from '@petnav/core';
 
 import { Avatar } from '@/components/avatar';
-import { LargeTitle, NavBar } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
 import { Icon } from '@/components/icon';
 import {
@@ -80,12 +80,13 @@ export default function PlaydatesScreen() {
           scrolled={false}
           scrollY={scrollY}
           revealAt={52}
+          floating
           trailing={<PetSwitcherCompact />}
         />
         <Animated.ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingBottom: theme.space[16] }}
+          contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
         >
           <EmptyState
             icon={PawPrint}
@@ -108,6 +109,7 @@ export default function PlaydatesScreen() {
         scrolled={false}
         scrollY={scrollY}
         revealAt={52}
+        floating
         trailing={
           <>
             <PetSwitcherCompact />
@@ -124,9 +126,12 @@ export default function PlaydatesScreen() {
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
-        <LargeTitle subtitle={`Cómo encaja ${pet.name} con el grupo, antes de apuntarse.`}>
+        <LargeTitle
+          scrollY={scrollY}
+          subtitle={`Cómo encaja ${pet.name} con el grupo, antes de apuntarse.`}
+        >
           {`Quedadas de ${speciesName(pet.speciesId).toLowerCase()}`}
         </LargeTitle>
 

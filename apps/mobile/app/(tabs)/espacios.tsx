@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { EmptyState, FootNote, ListGroup } from '@/components/list';
 import { Appear } from '@/components/motion';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
@@ -55,12 +55,13 @@ export default function SpotsScreen() {
           scrolled={false}
           scrollY={scrollY}
           revealAt={52}
+          floating
           trailing={<PetSwitcherCompact />}
         />
         <Animated.ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingBottom: theme.space[16] }}
+          contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
         >
           <EmptyState
             icon={PawPrint}
@@ -83,14 +84,18 @@ export default function SpotsScreen() {
         scrolled={false}
         scrollY={scrollY}
         revealAt={52}
+        floating
         trailing={<PetSwitcherCompact />}
       />
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
-        <LargeTitle subtitle="Caro para uno, barato entre cinco. El grupo lo propone el algoritmo.">
+        <LargeTitle
+          scrollY={scrollY}
+          subtitle="Caro para uno, barato entre cinco. El grupo lo propone el algoritmo."
+        >
           Espacios privados
         </LargeTitle>
 

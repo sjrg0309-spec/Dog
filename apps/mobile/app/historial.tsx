@@ -43,7 +43,7 @@ import {
 
 import { Avatar } from '@/components/avatar';
 import { BackBar, Separator } from '@/components/chrome';
-import { EmptyState } from '@/components/list';
+import { EmptyState, LIST_GUTTER, ListGroup, ListRow, SectionHeader } from '@/components/list';
 import { Icon } from '@/components/icon';
 import { Body, Caption, Heading, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
@@ -116,14 +116,17 @@ export default function HistoryScreen() {
   }
 
   return (
-    <Screen>
+    <Screen grouped>
       <BackBar title="Vuestros paseos" subtitle={`${pet.name} · últimos ${WINDOW_DAYS} días`} />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: theme.space[8] }}>
-        <View style={{ padding: theme.space[5], gap: theme.space[5] }}>
-          {/* Cuatro cifras y no ocho: un panel de métricas es lo que hace que
-              nadie mire ninguna. */}
-          <View style={{ gap: theme.space[2] }}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: theme.space[4], paddingBottom: theme.space[8] }}
+      >
+        {/* Las cifras, en su tarjeta. Sueltas sobre el fondo eran cuatro
+            números flotando; dentro del bloque son un resumen, que es lo que
+            son. */}
+        <ListGroup leading="none">
+          <View style={{ padding: theme.space[4], gap: theme.space[2] }}>
             {/* Dos por fila y no cuatro sueltas. Con `flexWrap` y anchos
                 libres, «7 h 40 min» empujaba la cuarta cifra a una segunda
                 fila ella sola, y una cifra huérfana debajo de tres se lee como
@@ -143,9 +146,23 @@ export default function HistoryScreen() {
               </Caption>
             ) : null}
           </View>
+        </ListGroup>
 
-          <Rhythm days={rhythm} declared={declared} weeks={weeksCovered(walks)} />
+        <View style={{ height: theme.space[5] }} />
 
+        <ListGroup leading="none">
+          <View style={{ padding: theme.space[4] }}>
+            <Rhythm days={rhythm} declared={declared} weeks={weeksCovered(walks)} />
+          </View>
+        </ListGroup>
+
+        <View
+          style={{
+            paddingHorizontal: LIST_GUTTER,
+            gap: theme.space[5],
+            paddingTop: theme.space[5],
+          }}
+        >
           {patterns.length > 0 ? (
             <View style={{ gap: theme.space[3] }}>
               <Heading>Esto ya es una costumbre</Heading>
@@ -179,55 +196,43 @@ export default function HistoryScreen() {
               </Caption>
             </View>
           ) : null}
+        </View>
 
-          {tally.length > 0 ? (
-            <View style={{ gap: theme.space[3] }}>
-              <Heading>Con quién salís</Heading>
+        {tally.length > 0 ? (
+          <>
+            <SectionHeader title="Con quién salís" />
+            <ListGroup leading="avatar">
               {tally.map((entry) => {
                 const companion = petById(entry.petId);
                 return (
-                  <View
+                  <ListRow
                     key={entry.petId}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}
-                  >
-                    <Avatar id={entry.petId} name={companion?.name ?? 'Perro'} size={40} />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          color: theme.colors.foreground,
-                          fontFamily: fonts.bodyBold,
-                          fontSize: theme.fontSize.sm,
-                        }}
-                      >
-                        {companion?.name ?? 'Otro perro'}
-                      </Text>
-                      <Text
-                        style={{
-                          color: theme.colors.mutedForeground,
-                          fontFamily: fonts.body,
-                          fontSize: theme.fontSize['2xs'],
-                        }}
-                      >
-                        {entry.walks} {entry.walks === 1 ? 'paseo' : 'paseos'} en {entry.weeks}{' '}
-                        {entry.weeks === 1 ? 'semana' : 'semanas'}
-                        {entry.negatives > 0 ? ' · uno no fue bien' : ''}
-                      </Text>
-                    </View>
-                  </View>
+                    leading={
+                      <Avatar id={entry.petId} name={companion?.name ?? 'Perro'} size={44} />
+                    }
+                    title={companion?.name ?? 'Otro perro'}
+                    subtitle={`${entry.walks} ${entry.walks === 1 ? 'paseo' : 'paseos'} en ${
+                      entry.weeks
+                    } ${entry.weeks === 1 ? 'semana' : 'semanas'}${
+                      entry.negatives > 0 ? ' · uno no fue bien' : ''
+                    }`}
+                  />
                 );
               })}
-            </View>
-          ) : null}
+            </ListGroup>
+          </>
+        ) : null}
 
-          <Heading>Todos los paseos</Heading>
-        </View>
+        <SectionHeader title="Todos los paseos" />
 
         {/* La lista es la tabla del gráfico: los mismos datos, uno a uno y con
             sus cifras escritas. Un gráfico sin su tabla deja fuera a quien lo
             necesita leído. */}
-        {walks.map((walk) => (
-          <WalkRow key={walk.id} walk={walk} />
-        ))}
+        <ListGroup leading="none">
+          {walks.map((walk) => (
+            <WalkRow key={walk.id} walk={walk} />
+          ))}
+        </ListGroup>
 
         <View style={{ padding: theme.space[5] }}>
           <Caption>
@@ -517,72 +522,75 @@ function WalkRow({ walk }: { walk: WalkRecord }) {
     .filter((name): name is string => name !== undefined);
 
   return (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Paseo del ${weekdayName(date.getDay())} ${date.getDate()}, ${minutes} minutos en ${placeName(walk.placeId)}`}
-        onPress={() => {
-          haptics.tap();
-          router.push(`/paseo?id=${walk.id}`);
-        }}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.space[3],
-          minHeight: theme.touchTarget.comfortable,
-          paddingHorizontal: theme.space[5],
-          paddingVertical: theme.space[3],
-          backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
-        })}
-      >
-        <View style={{ width: 44, alignItems: 'center' }}>
-          <Text
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize.lg,
-              fontVariant: ['tabular-nums'],
-            }}
-          >
-            {date.getDate()}
-          </Text>
-          <Text
-            style={{
-              color: theme.colors.mutedForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize['2xs'],
-            }}
-          >
-            {weekdayName(date.getDay()).slice(0, 3)}
-          </Text>
-        </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Paseo del ${weekdayName(date.getDay())} ${date.getDate()}, ${minutes} minutos en ${placeName(walk.placeId)}`}
+      onPress={() => {
+        haptics.tap();
+        router.push(`/paseo?id=${walk.id}`);
+      }}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[3],
+        minHeight: theme.touchTarget.comfortable,
+        paddingHorizontal: theme.space[3] + 2,
+        paddingVertical: theme.space[3],
+        backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
+      })}
+    >
+      <View style={{ width: 44, alignItems: 'center' }}>
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontFamily: fonts.displayBold,
+            fontSize: theme.fontSize.lg,
+            fontVariant: ['tabular-nums'],
+          }}
+        >
+          {date.getDate()}
+        </Text>
+        <Text
+          style={{
+            color: theme.colors.mutedForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize['2xs'],
+          }}
+        >
+          {weekdayName(date.getDay()).slice(0, 3)}
+        </Text>
+      </View>
 
-        <View style={{ flex: 1 }}>
-          <Text
-            numberOfLines={1}
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: fonts.bodyBold,
-              fontSize: theme.fontSize.sm,
-            }}
-          >
-            {formatMinutes(minutes)} · {placeName(walk.placeId)}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={{
-              color: theme.colors.mutedForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize['2xs'],
-            }}
-          >
-            {names.length === 0 ? 'Vosotros dos solos' : `Con ${names.join(', ')}`}
-          </Text>
-        </View>
+      <View style={{ flex: 1 }}>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: theme.colors.foreground,
+            fontFamily: fonts.bodyBold,
+            fontSize: theme.fontSize.sm,
+          }}
+        >
+          {formatMinutes(minutes)} · {placeName(walk.placeId)}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: theme.colors.mutedForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize['2xs'],
+          }}
+        >
+          {names.length === 0 ? 'Vosotros dos solos' : `Con ${names.join(', ')}`}
+        </Text>
+      </View>
 
-        <Icon icon={ChevronRight} size="base" color={theme.colors.mutedForeground} decorative />
-      </Pressable>
-      <Separator inset={theme.space[5] + 44 + theme.space[3]} />
-    </>
+      <Icon
+        icon={ChevronRight}
+        size="base"
+        strokeWidth={2.5}
+        color={theme.colors.mutedForeground}
+        decorative
+      />
+    </Pressable>
   );
 }

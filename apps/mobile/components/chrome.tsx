@@ -19,6 +19,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { PixelRatio, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
+import { Glass } from './glass';
 import { Icon } from './icon';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -71,6 +72,21 @@ export function NavBar({
    */
   onTitlePress,
   /**
+   * La barra flota sobre el contenido, con cristal.
+   *
+   * Es la regla número uno de esta guía —«los controles van sobre el contenido,
+   * no en su mismo plano»— que estaba escrita arriba y no implementada: la
+   * barra ocupaba su sitio en la columna y el contenido empezaba debajo. Con
+   * esto el contenido pasa **por debajo** y se ve desenfocado a través de ella,
+   * que es lo que hace que una pantalla de iOS parezca tener profundidad en vez
+   * de dos franjas apiladas.
+   *
+   * La pantalla que la enciende tiene que dejarle sitio: `paddingTop` de
+   * `NAV_BAR_HEIGHT` en el contenido del scroll. No se hace aquí porque esta
+   * barra no sabe —ni debe— quién se desplaza debajo.
+   */
+  floating = false,
+  /**
    * A qué altura de scroll el título grande ha dejado de verse.
    *
    * Con esto el rótulo de la barra **se cruza** con el grande —uno se va
@@ -87,6 +103,7 @@ export function NavBar({
   showTitle?: boolean;
   onTitlePress?: () => void;
   revealAt?: number;
+  floating?: boolean;
 }) {
   const theme = useTheme();
 
@@ -104,18 +121,35 @@ export function NavBar({
     };
   });
 
+  /* Sobre contenido, el cristal; en el mismo plano, nada. Un desenfoque sobre
+     una franja del mismo color que el fondo es una capa gris cara: no hay nada
+     debajo que desenfocar. */
+  const Surface = floating ? Glass : View;
+
   return (
-    <View
+    <Surface
       style={{
         height: NAV_BAR_HEIGHT,
         paddingHorizontal: theme.space[4],
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        /* La barra no pinta fondo: lo pone la pantalla. Es lo que permite que
-           en una pantalla de listas agrupadas —fondo hundido— la barra siga
-           siendo del color del fondo en vez de un rectángulo blanco encima. */
+        /* Sin cristal, la barra no pinta fondo: lo pone la pantalla. Es lo que
+           permite que en una pantalla de listas agrupadas —fondo hundido— la
+           barra siga siendo del color del fondo en vez de un rectángulo blanco
+           encima. */
         backgroundColor: 'transparent',
+        ...(floating
+          ? {
+              position: 'absolute' as const,
+              top: 0,
+              left: 0,
+              right: 0,
+              /* Por encima del contenido y por debajo de cualquier hoja, que se
+                 dibuja en otro árbol. */
+              zIndex: 10,
+            }
+          : null),
       }}
     >
       {/* La separación es una capa aparte y no un borde del contenedor: un
@@ -181,7 +215,7 @@ export function NavBar({
       {trailing ? (
         <View style={{ flexDirection: 'row', gap: theme.space[3] }}>{trailing}</View>
       ) : null}
-    </View>
+    </Surface>
   );
 }
 
@@ -280,11 +314,52 @@ export function BackBar({
  * Va dentro del contenido desplazable, no en la barra: así se va con el scroll
  * en lugar de quedarse ocupando sitio mientras se lee.
  */
-export function LargeTitle({ children, subtitle }: { children: string; subtitle?: string }) {
+export function LargeTitle({
+  children,
+  subtitle,
+  /**
+   * El desplazamiento, si la pantalla lo lleva.
+   *
+   * Con él el título **se encoge y se va** al subir el contenido en vez de
+   * limitarse a salir por arriba: escala de 1 a 0,92 y se desvanece en los
+   * primeros sesenta puntos, justo mientras el rótulo pequeño de la barra
+   * llega. Es el gesto del título grande de iOS, y lo que lo hace legible es
+   * que las dos mitades ocurren a la vez: en ningún momento hay dos títulos ni
+   * ninguno.
+   *
+   * Se ancla arriba (`transformOrigin` a la izquierda) porque un título que se
+   * encoge desde el centro se separa del margen y parece que se mueve de sitio.
+   */
+  scrollY,
+}: {
+  children: string;
+  subtitle?: string;
+  scrollY?: SharedValue<number>;
+}) {
   const theme = useTheme();
 
+  const animated = useAnimatedStyle(() => {
+    if (!scrollY) return {};
+    return {
+      opacity: interpolate(scrollY.value, [0, 52], [1, 0], 'clamp'),
+      transform: [
+        { translateY: interpolate(scrollY.value, [0, 60], [0, -6], 'clamp') },
+        { scale: interpolate(scrollY.value, [0, 60], [1, 0.92], 'clamp') },
+      ],
+    };
+  });
+
   return (
-    <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[3] }}>
+    <Animated.View
+      style={[
+        {
+          paddingHorizontal: theme.space[4],
+          paddingBottom: theme.space[3],
+          transformOrigin: 'left top',
+        },
+        animated,
+      ]}
+    >
       <Text
         accessibilityRole="header"
         // Se deja crecer con el tamaño de texto del sistema, pero con un tope:
@@ -314,7 +389,7 @@ export function LargeTitle({ children, subtitle }: { children: string; subtitle?
           {subtitle}
         </Text>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
