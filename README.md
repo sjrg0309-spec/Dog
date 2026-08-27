@@ -287,6 +287,23 @@ La estructura del móvil es de feed: fila de presencia en vivo arriba, entradas 
 barra de cinco pestañas. No por parecerse a nada, sino porque el radar ya era un círculo que indica
 presencia y caduca solo, y la gente sabe leer ese patrón sin que nadie se lo explique.
 
+**Y la otra mitad de la aplicación, la que no es una foto, se lee en filas.** Comunidad, quedadas,
+espacios, puntos de encuentro y el radar estaban escritos como un folleto —antetítulo en versalitas,
+titular, párrafo de presentación y debajo una pila de tarjetas con borde, cada una con su botón a lo
+ancho—, así que en una pantalla cabía elemento y medio y el conjunto no se parecía al feed por mucho
+que el color y la letra salieran del mismo sitio. `apps/mobile/components/list.tsx` es el
+vocabulario que las unifica: fila del ancho de la pantalla con el retrato a la izquierda, dos líneas
+de texto y la acción en una pastilla a la derecha; línea de un pelo entre una y la siguiente;
+cabecera de sección en negrita; estado vacío centrado; y `FootNote` para lo que antes eran párrafos
+a cuerpo de texto entre elemento y elemento. **Las explicaciones no se han tirado** —esta aplicación
+dice por qué hace lo que hace—, lo que ha cambiado es su peso: van en gris y pequeñas debajo de la
+lista, no interrumpiéndola.
+
+Dos sitios se quedan fuera a propósito. El **SOS** conserva sus tarjetas con borde rojo: es la
+pantalla en la que una alerta abierta tiene que gritar, y aplanarla al mismo gris que un directorio
+de veterinarios sería quitarle lo único que hace. Y el aviso de bienestar (`WelfareNotice`) sigue
+siendo un recuadro, porque es el que manda sobre el botón que tiene debajo.
+
 Sobre la guía de interfaz de la plataforma: el cuerpo está a 17 pt, las áreas táctiles no bajan de
 44, la barra de navegación solo enseña su separación cuando hay contenido debajo, y ningún estado se
 comunica solo con color. Una revisión con esa guía encontró tres cosas que no se ven leyendo el

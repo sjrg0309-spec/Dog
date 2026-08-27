@@ -43,14 +43,15 @@ import {
 
 import { Avatar } from '@/components/avatar';
 import { BackBar, Separator } from '@/components/chrome';
+import { EmptyState } from '@/components/list';
 import { Icon } from '@/components/icon';
-import { Body, Caption, Card, Eyebrow, Heading, Notice, Screen } from '@/components/ui';
+import { Body, Caption, Heading, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { petById } from '@/lib/data';
 import { PLACES } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { ChevronRight, Repeat } from '@/lib/icons';
+import { ChevronRight, Footprints, Repeat } from '@/lib/icons';
 import { useTheme, type Theme } from '@/lib/theme';
 import { useWalks } from '@/lib/walks';
 import { Pressable } from 'react-native';
@@ -105,29 +106,24 @@ export default function HistoryScreen() {
     return (
       <Screen>
         <BackBar title="Vuestros paseos" subtitle={pet.name} />
-        <View style={{ padding: theme.space[5] }}>
-          <Notice>
-            <Body>Todavía no hay ningún paseo cerrado.</Body>
-            <Caption>
-              El historial se llena solo: cada vez que termina un check-in del radar queda su
-              resumen. No hace falta apuntar nada.
-            </Caption>
-          </Notice>
-        </View>
+        <EmptyState
+          icon={Footprints}
+          title="Todavía no hay ningún paseo cerrado"
+          body="El historial se llena solo: cada vez que termina un check-in del radar queda su resumen. No hace falta apuntar nada."
+        />
       </Screen>
     );
   }
 
   return (
     <Screen>
-      <BackBar title="Vuestros paseos" subtitle={pet.name} />
+      <BackBar title="Vuestros paseos" subtitle={`${pet.name} · últimos ${WINDOW_DAYS} días`} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: theme.space[8] }}>
         <View style={{ padding: theme.space[5], gap: theme.space[5] }}>
           {/* Cuatro cifras y no ocho: un panel de métricas es lo que hace que
               nadie mire ninguna. */}
           <View style={{ gap: theme.space[2] }}>
-            <Eyebrow>Los últimos {WINDOW_DAYS} días</Eyebrow>
             {/* Dos por fila y no cuatro sueltas. Con `flexWrap` y anchos
                 libres, «7 h 40 min» empujaba la cuarta cifra a una segunda
                 fila ella sola, y una cifra huérfana debajo de tres se lee como
@@ -156,23 +152,24 @@ export default function HistoryScreen() {
               {patterns.map((pattern) => {
                 const companion = petById(pattern.petId);
                 return (
-                  <Card key={`${pattern.petId}-${pattern.weekday}`}>
-                    <View
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}
-                    >
-                      <Icon icon={Repeat} size="base" color={theme.colors.primary} decorative />
+                  <View
+                    key={`${pattern.petId}-${pattern.weekday}`}
+                    style={{ flexDirection: 'row', alignItems: 'flex-start', gap: theme.space[3] }}
+                  >
+                    <Icon icon={Repeat} size="base" color={theme.colors.primary} decorative />
+                    <View style={{ flex: 1, gap: 2 }}>
                       <Body>
-                        Coincidís con {companion?.name ?? 'otro perro'} {describeRecurring(pattern)},{' '}
-                        {pattern.weeks} semanas seguidas.
+                        Coincidís con {companion?.name ?? 'otro perro'} {describeRecurring(pattern)}
+                        , {pattern.weeks} semanas seguidas.
                       </Body>
+                      <Caption>
+                        {pattern.placeId === null
+                          ? 'Por la calle, sin parque fijo.'
+                          : `En ${placeName(pattern.placeId)}.`}{' '}
+                        Hacerlo fijo es proponerlo una vez en vez de cruzaros y saludaros.
+                      </Caption>
                     </View>
-                    <Caption>
-                      {pattern.placeId === null
-                        ? 'Por la calle, sin parque fijo.'
-                        : `En ${placeName(pattern.placeId)}.`}{' '}
-                      Hacerlo fijo es proponerlo una vez en vez de cruzaros y saludaros.
-                    </Caption>
-                  </Card>
+                  </View>
                 );
               })}
               <Caption>
@@ -280,7 +277,9 @@ function Stat({ value, label }: { value: string; label: string }) {
  * que **empieza** el paseo, que es el que su tutor tiene en la cabeza cuando
  * dice «los martes».
  */
-function declaredMinutes(availability: readonly { weekday: number; startTime: string; endTime: string }[]): number[] {
+function declaredMinutes(
+  availability: readonly { weekday: number; startTime: string; endTime: string }[],
+): number[] {
   const minutes = Array.from({ length: 7 }, () => 0);
 
   for (const window of availability) {

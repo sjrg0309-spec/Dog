@@ -15,17 +15,24 @@
  * Lo que la pantalla no enseña, y es deliberado: dónde vive nadie. Sale tu
  * caminata porque es tuya. Las de los demás existen dentro del cálculo y no
  * salen de ahí.
+ *
+ * De la versión anterior se ha ido el folleto de entrada —antetítulo, titular y
+ * dos párrafos explicando el algoritmo antes de enseñar la primera propuesta—.
+ * Lo que explicaba sigue dicho, en la letra pequeña del final, que es donde se
+ * lee lo que se lee una vez.
  */
 
 import { ScrollView, View } from 'react-native';
 
-import { NavBar, useScrolled } from '@/components/chrome';
+import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
+import { EmptyState, FootNote, RowSeparator } from '@/components/list';
 import { MeetupCard } from '@/components/meetup-card';
-import { PetSwitcher } from '@/components/pet-switcher';
+import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { Appear } from '@/components/motion';
-import { Body, Caption, Eyebrow, Notice, Screen, Title } from '@/components/ui';
+import { Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
 import { meetupsFor, petHasMeetups } from '@/lib/data';
+import { CalendarDays, PawPrint } from '@/lib/icons';
 import { speciesName } from '@/lib/labels';
 import { useTheme } from '@/lib/theme';
 
@@ -38,56 +45,50 @@ export default function MeetupPointsScreen() {
 
   return (
     <Screen>
-      <NavBar title="Puntos de encuentro" scrolled={scrolled} />
+      <NavBar title="Puntos de encuentro" scrolled={scrolled} trailing={<PetSwitcherCompact />} />
       <ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ padding: theme.space[4], gap: theme.space[4] }}
+        contentContainerStyle={{ paddingBottom: theme.space[16] }}
       >
-        <PetSwitcher />
-
-        <View style={{ gap: theme.space[2] }}>
-          <Eyebrow>De coincidir a quedar</Eyebrow>
-          <Title>Dónde y a qué hora</Title>
-          <Body>
-            Cruzamos tu rutina con la de tus vecinos y elegimos el sitio al que llegáis todos
-            andando. No hace falta que nadie esté conectado: esto funciona con la aplicación vacía.
-          </Body>
-        </View>
+        <LargeTitle subtitle="Tu rutina cruzada con la de tus vecinos, y el sitio al que llegáis todos andando.">
+          Dónde y a qué hora
+        </LargeTitle>
 
         {!social ? (
-          <Notice>
-            <Body>Un {speciesName(pet.speciesId).toLowerCase()} no queda en grupo.</Body>
-            <Caption>
-              Los puntos de encuentro son para especies que se llevan bien en manada. Para las demás
-              la aplicación enseña comunidad y servicios, que es lo que sí sirve.
-            </Caption>
-          </Notice>
+          <EmptyState
+            icon={PawPrint}
+            title={`Un ${speciesName(pet.speciesId).toLowerCase()} no queda en grupo`}
+            body="Los puntos de encuentro son para especies que se llevan bien en manada. Para las demás la aplicación enseña comunidad y servicios, que es lo que sí sirve."
+          />
         ) : meetups.length === 0 ? (
-          <Notice>
-            <Body>Todavía no hay ninguna rutina que cuadre con la tuya.</Body>
-            <Caption>
-              Hace falta que alguien de tu barrio salga a tu misma hora y al mismo ritmo, y que su
-              animal encaje con {pet.name}. Añadir más franjas a tu horario es lo que más
-              posibilidades abre; también puedes crear una quedada abierta a una hora concreta.
-            </Caption>
-          </Notice>
+          <EmptyState
+            icon={CalendarDays}
+            title="Todavía no cuadra ninguna rutina"
+            body={`Hace falta que alguien de tu barrio salga a tu misma hora y al mismo ritmo, y que su animal encaje con ${pet.name}. Añadir más franjas a tu horario es lo que más posibilidades abre.`}
+          />
         ) : (
-          <View style={{ gap: theme.space[3] }}>
+          <View>
+            <RowSeparator full />
             {meetups.map((meetup, index) => (
-              <Appear key={`${meetup.placeId}-${meetup.pace}-${meetup.startMinute}`} index={index}>
-                <MeetupCard meetup={meetup} />
-              </Appear>
+              <View key={`${meetup.placeId}-${meetup.pace}-${meetup.startMinute}`}>
+                {index > 0 ? <RowSeparator full /> : null}
+                <Appear index={index}>
+                  <MeetupCard meetup={meetup} />
+                </Appear>
+              </View>
             ))}
+            <RowSeparator full />
           </View>
         )}
 
         {social && meetups.length > 0 ? (
-          <Caption>
+          <FootNote>
             El sitio se elige por la caminata más larga del grupo, no por la media: un punto que
             deja a uno andando el triple que el resto es el que hace que esa persona deje de venir.
-            Tu distancia es la única que se enseña; la de los demás no sale del cálculo.
-          </Caption>
+            Tu distancia es la única que se enseña; la de los demás no sale del cálculo. Y no hace
+            falta que nadie esté conectado: esto funciona con la aplicación vacía.
+          </FootNote>
         ) : null}
       </ScrollView>
     </Screen>

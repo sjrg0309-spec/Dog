@@ -5,14 +5,15 @@ import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 import { Avatar } from '@/components/avatar';
 import { NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
-import { Badge, Body, Caption, Notice, Row, Screen } from '@/components/ui';
+import { EmptyState, ListRow, PillButton, RowSeparator } from '@/components/list';
+import { Badge, Caption, Row, Screen } from '@/components/ui';
 import { useVisibleBy } from '@/lib/moderation';
 import { useActivePet } from '@/lib/active-pet';
 import { useConditions } from '@/lib/conditions';
 import { discover, petHasMeetups, type DiscoveryEntry } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { Check, Clock, MapPin, Undo2, X, Zap } from '@/lib/icons';
+import { Check, Clock, MapPin, Sparkles, Undo2, X, Zap } from '@/lib/icons';
 import { PLAY_LABEL, SIZE_LABEL, energyLabel } from '@/lib/labels';
 import { useReducedMotion } from '@/lib/motion';
 import { useTheme } from '@/lib/theme';
@@ -85,15 +86,11 @@ export default function PlaydateMatchScreen() {
       />
 
       {stopped ? (
-        <View style={{ padding: theme.space[4] }}>
-          <Notice>
-            <Body>Hoy no hay baraja, y es por {pet.name}.</Body>
-            <Caption>
-              Con estas condiciones no le conviene salir, así que no proponemos citas que luego
-              habría que cancelar. Cuando cambien, la baraja vuelve sola.
-            </Caption>
-          </Notice>
-        </View>
+        <EmptyState
+          icon={Sparkles}
+          title={`Hoy no hay baraja, y es por ${pet.name}`}
+          body="Con estas condiciones no le conviene salir, así que no proponemos citas que luego habría que cancelar. Cuando cambien, la baraja vuelve sola."
+        />
       ) : current ? (
         <View style={{ flex: 1, padding: theme.space[4], gap: theme.space[4] }}>
           <Caption>
@@ -145,39 +142,36 @@ export default function PlaydateMatchScreen() {
           </Row>
         </View>
       ) : (
-        <View style={{ padding: theme.space[4], gap: theme.space[4] }}>
-          <Notice>
-            <Body>
-              {liked.length === 0
-                ? 'Se acabó la baraja y no has guardado a nadie.'
+        <View style={{ gap: theme.space[2] }}>
+          <EmptyState
+            icon={liked.length === 0 ? Undo2 : Check}
+            title={
+              liked.length === 0
+                ? 'Se acabó la baraja y no has guardado a nadie'
                 : liked.length === 1
                   ? 'Se acabó la baraja. Has guardado 1.'
-                  : `Se acabó la baraja. Has guardado ${liked.length}.`}
-            </Body>
-            <Caption>
-              {liked.length === 0
+                  : `Se acabó la baraja. Has guardado ${liked.length}.`
+            }
+            body={
+              liked.length === 0
                 ? 'No pasa nada: preferimos un mazo corto y bueno a uno largo con relleno. Vuelve a mirar cuando cambie el horario o el tiempo.'
-                : 'Se abre una conversación con cada uno, con el motivo delante: qué días coincidís y a qué hora.'}
-            </Caption>
-          </Notice>
+                : 'Se abre una conversación con cada uno, con el motivo delante: qué días coincidís y a qué hora.'
+            }
+          />
 
-          {liked.map((entry) => (
-            <Row key={entry.pet.id} gap={3}>
-              <Avatar id={entry.pet.id} name={entry.pet.name} size={40} />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    color: theme.colors.foreground,
-                    fontFamily: fonts.displayBold,
-                    fontSize: theme.fontSize.base,
-                  }}
-                >
-                  {entry.pet.name}
-                </Text>
-                <Caption>{entry.match.scheduleSummary ?? 'Sin horario en común declarado'}</Caption>
-              </View>
-            </Row>
+          {liked.length > 0 ? <RowSeparator full /> : null}
+          {liked.map((entry, position) => (
+            <View key={entry.pet.id}>
+              {position > 0 ? <RowSeparator /> : null}
+              <ListRow
+                leading={<Avatar id={entry.pet.id} name={entry.pet.name} size={44} />}
+                title={entry.pet.name}
+                subtitle={entry.match.scheduleSummary ?? 'Sin horario en común declarado'}
+                trailing={<PillButton label="Escribir" />}
+              />
+            </View>
           ))}
+          {liked.length > 0 ? <RowSeparator full /> : null}
 
           {index > 0 ? (
             <Pressable
@@ -286,9 +280,7 @@ function SwipeCard({
       {...(reduced ? {} : responder.panHandlers)}
       style={{
         flex: 1,
-        transform: reduced
-          ? []
-          : [{ translateX: pan.x }, { translateY: pan.y }, { rotate }],
+        transform: reduced ? [] : [{ translateX: pan.x }, { translateY: pan.y }, { rotate }],
       }}
     >
       <MatchCard entry={entry} viewerName={viewerName} />
@@ -333,9 +325,7 @@ function Stamp({
         transform: [{ rotate: side === 'left' ? '-14deg' : '14deg' }],
       }}
     >
-      <Text
-        style={{ color, fontFamily: fonts.displayExtrabold, fontSize: theme.fontSize.xl }}
-      >
+      <Text style={{ color, fontFamily: fonts.displayExtrabold, fontSize: theme.fontSize.xl }}>
         {text}
       </Text>
     </Animated.View>

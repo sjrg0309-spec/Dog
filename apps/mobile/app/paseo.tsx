@@ -38,13 +38,14 @@ import { summarizeWalk, weekdayName, type WalkOutcome } from '@petnav/core';
 
 import { Avatar } from '@/components/avatar';
 import { BackBar } from '@/components/chrome';
+import { EmptyState } from '@/components/list';
 import { Icon } from '@/components/icon';
-import { Body, Button, Caption, Card, Eyebrow, Heading, Notice, Screen } from '@/components/ui';
+import { Body, Button, Caption, Heading, Notice, Screen } from '@/components/ui';
 import { PLACES } from '@/lib/demo-data';
 import { petById } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { Clock, MapPin, Thermometer, ThumbsDown, ThumbsUp } from '@/lib/icons';
+import { Clock, Footprints, MapPin, Thermometer, ThumbsDown, ThumbsUp } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 import { setWalkOutcome, useWalk } from '@/lib/walks';
 
@@ -101,17 +102,12 @@ export default function WalkSummaryScreen() {
     return (
       <Screen>
         <BackBar title="Paseo" />
-        <View style={{ padding: theme.space[5], gap: theme.space[4] }}>
-          <Notice>
-            <Body>Este paseo ya no está.</Body>
-            <Caption>
-              El historial vive en memoria mientras la aplicación está abierta. Llevarlo a la base
-              es una tabla con las mismas reglas que los pings del collar: ilegible para quien no
-              sea su tutor.
-            </Caption>
-          </Notice>
-          <Button label="Volver" variant="outline" onPress={() => router.back()} />
-        </View>
+        <EmptyState
+          icon={Footprints}
+          title="Este paseo ya no está"
+          body="El historial vive en memoria mientras la aplicación está abierta. Llevarlo a la base es una tabla con las mismas reglas que los pings del collar: ilegible para quien no sea su tutor."
+          action={{ label: 'Volver', onPress: () => router.back() }}
+        />
       </Screen>
     );
   }
@@ -127,9 +123,9 @@ export default function WalkSummaryScreen() {
         {/* El titular es el tiempo, porque es lo que la aplicación sabe de
             verdad. Un kilometraje aquí sería un número con pinta de dato. */}
         <View style={{ gap: theme.space[1] }}>
-          <Eyebrow>Estuvisteis fuera</Eyebrow>
           <Text
             accessibilityRole="header"
+            accessibilityLabel={`Estuvisteis fuera ${formatMinutes(summary.minutes)}`}
             style={{
               color: theme.colors.foreground,
               fontFamily: fonts.displayBold,
@@ -139,9 +135,10 @@ export default function WalkSummaryScreen() {
           >
             {formatMinutes(summary.minutes)}
           </Text>
+          <Caption>fuera de casa</Caption>
         </View>
 
-        <Card>
+        <View style={{ gap: theme.space[3] }}>
           <Fact icon={MapPin} label="Dónde">
             {placeName(walk.placeId)}
           </Fact>
@@ -153,7 +150,7 @@ export default function WalkSummaryScreen() {
               ? `Sin dato de temperatura · ${SURFACE_LABEL[walk.surface] ?? walk.surface}`
               : `${walk.temperatureC} °C sobre ${SURFACE_LABEL[walk.surface] ?? walk.surface}`}
           </Fact>
-        </Card>
+        </View>
 
         {/* Lo único de esta pantalla que habla del animal y no del plan. */}
         {overran ? (
@@ -174,9 +171,9 @@ export default function WalkSummaryScreen() {
         {/* No se registra recorrido, y se dice. Callarlo dejaría al usuario
             buscando un mapa que no existe y pensando que falla algo. */}
         <Caption>
-          No se guarda el recorrido ni los kilómetros: la aplicación registra cuándo empezó y
-          cuándo acabó, no por dónde fuisteis. Un rastro guardado es justo lo que la regla del
-          radar —anclar al lugar y nunca a la persona— existe para no tener.
+          No se guarda el recorrido ni los kilómetros: la aplicación registra cuándo empezó y cuándo
+          acabó, no por dónde fuisteis. Un rastro guardado es justo lo que la regla del radar
+          —anclar al lugar y nunca a la persona— existe para no tener.
         </Caption>
 
         {walk.companions.length > 0 ? (
@@ -202,13 +199,13 @@ export default function WalkSummaryScreen() {
             </Caption>
           </View>
         ) : (
-          <Notice>
+          <View style={{ gap: theme.space[1] }}>
             <Body>Este paseo fue solo vuestro.</Body>
             <Caption>
               No coincidisteis con nadie del radar. Es lo normal fuera de las horas punta, y por eso
               la aplicación cruza horarios en vez de depender de quién esté conectado.
             </Caption>
-          </Notice>
+          </View>
         )}
 
         <Button
@@ -272,7 +269,7 @@ function CompanionRow({
   const name = pet?.name ?? 'Otro perro';
 
   return (
-    <Card>
+    <View style={{ gap: theme.space[3], paddingVertical: theme.space[2] }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3] }}>
         <Avatar id={petId} name={name} size={44} />
         <View style={{ flex: 1 }}>
@@ -317,7 +314,7 @@ function CompanionRow({
           label={`No fue bien con ${name}`}
         />
       </View>
-    </Card>
+    </View>
   );
 }
 
