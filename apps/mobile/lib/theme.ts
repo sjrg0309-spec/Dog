@@ -155,3 +155,26 @@ export function useTheme(): Theme {
     },
   };
 }
+
+/**
+ * Las dos superficies de una pantalla agrupada.
+ *
+ * En claro el fondo se hunde y la tarjeta es blanca; en oscuro el fondo es el
+ * negro de la pantalla y la tarjeta se levanta. Es el par
+ * `systemGroupedBackground` / `secondarySystemGroupedBackground` de iOS, y vive
+ * aquí —y no en el componente de lista— porque lo necesitan los dos extremos: el
+ * `ListGroup` para pintar la tarjeta y el `Screen` para pintar el fondo sobre el
+ * que esa tarjeta se ve. Escrito dos veces, el día que cambie uno se queda una
+ * tarjeta blanca sobre un fondo blanco.
+ *
+ * Hace falta por un motivo muy concreto: en la dirección «Nocturno» `surface`
+ * **es** `background` —los dos son negro puro—, así que la regla ingenua
+ * «tarjeta de superficie sobre el fondo» dibuja una tarjeta invisible.
+ */
+export function useGroupedSurfaces(): { ground: string; card: string } {
+  const theme = useTheme();
+  return {
+    ground: theme.isDark ? theme.colors.background : theme.colors.surfaceSunken,
+    card: theme.isDark ? theme.colors.surfaceElevated : theme.colors.surface,
+  };
+}

@@ -66,10 +66,10 @@ export function SpotCard({ pet, spot }: { pet: DemoPet; spot: DemoSpot }) {
   const perPet = shares[0] ?? 0;
 
   return (
-    <View style={{ gap: theme.space[3], paddingVertical: theme.space[4] }}>
+    <View style={{ gap: theme.space[3], paddingBottom: theme.space[4] }}>
       <SpotGallery spot={spot} />
 
-      <View style={{ paddingHorizontal: LIST_GUTTER, gap: theme.space[3] }}>
+      <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[3] }}>
         <Row>
           <Heading>{spot.title}</Heading>
           {spot.isFenced ? <Badge tone="accent">Cerrado</Badge> : null}
@@ -174,11 +174,11 @@ function SpotGallery({ spot }: { spot: DemoSpot }) {
   const { width: screen } = useWindowDimensions();
   const [index, setIndex] = useState(0);
 
-  /* El ancho es el de la pantalla, que es donde vive ahora la galería. Cuando
-     la ficha estaba dentro de una `Card`, había que descontar los dos rellenos
-     o la última vista salía cortada por la derecha; sin tarjeta, el enganche de
-     página coincide con el borde y no hay nada que descontar. */
-  const width = Math.min(screen, 520);
+  /* El ancho es el de la tarjeta agrupada: la pantalla menos su margen a cada
+     lado. Es el número que decide si el enganche de página cae en el borde de
+     la vista o deja la siguiente asomando cortada, así que se descuenta lo que
+     descuenta el grupo y nada más. */
+  const width = Math.min(screen, 520) - LIST_GUTTER * 2;
   const height = Math.round(width * 0.62);
 
   const scenes = useMemo(

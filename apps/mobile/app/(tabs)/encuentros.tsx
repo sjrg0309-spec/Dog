@@ -22,10 +22,11 @@
  * lee lo que se lee una vez.
  */
 
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
-import { EmptyState, FootNote, RowSeparator } from '@/components/list';
+import { LargeTitle, NavBar } from '@/components/chrome';
+import { EmptyState, FootNote, ListGroup } from '@/components/list';
 import { MeetupCard } from '@/components/meetup-card';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { Appear } from '@/components/motion';
@@ -34,19 +35,31 @@ import { useActivePet } from '@/lib/active-pet';
 import { meetupsFor, petHasMeetups } from '@/lib/data';
 import { CalendarDays, PawPrint } from '@/lib/icons';
 import { speciesName } from '@/lib/labels';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 export default function MeetupPointsScreen() {
   const theme = useTheme();
-  const { scrolled, onScroll } = useScrolled();
+  /* El desplazamiento en crudo, en el hilo de la interfaz: con él el rótulo
+   pequeño de la barra **se cruza** con el título grande —uno se va mientras el
+   otro llega— en vez de encenderse de golpe, y de paso la barra de pestañas se
+   condensa al bajar. Es el gesto de iOS, y lo que lo hace legible es justo que
+   en ningún momento hay dos títulos a plena tinta ni ninguno. */
+  const { scrollY, onScroll } = useScrollDriver();
   const pet = useActivePet();
   const social = petHasMeetups(pet);
   const meetups = meetupsFor(pet);
 
   return (
-    <Screen>
-      <NavBar title="Puntos de encuentro" scrolled={scrolled} trailing={<PetSwitcherCompact />} />
-      <ScrollView
+    <Screen grouped>
+      <NavBar
+        title="Puntos de encuentro"
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={52}
+        trailing={<PetSwitcherCompact />}
+      />
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[16] }}
@@ -68,17 +81,14 @@ export default function MeetupPointsScreen() {
             body={`Hace falta que alguien de tu barrio salga a tu misma hora y al mismo ritmo, y que su animal encaje con ${pet.name}. Añadir más franjas a tu horario es lo que más posibilidades abre.`}
           />
         ) : (
-          <View>
-            <RowSeparator full />
+          <View style={{ gap: theme.space[3] }}>
             {meetups.map((meetup, index) => (
-              <View key={`${meetup.placeId}-${meetup.pace}-${meetup.startMinute}`}>
-                {index > 0 ? <RowSeparator full /> : null}
-                <Appear index={index}>
+              <Appear key={`${meetup.placeId}-${meetup.pace}-${meetup.startMinute}`} index={index}>
+                <ListGroup>
                   <MeetupCard meetup={meetup} />
-                </Appear>
-              </View>
+                </ListGroup>
+              </Appear>
             ))}
-            <RowSeparator full />
           </View>
         )}
 
@@ -90,7 +100,7 @@ export default function MeetupPointsScreen() {
             falta que nadie esté conectado: esto funciona con la aplicación vacía.
           </FootNote>
         ) : null}
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }

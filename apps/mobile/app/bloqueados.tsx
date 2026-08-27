@@ -16,7 +16,7 @@ import { BLOCK_NOTE } from '@petnav/core';
 
 import { Avatar } from '@/components/avatar';
 import { BackBar } from '@/components/chrome';
-import { EmptyState, FootNote, ListRow, PillButton, RowSeparator } from '@/components/list';
+import { EmptyState, FootNote, ListGroup, ListRow, PillButton } from '@/components/list';
 import { Screen } from '@/components/ui';
 import { Ban } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
@@ -28,7 +28,7 @@ export default function BlockedScreen() {
   const blocks = useBlocks();
 
   return (
-    <Screen>
+    <Screen grouped>
       <BackBar title="Bloqueados" />
 
       <ScrollView contentContainerStyle={{ paddingBottom: theme.space[16] }}>
@@ -36,17 +36,17 @@ export default function BlockedScreen() {
           <EmptyState icon={Ban} title="No has bloqueado a nadie" body={BLOCK_NOTE} />
         ) : (
           <>
-            {blocks.map((block, index) => {
-              /* El retrato es el del animal de esa persona y no el suyo: en esta
+            <ListGroup leading="avatar">
+              {blocks.map((block) => {
+                /* El retrato es el del animal de esa persona y no el suyo: en esta
                  aplicación se reconoce a los vecinos por el perro, que es con
                  quien se ha coincidido en la calle. */
-              const other = OTHER_PETS.find((pet) => pet.ownerId === block.targetId);
-              const name = other?.ownerName ?? block.targetId;
+                const other = OTHER_PETS.find((pet) => pet.ownerId === block.targetId);
+                const name = other?.ownerName ?? block.targetId;
 
-              return (
-                <View key={block.targetId}>
-                  {index > 0 ? <RowSeparator /> : null}
+                return (
                   <ListRow
+                    key={block.targetId}
                     leading={
                       other ? <Avatar id={other.id} name={other.name} size={44} /> : undefined
                     }
@@ -61,10 +61,9 @@ export default function BlockedScreen() {
                       />
                     }
                   />
-                </View>
-              );
-            })}
-            <RowSeparator full />
+                );
+              })}
+            </ListGroup>
             <FootNote>{BLOCK_NOTE}</FootNote>
           </>
         )}

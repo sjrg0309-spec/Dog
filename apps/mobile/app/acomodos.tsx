@@ -32,7 +32,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { AUTISTIC_DEFAULT_NEEDS, HANDLER_NEEDS, type HandlerNeed } from '@petnav/core';
 
 import { BackBar } from '@/components/chrome';
-import { FootNote, LIST_GUTTER, RowSeparator } from '@/components/list';
+import { FootNote, LIST_GUTTER, ListGroup } from '@/components/list';
 import { Icon } from '@/components/icon';
 import { Caption, Screen } from '@/components/ui';
 import { setHandler, useAccount } from '@/lib/account';
@@ -73,7 +73,7 @@ export default function AcomodosScreen() {
   };
 
   return (
-    <Screen>
+    <Screen grouped>
       <BackBar title="Sobre ti" subtitle="Privado" />
 
       {/* Los interruptores, como los de los ajustes de cualquier red social:
@@ -88,29 +88,32 @@ export default function AcomodosScreen() {
           para ti.
         </FootNote>
 
-        <RowSeparator full />
-        <Row
-          label="Soy autista"
-          hint="Marca las opciones de abajo. Puedes cambiarlas una a una."
-          on={handler.autistic === true}
-          onToggle={toggleAutistic}
-        />
-        <RowSeparator full />
+        {/* Dos grupos y no uno: «soy autista» preselecciona los de abajo, así
+            que decirlo con la forma —una tarjeta aparte— es más claro que
+            decirlo con una frase debajo de una lista de cuatro interruptores
+            iguales. */}
+        <ListGroup leading="none">
+          <Row
+            label="Soy autista"
+            hint="Marca las opciones de abajo. Puedes cambiarlas una a una."
+            on={handler.autistic === true}
+            onToggle={toggleAutistic}
+          />
+        </ListGroup>
 
-        {HANDLER_NEEDS.map((need, index) => (
-          <View key={need.id}>
-            {/* Sin sangrar: la sangría alinea la línea con el texto de una fila
-                que empieza por un retrato, y estas no tienen ninguno. */}
-            {index > 0 ? <RowSeparator full /> : null}
+        <View style={{ height: theme.space[5] }} />
+
+        <ListGroup leading="none">
+          {HANDLER_NEEDS.map((need) => (
             <Row
+              key={need.id}
               label={need.label}
               hint={need.effect}
               on={handler.needs.includes(need.id)}
               onToggle={() => toggleNeed(need.id)}
             />
-          </View>
-        ))}
-        <RowSeparator full />
+          ))}
+        </ListGroup>
 
         <FootNote>
           Contamos cuánta gente hay en cada sitio, no quién. Por eso «sitios tranquilos» funciona
@@ -154,7 +157,7 @@ function Row({
         alignItems: 'center',
         gap: theme.space[3],
         minHeight: theme.touchTarget.comfortable + 8,
-        paddingHorizontal: LIST_GUTTER,
+        paddingHorizontal: LIST_GUTTER - 2,
         paddingVertical: theme.space[2],
         backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
       })}

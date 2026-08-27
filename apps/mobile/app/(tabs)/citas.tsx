@@ -5,7 +5,7 @@ import { Animated, PanResponder, Pressable, Text, View } from 'react-native';
 import { Avatar } from '@/components/avatar';
 import { NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
-import { EmptyState, ListRow, PillButton, RowSeparator } from '@/components/list';
+import { EmptyState, ListGroup, ListRow, PillButton } from '@/components/list';
 import { Badge, Caption, Row, Screen } from '@/components/ui';
 import { useVisibleBy } from '@/lib/moderation';
 import { useActivePet } from '@/lib/active-pet';
@@ -159,19 +159,19 @@ export default function PlaydateMatchScreen() {
             }
           />
 
-          {liked.length > 0 ? <RowSeparator full /> : null}
-          {liked.map((entry, position) => (
-            <View key={entry.pet.id}>
-              {position > 0 ? <RowSeparator /> : null}
-              <ListRow
-                leading={<Avatar id={entry.pet.id} name={entry.pet.name} size={44} />}
-                title={entry.pet.name}
-                subtitle={entry.match.scheduleSummary ?? 'Sin horario en común declarado'}
-                trailing={<PillButton label="Escribir" />}
-              />
-            </View>
-          ))}
-          {liked.length > 0 ? <RowSeparator full /> : null}
+          {liked.length > 0 ? (
+            <ListGroup leading="avatar">
+              {liked.map((entry) => (
+                <ListRow
+                  key={entry.pet.id}
+                  leading={<Avatar id={entry.pet.id} name={entry.pet.name} size={44} />}
+                  title={entry.pet.name}
+                  subtitle={entry.match.scheduleSummary ?? 'Sin horario en común declarado'}
+                  trailing={<PillButton label="Escribir" />}
+                />
+              ))}
+            </ListGroup>
+          ) : null}
 
           {index > 0 ? (
             <Pressable

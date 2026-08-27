@@ -34,6 +34,8 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { alertReachM, RESCUE_SCENARIOS } from '@petnav/core';
 
 import { BackBar } from '@/components/chrome';
+import { IconTile, LIST_GUTTER, ListGroup } from '@/components/list';
+import { Appear } from '@/components/motion';
 import { Icon } from '@/components/icon';
 import { Caption, Screen, Segmented } from '@/components/ui';
 import {
@@ -76,15 +78,39 @@ import {
 } from '@/lib/account';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { NEARBY_RADII_M, type NearbyRadius } from '@/lib/posts';
-import {
-  searchSettings,
-  setSetting,
-  useSettings,
-  type SettingRow,
-} from '@/lib/settings';
+import { searchSettings, setSetting, useSettings, type SettingRow } from '@/lib/settings';
 import { useTheme } from '@/lib/theme';
 
 /** El icono de cada fila. Vive aquí porque el índice es dato y no interfaz. */
+/**
+ * El tinte de cada ficha.
+ *
+ * No es decoración repartida al azar: el color dice de qué familia es el
+ * ajuste antes de leerlo, que es lo que hace que un panel de treinta filas se
+ * pueda recorrer con la vista. El rojo se reserva a lo que cierra o alarma
+ * —bloqueados, rescate— y el naranja de «en vivo» a lo que te hace visible o
+ * invisible, que es el mismo color que usa el radar.
+ */
+const TILE_TONES: Record<string, 'primary' | 'live' | 'alert' | 'ok' | 'info' | 'muted'> = {
+  ghost: 'live',
+  rescuer: 'alert',
+  blocked: 'alert',
+  chip: 'ok',
+  shelter: 'alert',
+  direccion: 'info',
+  theme: 'info',
+  motion: 'info',
+  feedRadius: 'info',
+  walks: 'primary',
+  record: 'alert',
+  saved: 'primary',
+  walkmode: 'primary',
+  activity: 'live',
+  account: 'muted',
+  push: 'muted',
+  export: 'muted',
+};
+
 const ICONS: Record<string, LucideIcon> = {
   ghost: EyeOff,
   rescuer: Siren,
@@ -101,7 +127,7 @@ const ICONS: Record<string, LucideIcon> = {
   shelter: Siren,
   account: Lock,
   push: Bell,
-  blocks: Ban,
+  blocked: Ban,
   export: FileText,
 };
 
@@ -112,7 +138,7 @@ export default function SettingsScreen() {
   const groups = searchSettings(query, kind);
 
   return (
-    <Screen>
+    <Screen grouped>
       <BackBar title="Configuración" />
 
       <ScrollView
@@ -186,11 +212,14 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
-        {groups.map((group) => (
-          <View key={group.id} style={{ paddingTop: theme.space[2] }}>
+        {groups.map((group, position) => (
+          /* Cada grupo entra un poco después que el anterior. En una pantalla
+             que son ocho tarjetas apiladas, el escalonado es lo que la hace
+             parecer que se despliega en vez de aparecer de golpe. */
+          <Appear key={group.id} index={position} style={{ paddingTop: theme.space[2] }}>
             <View
               style={{
-                paddingHorizontal: theme.space[4],
+                paddingHorizontal: LIST_GUTTER + 4,
                 paddingBottom: theme.space[2],
                 gap: theme.space[1],
               }}
@@ -208,10 +237,12 @@ export default function SettingsScreen() {
               {group.note ? <Caption>{group.note}</Caption> : null}
             </View>
 
-            {group.rows.map((row) => (
-              <SettingItem key={row.id} row={row} />
-            ))}
-          </View>
+            <ListGroup>
+              {group.rows.map((row) => (
+                <SettingItem key={row.id} row={row} />
+              ))}
+            </ListGroup>
+          </Appear>
         ))}
       </ScrollView>
     </Screen>
@@ -249,18 +280,18 @@ function Shell({
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: theme.space[3],
-        paddingHorizontal: theme.space[4],
+        paddingHorizontal: theme.space[3] + 2,
         paddingVertical: theme.space[3],
       }}
     >
       {icon ? (
+        /* La ficha teñida, que es de donde sale el color de un panel de
+           ajustes: una columna de gris con una mancha de color por fila. El
+           icono suelto de antes decía lo mismo y no se veía, porque un trazo
+           gris de veinticuatro puntos entre dos líneas de texto gris no
+           destaca de nada. */
         <View style={{ paddingTop: 2 }}>
-          <Icon
-            icon={icon}
-            size="lg"
-            color={muted ? theme.colors.mutedForeground : theme.colors.foreground}
-            decorative
-          />
+          <IconTile icon={icon} tone={muted ? 'muted' : (TILE_TONES[row.id] ?? 'primary')} />
         </View>
       ) : null}
       <View style={{ flex: 1, gap: theme.space[1] }}>
@@ -495,9 +526,7 @@ function ChoiceRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
                 value={settings.motion}
                 onChange={(id) => setSetting('motion', id)}
               />
-              <Caption>
-                Si ya lo tienes activado en el teléfono, esto no lo desactiva.
-              </Caption>
+              <Caption>Si ya lo tienes activado en el teléfono, esto no lo desactiva.</Caption>
             </View>
           ) : null}
         </View>
@@ -539,7 +568,9 @@ function DirectionPicker() {
           <DirectionCard key={id} id={id} selected={id === active} />
         ))}
       </View>
-      <Caption>{DIRECTIONS[active].tagline}. Cambia el color, la letra y la forma a la vez.</Caption>
+      <Caption>
+        {DIRECTIONS[active].tagline}. Cambia el color, la letra y la forma a la vez.
+      </Caption>
     </View>
   );
 }
@@ -591,7 +622,14 @@ function DirectionCard({ id, selected }: { id: DirectionId; selected: boolean })
             }}
           />
           <View style={{ flex: 1 }} />
-          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: preview.mutedForeground }} />
+          <View
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: preview.mutedForeground,
+            }}
+          />
         </View>
 
         {/* La foto: a sangre o con marco. Es lo que más se nota. */}

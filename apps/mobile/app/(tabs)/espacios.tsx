@@ -1,7 +1,9 @@
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
-import { EmptyState, FootNote, RowSeparator } from '@/components/list';
+import { LargeTitle, NavBar } from '@/components/chrome';
+import { EmptyState, FootNote, ListGroup } from '@/components/list';
+import { Appear } from '@/components/motion';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { SpotCard } from '@/components/spot-card';
 import { Screen } from '@/components/ui';
@@ -9,6 +11,7 @@ import { useActivePet } from '@/lib/active-pet';
 import { petHasMeetups, speciesOf, spotsFor } from '@/lib/data';
 import { Fence, PawPrint } from '@/lib/icons';
 import { speciesName } from '@/lib/labels';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -33,7 +36,12 @@ import { useTheme } from '@/lib/theme';
  */
 export default function SpotsScreen() {
   const theme = useTheme();
-  const { scrolled, onScroll } = useScrolled();
+  /* El desplazamiento en crudo, en el hilo de la interfaz: con él el rótulo
+   pequeño de la barra **se cruza** con el título grande —uno se va mientras el
+   otro llega— en vez de encenderse de golpe, y de paso la barra de pestañas se
+   condensa al bajar. Es el gesto de iOS, y lo que lo hace legible es justo que
+   en ningún momento hay dos títulos a plena tinta ni ninguno. */
+  const { scrollY, onScroll } = useScrollDriver();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
@@ -41,9 +49,15 @@ export default function SpotsScreen() {
 
   if (!social) {
     return (
-      <Screen>
-        <NavBar title="Espacios" scrolled={scrolled} trailing={<PetSwitcherCompact />} />
-        <ScrollView
+      <Screen grouped>
+        <NavBar
+          title="Espacios"
+          scrolled={false}
+          scrollY={scrollY}
+          revealAt={52}
+          trailing={<PetSwitcherCompact />}
+        />
+        <Animated.ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingBottom: theme.space[16] }}
@@ -57,15 +71,21 @@ export default function SpotsScreen() {
             Alquilar un espacio para que conozca a otro animal de su especie sería gastar dinero en
             provocar un problema. En la pestaña de comunidad está lo que sí le sirve a su tutor.
           </FootNote>
-        </ScrollView>
+        </Animated.ScrollView>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <NavBar title="Espacios" scrolled={scrolled} trailing={<PetSwitcherCompact />} />
-      <ScrollView
+    <Screen grouped>
+      <NavBar
+        title="Espacios"
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={52}
+        trailing={<PetSwitcherCompact />}
+      />
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[16] }}
@@ -81,15 +101,17 @@ export default function SpotsScreen() {
             body="Un espacio declara a qué especies sirve. Un patio pensado para perros no es sitio para presentar conejos, y ofrecerlo igualmente sería el tipo de detalle que acaba en un susto."
           />
         ) : (
-          <View>
-            <RowSeparator full />
+          <View style={{ gap: theme.space[4] }}>
             {available.map((spot, index) => (
-              <View key={spot.id}>
-                {index > 0 ? <RowSeparator full /> : null}
-                <SpotCard pet={pet} spot={spot} />
-              </View>
+              /* `flush`: la galería llega a las esquinas de la tarjeta y se
+                 recorta con ellas, que es lo que hace que parezca una ficha de
+                 la App Store y no una foto con un marco alrededor. */
+              <Appear key={spot.id} index={index}>
+                <ListGroup flush>
+                  <SpotCard pet={pet} spot={spot} />
+                </ListGroup>
+              </Appear>
             ))}
-            <RowSeparator full />
           </View>
         )}
 
@@ -103,7 +125,7 @@ export default function SpotsScreen() {
           La dirección exacta llega al confirmar. Antes solo se muestra la zona, y no es una promesa
           de este aviso: hasta que la reserva está confirmada, la dirección no está en la pantalla.
         </FootNote>
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }

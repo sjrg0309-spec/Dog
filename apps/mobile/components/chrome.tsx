@@ -17,11 +17,7 @@
 import { useRouter } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
 import { PixelRatio, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  type SharedValue,
-} from 'react-native-reanimated';
+import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { Icon } from './icon';
 import { fonts } from '@/lib/fonts';
@@ -102,7 +98,9 @@ export function NavBar({
     if (!scrollY || revealAt === undefined) return { opacity: showTitle ? 1 : 0 };
     return {
       opacity: interpolate(scrollY.value, [revealAt - 28, revealAt], [0, 1], 'clamp'),
-      transform: [{ translateY: interpolate(scrollY.value, [revealAt - 28, revealAt], [6, 0], 'clamp') }],
+      transform: [
+        { translateY: interpolate(scrollY.value, [revealAt - 28, revealAt], [6, 0], 'clamp') },
+      ],
     };
   });
 
@@ -114,7 +112,10 @@ export function NavBar({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: theme.colors.background,
+        /* La barra no pinta fondo: lo pone la pantalla. Es lo que permite que
+           en una pantalla de listas agrupadas —fondo hundido— la barra siga
+           siendo del color del fondo en vez de un rectángulo blanco encima. */
+        backgroundColor: 'transparent',
       }}
     >
       {/* La separación es una capa aparte y no un borde del contenedor: un
@@ -177,7 +178,9 @@ export function NavBar({
           {title}
         </Animated.Text>
       )}
-      {trailing ? <View style={{ flexDirection: 'row', gap: theme.space[3] }}>{trailing}</View> : null}
+      {trailing ? (
+        <View style={{ flexDirection: 'row', gap: theme.space[3] }}>{trailing}</View>
+      ) : null}
     </View>
   );
 }
@@ -217,7 +220,9 @@ export function BackBar({
         paddingRight: theme.space[4],
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.colors.border,
-        backgroundColor: theme.colors.background,
+        /* Sin fondo propio, por lo mismo que la barra de arriba: lo pinta la
+           pantalla, que es la que sabe si está agrupada. */
+        backgroundColor: 'transparent',
       }}
     >
       <Pressable

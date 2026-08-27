@@ -7,14 +7,7 @@
  */
 
 import { useState, type ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,7 +16,7 @@ import { Press } from './motion';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import type { LucideIcon } from '@/lib/icons';
-import { useTheme } from '@/lib/theme';
+import { useGroupedSurfaces, useTheme } from '@/lib/theme';
 
 /**
  * El marco de una pantalla, con las zonas seguras puestas.
@@ -52,21 +45,33 @@ export function Screen({
   children,
   bottom = false,
   full = false,
+  grouped = false,
 }: {
   children: ReactNode;
   /** Reservar también el indicador de inicio. Para pantallas sin barra. */
   bottom?: boolean;
   /** A pantalla completa, sin apartar nada. Para el visor y los reels. */
   full?: boolean;
+  /**
+   * Pantalla de listas agrupadas: el fondo se hunde para que las tarjetas se
+   * levanten sobre él.
+   *
+   * Es la mitad del efecto —la otra la pone `ListGroup`— y por eso el par sale
+   * del mismo sitio, `useGroupedSurfaces`. Pintar aquí un `surfaceSunken` a
+   * mano funcionaría en claro y dejaría las tarjetas invisibles en «Nocturno»,
+   * donde la superficie y el fondo son el mismo negro.
+   */
+  grouped?: boolean;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { ground } = useGroupedSurfaces();
 
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: theme.colors.background,
+        backgroundColor: grouped ? ground : theme.colors.background,
         paddingTop: full ? 0 : insets.top,
         paddingLeft: full ? 0 : insets.left,
         paddingRight: full ? 0 : insets.right,
@@ -237,7 +242,12 @@ export function Row({ children, gap = 2 }: { children: ReactNode; gap?: 1 | 2 | 
   const theme = useTheme();
   return (
     <View
-      style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: theme.space[gap] }}
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: theme.space[gap],
+      }}
     >
       {children}
     </View>
@@ -302,61 +312,61 @@ export function Button({
 
   return (
     <Press pressed={down && !inert}>
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={accessibilityHint}
-      // Se anuncia el estado además de pintarlo: un botón atenuado que el lector
-      // de pantalla presenta como pulsable es una trampa.
-      accessibilityState={{ disabled: inert, busy: loading }}
-      disabled={inert}
-      onPress={onPress}
-      onPressIn={() => setDown(true)}
-      onPressOut={() => setDown(false)}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={({ pressed }) => ({
-        // 44 es el suelo del área táctil, no el objetivo.
-        minHeight: theme.touchTarget.min,
-        flexDirection: 'row',
-        gap: theme.space[2],
-        /* Antes eran 20 a cada lado. En un botón ancho no se notaba; en dos
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint={accessibilityHint}
+        // Se anuncia el estado además de pintarlo: un botón atenuado que el lector
+        // de pantalla presenta como pulsable es una trampa.
+        accessibilityState={{ disabled: inert, busy: loading }}
+        disabled={inert}
+        onPress={onPress}
+        onPressIn={() => setDown(true)}
+        onPressOut={() => setDown(false)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={({ pressed }) => ({
+          // 44 es el suelo del área táctil, no el objetivo.
+          minHeight: theme.touchTarget.min,
+          flexDirection: 'row',
+          gap: theme.space[2],
+          /* Antes eran 20 a cada lado. En un botón ancho no se notaba; en dos
            botones que comparten una fila de 390 puntos, esos 40 puntos son la
            diferencia entre «Lo he visto» en una línea y en dos. Se vio en la
            captura de la ficha de una alerta, con cuatro acciones en rejilla. */
-        paddingHorizontal: theme.space[3],
-        borderRadius: theme.radius.md,
-        borderWidth: 1,
-        borderColor: focused ? theme.colors.focusRing : style.border,
-        backgroundColor: style.bg,
-        alignItems: 'center',
-        justifyContent: 'center',
-        // El foco se ve, y se ve por algo más que el color del borde: en web
-        // esta es la única pista que tiene quien navega con teclado.
-        outlineColor: theme.colors.focusRing,
-        outlineWidth: focused ? 3 : 0,
-        outlineStyle: 'solid',
-        outlineOffset: 2,
-        opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
-      })}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={style.fg} />
-      ) : icon ? (
-        <Icon icon={icon} size="base" color={style.fg} decorative />
-      ) : null}
-      <Text
-        numberOfLines={1}
-        style={{
-          color: style.fg,
-          fontSize: theme.fontSize.base,
-          fontFamily: fonts.bodyBold,
-          flexShrink: 1,
-        }}
+          paddingHorizontal: theme.space[3],
+          borderRadius: theme.radius.md,
+          borderWidth: 1,
+          borderColor: focused ? theme.colors.focusRing : style.border,
+          backgroundColor: style.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          // El foco se ve, y se ve por algo más que el color del borde: en web
+          // esta es la única pista que tiene quien navega con teclado.
+          outlineColor: theme.colors.focusRing,
+          outlineWidth: focused ? 3 : 0,
+          outlineStyle: 'solid',
+          outlineOffset: 2,
+          opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
+        })}
       >
-        {label}
-      </Text>
-    </Pressable>
+        {loading ? (
+          <ActivityIndicator size="small" color={style.fg} />
+        ) : icon ? (
+          <Icon icon={icon} size="base" color={style.fg} decorative />
+        ) : null}
+        <Text
+          numberOfLines={1}
+          style={{
+            color: style.fg,
+            fontSize: theme.fontSize.base,
+            fontFamily: fonts.bodyBold,
+            flexShrink: 1,
+          }}
+        >
+          {label}
+        </Text>
+      </Pressable>
     </Press>
   );
 }
@@ -491,7 +501,9 @@ export function DataRow({
         minHeight: theme.touchTarget.min,
       }}
     >
-      {icon ? <Icon icon={icon} size="base" color={theme.colors.mutedForeground} decorative /> : null}
+      {icon ? (
+        <Icon icon={icon} size="base" color={theme.colors.mutedForeground} decorative />
+      ) : null}
       <Text
         style={{
           flex: 1,

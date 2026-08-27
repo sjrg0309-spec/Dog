@@ -1,18 +1,20 @@
 import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { Avatar } from '@/components/avatar';
-import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
+import { LargeTitle, NavBar, Separator } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
 import {
+  CardRail,
   EmptyState,
   FootNote,
-  IconCircle,
+  IconTile,
   LIST_GUTTER,
+  ListGroup,
   ListRow,
-  PillButton,
-  RowSeparator,
+  RailCard,
   SectionHeader,
 } from '@/components/list';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
@@ -47,6 +49,7 @@ import {
   useEscort,
 } from '@/lib/escort';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 import { recordWalk, useWalks } from '@/lib/walks';
 
@@ -73,7 +76,12 @@ const DURATIONS = [
  */
 export default function RadarScreen() {
   const theme = useTheme();
-  const { scrolled, onScroll } = useScrolled();
+  /* El desplazamiento en crudo, en el hilo de la interfaz: con él el rótulo
+   pequeño de la barra **se cruza** con el título grande —uno se va mientras el
+   otro llega— en vez de encenderse de golpe, y de paso la barra de pestañas se
+   condensa al bajar. Es el gesto de iOS, y lo que lo hace legible es justo que
+   en ningún momento hay dos títulos a plena tinta ni ninguno. */
+  const { scrollY, onScroll } = useScrollDriver();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
@@ -200,9 +208,15 @@ export default function RadarScreen() {
 
   if (!social) {
     return (
-      <Screen>
-        <NavBar title="Radar" scrolled={scrolled} trailing={<PetSwitcherCompact />} />
-        <ScrollView
+      <Screen grouped>
+        <NavBar
+          title="Radar"
+          scrolled={false}
+          scrollY={scrollY}
+          revealAt={52}
+          trailing={<PetSwitcherCompact />}
+        />
+        <Animated.ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingBottom: theme.space[16] }}
@@ -217,15 +231,21 @@ export default function RadarScreen() {
             le sirve de nada a nadie, y para el animal sería un encuentro que no debería ocurrir. En
             la pestaña de comunidad sí hay algo que sí le sirve a su tutor.
           </FootNote>
-        </ScrollView>
+        </Animated.ScrollView>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <NavBar title="Radar" scrolled={scrolled} trailing={<PetSwitcherCompact />} />
-      <ScrollView
+    <Screen grouped>
+      <NavBar
+        title="Radar"
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={52}
+        trailing={<PetSwitcherCompact />}
+      />
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: theme.space[16] }}
@@ -430,17 +450,18 @@ export default function RadarScreen() {
         )}
 
         <SectionHeader title="Quién está fuera" />
-        <RowSeparator full />
 
         {!canSeePeople ? (
           /* La puerta del chip verificado. Es una fila como las demás y no un
              recuadro de aviso: lo que hay detrás son personas, así que se dice
              en el sitio donde estarían. */
-          <ListRow
-            leading={<IconCircle icon={Lock} />}
-            title="Esto se abre con el chip verificado"
-            subtitle={whyNotPeople ?? undefined}
-          />
+          <ListGroup>
+            <ListRow
+              leading={<IconTile icon={Lock} tone="muted" />}
+              title="Esto se abre con el chip verificado"
+              subtitle={whyNotPeople ?? undefined}
+            />
+          </ListGroup>
         ) : others.length === 0 ? (
           <EmptyState
             icon={RadarIcon}
@@ -448,45 +469,48 @@ export default function RadarScreen() {
             body="Es lo normal fuera de las horas punta. En descubrir sí puedes ver con quién coincides de horario, aunque no esté conectado."
           />
         ) : (
-          others.map((other, index) => (
-            <View key={other.id}>
-              {index > 0 ? <RowSeparator /> : null}
-              <ListRow
-                /* El anillo del retrato es el mismo de las historias, y aquí
-                   dice literalmente lo que dice allí: está fuera ahora. */
-                leading={<Avatar id={other.id} name={other.name} size={44} live />}
-                title={other.name}
-                titleBadge={<Badge tone="live">{other.walkingUntilMinutes} min</Badge>}
-                subtitle={`${other.placeName} · con ${other.ownerName}`}
-                trailing={
-                  <PillButton
-                    label="Vamos"
-                    accessibilityHint={`Avisar a ${other.ownerName} de que vais`}
-                  />
+          /* Quien está fuera **ahora** se hojea, no se recorre: es una decisión
+             de un vistazo —con quién voy— y caduca en minutos. En horizontal
+             caben las caras grandes con su anillo de en vivo, que es lo que se
+             reconoce antes que el nombre. */
+          <CardRail>
+            {others.map((other) => (
+              <RailCard
+                key={other.id}
+                leading={
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+                    <Avatar id={other.id} name={other.name} size={44} live />
+                    <Badge tone="live">{other.walkingUntilMinutes} min</Badge>
+                  </View>
                 }
+                title={other.name}
+                subtitle={`${other.placeName} · con ${other.ownerName}`}
+                action={{ label: 'Vamos' }}
               />
-            </View>
-          ))
+            ))}
+          </CardRail>
         )}
-        <RowSeparator full />
 
         {/* La puerta al historial va aquí y no en el perfil: es la pantalla
             desde la que se sale, así que es donde se piensa en los paseos. Y
             el perfil es lo que más se enseña a otros, que es exactamente donde
             no debe estar la rutina de nadie. */}
-        <ListRow
-          leading={<IconCircle icon={Footprints} />}
-          title="Vuestros paseos"
-          subtitle={
-            walks.length === 0
-              ? 'Se llena solo al cerrar cada check-in'
-              : `${walks.length} guardados · solo los ves tú`
-          }
-          accessibilityLabel={`Ver vuestros paseos, ${walks.length} guardados`}
-          onPress={() => router.push('/historial')}
-          chevron
-        />
-        <RowSeparator full />
+        <View style={{ paddingTop: theme.space[5] }}>
+          <ListGroup>
+            <ListRow
+              leading={<IconTile icon={Footprints} tone="primary" />}
+              title="Vuestros paseos"
+              subtitle={
+                walks.length === 0
+                  ? 'Se llena solo al cerrar cada check-in'
+                  : `${walks.length} guardados · solo los ves tú`
+              }
+              accessibilityLabel={`Ver vuestros paseos, ${walks.length} guardados`}
+              onPress={() => router.push('/historial')}
+              chevron
+            />
+          </ListGroup>
+        </View>
 
         <FootNote>
           Lo que se comparte es el lugar, no tú. El radar solo se enciende dentro de una zona
@@ -494,7 +518,7 @@ export default function RadarScreen() {
           esta pantalla: la base de datos rechaza un check-in fuera de zona, así que no depende de
           que el cliente se porte bien.
         </FootNote>
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }
@@ -608,13 +632,13 @@ function OutsideArea() {
 }
 
 /**
- * Un bloque de control del radar, a sangre.
+ * Un bloque de control del radar.
  *
- * Eran `Card`: borde, esquina redonda y fondo propio, flotando dentro de un
- * margen de veinte puntos. Con el resto de la aplicación en filas que llegan al
- * borde, esa tarjeta era lo único que parecía de otra pantalla. Lo que queda es
- * el mismo contenido con el margen del texto y una línea de un pelo arriba y
- * abajo, que es lo que separa dos secciones en el feed.
+ * Es el mismo `ListGroup` que usan las listas de esta pantalla, con un solo
+ * hijo: la tarjeta agrupada de iOS. Así el estado de la salida y la lista de
+ * quién está fuera se ven como dos piezas del mismo material en vez de como una
+ * tarjeta con borde propio al lado de unas filas sueltas, que es lo que pasaba
+ * cuando esto era una `Card`.
  *
  * Sigue siendo un bloque y no una fila porque lo que hay dentro no es un
  * elemento de una lista: es el estado de la salida y sus botones.
@@ -624,17 +648,9 @@ function Panel({ children }: { children: ReactNode }) {
 
   return (
     <View style={{ paddingTop: theme.space[5] }}>
-      <RowSeparator full />
-      <View
-        style={{
-          gap: theme.space[3],
-          paddingHorizontal: LIST_GUTTER,
-          paddingVertical: theme.space[4],
-        }}
-      >
-        {children}
-      </View>
-      <RowSeparator full />
+      <ListGroup>
+        <View style={{ gap: theme.space[3], padding: theme.space[4] }}>{children}</View>
+      </ListGroup>
     </View>
   );
 }
