@@ -660,6 +660,80 @@ export function RowSeparator({ full = false }: { full?: boolean }) {
 }
 
 /**
+ * Una fila de filtros en chips.
+ *
+ * Existe porque `Segmented` reparte el ancho entre todas las opciones y con
+ * cinco deja cada rótulo en «Tratami…», «Adopci…», «Adopta…». Su propia
+ * documentación lo dice: es para dos o tres opciones excluyentes y todas
+ * visibles a la vez. En cuanto son cuatro o más, lo correcto es una fila que se
+ * desliza, donde cada chip mide lo que mide su palabra.
+ *
+ * El chip mide treinta de alto —los de Material miden treinta y dos— y **se
+ * toca en cuarenta y cuatro** con `hitSlop`, que es la salida que da la guía
+ * para un control que tiene que verse pequeño.
+ *
+ * Se anuncia como lista de pestañas y no como botones sueltos: así un lector de
+ * pantalla dice «3 de 5» en vez de obligar a adivinar cuántas hay.
+ */
+export function FilterChips<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: ReadonlyArray<{ id: T; label: string }>;
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: theme.space[2], paddingHorizontal: LIST_GUTTER }}
+      accessibilityRole="tablist"
+    >
+      {options.map((option) => {
+        const active = option.id === value;
+        return (
+          <Pressable
+            key={option.id}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={option.label}
+            hitSlop={8}
+            onPress={() => {
+              if (active) return;
+              haptics.tap();
+              onChange(option.id);
+            }}
+            style={({ pressed }) => ({
+              height: 30,
+              justifyContent: 'center',
+              paddingHorizontal: theme.space[3],
+              borderRadius: theme.radius.full,
+              backgroundColor: active ? theme.colors.accent : theme.colors.surfaceSunken,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text
+              numberOfLines={1}
+              style={{
+                color: active ? theme.colors.accentForeground : theme.colors.mutedForeground,
+                fontFamily: active ? fonts.bodyBold : fonts.body,
+                fontSize: theme.fontSize.xs,
+              }}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/**
  * El despliegue de una pantalla: cada pieza entra un poco después que la
  * anterior.
  *

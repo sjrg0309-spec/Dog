@@ -45,7 +45,7 @@ import { useWeatherState } from '@/lib/conditions';
 import { PLACES } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { Bookmark, Footprints, MessageCircleMore, Send, Siren } from '@/lib/icons';
+import { Bookmark, Footprints, MessageCircleMore, PawPrint, Send, Siren } from '@/lib/icons';
 import { useHazardZones } from '@/lib/rescue';
 import {
   describeSearchers,
@@ -91,6 +91,28 @@ export function RescueBoard() {
         floating
         trailing={
           <>
+            {/* La puerta al panel del refugio. Va en la cabecera y no en una
+                fila del tablero por lo mismo que publicar va en la del feed:
+                es lo que esta cuenta viene a hacer, no una de las cosas que
+                hay debajo. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Vuestros animales"
+              accessibilityHint="La lista de animales del colectivo y lo que le falta a cada uno"
+              onPress={() => {
+                haptics.tap();
+                router.push('/refugio');
+              }}
+              style={({ pressed }) => ({
+                width: theme.touchTarget.min,
+                height: theme.touchTarget.min,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Icon icon={PawPrint} size="lg" decorative />
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Mensajes"

@@ -44,6 +44,7 @@ import {
 import { Avatar } from '@/components/avatar';
 import { BackBar, Separator } from '@/components/chrome';
 import { EmptyState, LIST_GUTTER, ListGroup, ListRow, SectionHeader } from '@/components/list';
+import { StatStrip } from '@/components/stats';
 import { Icon } from '@/components/icon';
 import { Body, Caption, Heading, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
@@ -131,12 +132,14 @@ export default function HistoryScreen() {
                 libres, «7 h 40 min» empujaba la cuarta cifra a una segunda
                 fila ella sola, y una cifra huérfana debajo de tres se lee como
                 si fuera de otra cosa. Se vio en la captura. */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: theme.space[4] }}>
-              <Stat value={String(totals.walks)} label="paseos" />
-              <Stat value={formatMinutes(totals.minutes)} label="fuera" />
-              <Stat value={String(totals.days)} label="días distintos" />
-              <Stat value={String(totals.companions)} label="perros" />
-            </View>
+            <StatStrip
+              stats={[
+                { value: String(totals.walks), label: 'paseos' },
+                { value: formatMinutes(totals.minutes), label: 'fuera' },
+                { value: String(totals.days), label: 'días distintos' },
+                { value: String(totals.companions), label: 'perros' },
+              ]}
+            />
             {totals.overruns > 0 ? (
               <Caption>
                 {totals.overruns === 1
@@ -243,33 +246,6 @@ export default function HistoryScreen() {
         </View>
       </ScrollView>
     </Screen>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  const theme = useTheme();
-  return (
-    <View style={{ width: '50%' }}>
-      <Text
-        style={{
-          color: theme.colors.foreground,
-          fontFamily: fonts.displayBold,
-          fontSize: theme.fontSize['2xl'],
-          fontVariant: ['tabular-nums'],
-        }}
-      >
-        {value}
-      </Text>
-      <Text
-        style={{
-          color: theme.colors.mutedForeground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize['2xs'],
-        }}
-      >
-        {label}
-      </Text>
-    </View>
   );
 }
 
