@@ -173,10 +173,18 @@ export function Card({ children, style }: { children: ReactNode; style?: ViewSty
         {
           backgroundColor: theme.colors.surface,
           borderColor: theme.colors.border,
-          borderWidth: StyleSheet.hairlineWidth * 2,
-          borderRadius: theme.radius.lg,
+          /* En claro, el filete de un pelo; en oscuro sobra, porque ahí lo que
+             separa la tarjeta del fondo es que está más clara. Es la misma
+             regla que sigue `ListGroup`, y por eso las dos se ven del mismo
+             material aunque una viva en el SOS y la otra en una lista. */
+          borderWidth: theme.isDark ? 0 : StyleSheet.hairlineWidth,
+          borderRadius: theme.radius['2xl'],
           padding: theme.space[5],
           gap: theme.space[3],
+          shadowColor: '#000',
+          shadowOpacity: theme.isDark ? 0 : 0.05,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
         },
         style,
       ]}
@@ -382,10 +390,12 @@ export function Notice({ children }: { children: ReactNode }) {
   return (
     <View
       style={{
+        /* Sin borde y con la esquina del resto de bloques. El recuadro con
+           filete es el aviso de un formulario, y este componente se usa sobre
+           todo para lo contrario: explicar por qué una lista está vacía. Lo que
+           lo separa del fondo es el tono, no una raya alrededor. */
         backgroundColor: theme.colors.surfaceSunken,
-        borderColor: theme.colors.border,
-        borderWidth: StyleSheet.hairlineWidth * 2,
-        borderRadius: theme.radius.md,
+        borderRadius: theme.radius['2xl'],
         padding: theme.space[4],
         gap: theme.space[2],
       }}

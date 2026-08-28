@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { NavBar } from '@/components/chrome';
+import { NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { FacePile } from '@/components/face-pile';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
@@ -100,6 +100,10 @@ export default function MessagesScreen() {
         title="Mensajes"
         scrolled={false}
         scrollY={scrollY}
+        /* La barra, de cristal y encima: el buscador y las conversaciones pasan
+           por debajo desenfocados, que es lo que hace que la lista se sienta
+           bajo la barra y no detrás de un tabique. */
+        floating
         trailing={
           <Pressable
             accessibilityRole="button"
@@ -124,7 +128,10 @@ export default function MessagesScreen() {
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[10] }}
+        contentContainerStyle={{
+          paddingTop: NAV_BAR_HEIGHT,
+          paddingBottom: theme.space[10],
+        }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Buscador y filtros: la cabecera de WhatsApp. Sustituyen al título
@@ -234,8 +241,8 @@ export default function MessagesScreen() {
             <Body>¿Falta alguien con quien te gustaría hablar?</Body>
             <Caption>
               Las conversaciones nacen de coincidir: mismo horario, misma quedada, misma alerta. Si
-              alguien te interesa y todavía no hay hilo, la vía es apuntarse a lo mismo, no un
-              botón de mensaje sobre su perfil.
+              alguien te interesa y todavía no hay hilo, la vía es apuntarse a lo mismo, no un botón
+              de mensaje sobre su perfil.
             </Caption>
             {/* Sin `Link asChild`: en web el envoltorio se queda con el estilo
                 del `Pressable` que envuelve y el `<a>` sale en columna. */}

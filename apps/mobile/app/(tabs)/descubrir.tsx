@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { ConditionsControl } from '@/components/conditions-control';
 import { Icon } from '@/components/icon';
 import { FeedCard } from '@/components/feed-card';
-import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { WelfareNotice } from '@/components/welfare-notice';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
@@ -15,6 +16,7 @@ import { communitiesFor, discover, petHasMeetups, servicesFor, speciesOf } from 
 import { Sparkles } from '@/lib/icons';
 import { SERVICE_KIND_LABEL, speciesName } from '@/lib/labels';
 import { fonts } from '@/lib/fonts';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -49,7 +51,9 @@ export default function DiscoverScreen() {
   /* Bloquear tiene que sacar a alguien también de aquí: si no, la aplicación
      te propone quedar el martes con quien bloqueaste el lunes. */
   const entries = useVisibleBy(found, (entry) => entry.pet.id);
-  const { scrolled, onScroll } = useScrolled();
+  /* El mismo desplazamiento que conduce el feed: la línea de la barra, el
+     título que se encoge y la barra de pestañas al condensarse. */
+  const { scrollY, onScroll } = useScrollDriver();
   const stopped = social && welfare?.level === 'stop';
 
   const title = !social
@@ -68,7 +72,10 @@ export default function DiscoverScreen() {
     <Screen>
       <NavBar
         title="Con quién salir"
-        scrolled={scrolled}
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={52}
+        floating
         trailing={
           // Sin `Link asChild`: en web el `<a>` que genera se queda con el
           // estilo del `Pressable` y lo saca de su fila.
@@ -100,15 +107,19 @@ export default function DiscoverScreen() {
         }
       />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
         contentInsetAdjustmentBehavior="automatic"
       >
         {/* Con el bienestar en «hoy no», el titular sigue mandando; con la lista
             llena, el feed no necesita un título encima de cada cosa. */}
-        {stopped || !social ? <LargeTitle subtitle={subtitle}>{title}</LargeTitle> : null}
+        {stopped || !social ? (
+          <LargeTitle scrollY={scrollY} subtitle={subtitle}>
+            {title}
+          </LargeTitle>
+        ) : null}
 
         {social ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
@@ -175,7 +186,7 @@ export default function DiscoverScreen() {
             <SolitaryPlan speciesId={pet.speciesId} name={pet.name} />
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }
