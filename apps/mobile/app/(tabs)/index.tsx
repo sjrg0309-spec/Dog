@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { NavBar } from '@/components/chrome';
+import { NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { Appear } from '@/components/motion';
@@ -149,7 +149,10 @@ function PetFeed() {
   /* Todo lo que enseña gente pasa por el mismo filtro. Si el bloqueo se
      aplicara pantalla por pantalla, la que se olvidara sería la que te propone
      quedar con quien bloqueaste. */
-  const entries = useVisibleBy(useScopedFeed(scope, location, radiusM), (entry) => entry.post.petId);
+  const entries = useVisibleBy(
+    useScopedFeed(scope, location, radiusM),
+    (entry) => entry.post.petId,
+  );
   const outside = useOutsideRadiusCount(location, radiusM);
 
   const [checkedIn, setCheckedIn] = useState(false);
@@ -180,6 +183,10 @@ function PetFeed() {
         title="Petnav"
         scrolled={false}
         scrollY={scrollY}
+        /* De cristal y encima del feed: las fotos pasan por debajo
+           desenfocadas, que es lo que hace Instagram en iOS y lo que faltaba
+           aquí para que la cabecera no fuera una franja opaca más. */
+        floating
         /* El nombre hace lo que hace el logotipo de Instagram en el navegador:
            subir y actualizar. Y aquí resuelve algo concreto — en web no existe
            el gesto de tirar hacia abajo, así que sin esto refrescar no tendría
@@ -235,7 +242,10 @@ function PetFeed() {
         ref={scroller}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[10] }}
+        contentContainerStyle={{
+          paddingTop: NAV_BAR_HEIGHT,
+          paddingBottom: theme.space[10],
+        }}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
@@ -339,7 +349,7 @@ function PetFeed() {
         {/* La salida hacia el motor. El feed entretiene; esto es lo que hace que
             el paseo ocurra, así que no se puede quedar sin puerta. */}
         <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[8] }}>
-            {/* Sin `Link asChild`: en web el envoltorio se queda con el estilo
+          {/* Sin `Link asChild`: en web el envoltorio se queda con el estilo
                 del `Pressable` y el `<a>` sale en columna, así que la fila de
                 icono y texto se convierte en renglones apilados. */}
           <Pressable
@@ -350,18 +360,18 @@ function PetFeed() {
               router.push('/descubrir');
             }}
             style={({ pressed }) => ({
-                flexDirection: 'row',
+              flexDirection: 'row',
               alignItems: 'center',
-                gap: theme.space[3],
-                minHeight: theme.touchTarget.comfortable,
-                paddingHorizontal: theme.space[4],
-                borderRadius: theme.radius.lg,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.surface,
-                opacity: pressed ? 0.8 : 1,
-              })}
-            >
+              gap: theme.space[3],
+              minHeight: theme.touchTarget.comfortable,
+              paddingHorizontal: theme.space[4],
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.surface,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
             <Icon icon={Compass} size="lg" color={theme.colors.primary} decorative />
             <View style={{ flex: 1 }}>
               <Text
@@ -588,7 +598,8 @@ function FeedTabs({
           accessibilityHint="Cambia cuánto barrio entra en el feed"
           onPress={() => {
             haptics.tap();
-            const next = NEARBY_RADII_M[(NEARBY_RADII_M.indexOf(radiusM) + 1) % NEARBY_RADII_M.length];
+            const next =
+              NEARBY_RADII_M[(NEARBY_RADII_M.indexOf(radiusM) + 1) % NEARBY_RADII_M.length];
             if (next !== undefined) onRadius(next);
           }}
           style={{

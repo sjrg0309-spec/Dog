@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { Badge, Body, Button, Caption, Card, Notice, Row, Screen } from '@/components/ui';
 import { useActivePet } from '@/lib/active-pet';
@@ -94,13 +94,17 @@ export default function SosScreen() {
   const closed = alerts.filter((live) => live.alert.resolvedAt);
 
   return (
-    <Screen>
-      <NavBar title="SOS" scrolled={false} scrollY={scrollY} revealAt={64} />
+    /* Fondo hundido y tarjetas encima, como el resto de pantallas de lista.
+       Aquí importa más que en ninguna: las fichas de alerta llevan su borde
+       rojo, y un borde rojo sobre el mismo blanco de la tarjeta se lee como
+       una raya; sobre el fondo hundido se lee como una alerta. */
+    <Screen grouped>
+      <NavBar title="SOS" scrolled={false} scrollY={scrollY} revealAt={64} floating />
 
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
         <LargeTitle
           subtitle={
@@ -576,9 +580,7 @@ function AlertCard({
         <Icon
           icon={scenario.severity === 'critical' ? Siren : TriangleAlert}
           size="base"
-          color={
-            scenario.severity === 'critical' ? theme.colors.destructive : theme.colors.warning
-          }
+          color={scenario.severity === 'critical' ? theme.colors.destructive : theme.colors.warning}
           decorative
         />
         <Text
@@ -940,8 +942,8 @@ function RescueSection() {
           ))}
           <Caption>
             Un sitio se marca con tres personas distintas, no con tres avisos: contando avisos,
-            cualquiera vaciaría de gente el parque que quisiera repitiendo el formulario. Y la
-            marca caduca sola al mes — un cebo en marzo no hace peligroso el parque en septiembre.
+            cualquiera vaciaría de gente el parque que quisiera repitiendo el formulario. Y la marca
+            caduca sola al mes — un cebo en marzo no hace peligroso el parque en septiembre.
           </Caption>
         </Card>
       ) : null}

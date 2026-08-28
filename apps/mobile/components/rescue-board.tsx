@@ -35,7 +35,7 @@ import Animated from 'react-native-reanimated';
 import { describeZone, formatDistance, shareAlertText } from '@petnav/core';
 
 import { Avatar } from './avatar';
-import { NavBar, Separator } from './chrome';
+import { NAV_BAR_HEIGHT, NavBar, Separator } from './chrome';
 import { Icon } from './icon';
 import { MiniMap } from './mini-map';
 import { Press, Pulse } from './motion';
@@ -85,6 +85,10 @@ export function RescueBoard() {
         title="Rescate"
         scrolled={false}
         scrollY={scrollY}
+        /* De cristal, como la del feed: es la misma pantalla de inicio para la
+           otra puerta de la aplicación, y no tendría sentido que la de una
+           protectora fuera opaca y la de un tutor no. */
+        floating
         trailing={
           <>
             <Pressable
@@ -125,7 +129,11 @@ export function RescueBoard() {
         }
       />
 
-      <ScrollView onScroll={onScroll} scrollEventThrottle={16}>
+      <ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT }}
+      >
         {!account.shelterReviewed ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[3] }}>
             <Caption>
@@ -161,36 +169,36 @@ export function RescueBoard() {
               >
                 {({ pressed }) => (
                   <Press pressed={pressed} scale={0.94} style={{ alignItems: 'center', gap: 6 }}>
-                <Pulse active>
-                  <View
-                    style={{
-                      width: 68,
-                      height: 68,
-                      borderRadius: 34,
-                      borderWidth: 2,
-                      borderColor: theme.colors.destructive,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Avatar
-                      id={live.alert.id}
-                      name={live.alert.petName ?? live.scenario.label}
-                      size={58}
-                    />
-                  </View>
-                </Pulse>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    maxWidth: 72,
-                    color: theme.colors.foreground,
-                    fontFamily: fonts.body,
-                    fontSize: theme.fontSize['2xs'],
-                  }}
-                >
-                  {live.alert.petName ?? 'Peligro'}
-                </Text>
+                    <Pulse active>
+                      <View
+                        style={{
+                          width: 68,
+                          height: 68,
+                          borderRadius: 34,
+                          borderWidth: 2,
+                          borderColor: theme.colors.destructive,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Avatar
+                          id={live.alert.id}
+                          name={live.alert.petName ?? live.scenario.label}
+                          size={58}
+                        />
+                      </View>
+                    </Pulse>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        maxWidth: 72,
+                        color: theme.colors.foreground,
+                        fontFamily: fonts.body,
+                        fontSize: theme.fontSize['2xs'],
+                      }}
+                    >
+                      {live.alert.petName ?? 'Peligro'}
+                    </Text>
                   </Press>
                 )}
               </Pressable>

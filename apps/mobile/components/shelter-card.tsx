@@ -13,13 +13,15 @@
  */
 
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { SHELTER_ACTIVITIES, SHELTER_REVIEW_NOTE, SHELTER_SCOPE_NOTE } from '@petnav/core';
 
 import { Icon } from './icon';
-import { Badge, Body, Caption, Card, Notice, Row, Screen } from '@/components/ui';
-import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
+import { Badge, Body, Caption, Notice, Row, Screen } from '@/components/ui';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
+import { ListGroup } from '@/components/list';
 import { useAccount } from '@/lib/account';
 import { useWeatherState } from '@/lib/conditions';
 import { useAllAlerts, useSavedAlerts } from '@/lib/safety';
@@ -27,11 +29,14 @@ import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import { ProfileMenu } from './profile-menu';
 import { BadgeCheck, Bookmark, Clock, Footprints, Lock, Menu, Siren } from '@/lib/icons';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 export function ShelterCard() {
   const theme = useTheme();
-  const { scrolled, onScroll } = useScrolled();
+  /* El mismo desplazamiento que el resto: la línea de la barra, el título que
+     se encoge y las pestañas que se condensan al bajar. */
+  const { scrollY, onScroll } = useScrollDriver();
   const account = useAccount();
   const [menu, setMenu] = useState(false);
   const approved = account.shelterReviewed;
@@ -47,11 +52,13 @@ export function ShelterCard() {
   );
 
   return (
-    <Screen>
+    <Screen grouped>
       <NavBar
         title={account.shelterName ?? 'Protectora'}
-        scrolled={scrolled}
-        showTitle={scrolled}
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={52}
+        floating
         trailing={
           <Pressable
             accessibilityRole="button"
@@ -74,74 +81,84 @@ export function ShelterCard() {
         }
       />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}
+        contentContainerStyle={{
+          paddingTop: NAV_BAR_HEIGHT,
+          paddingBottom: theme.space[16],
+          gap: theme.space[5],
+        }}
       >
-        <LargeTitle subtitle="Cuenta de rescate">{account.shelterName ?? 'Protectora'}</LargeTitle>
+        <LargeTitle scrollY={scrollY} subtitle="Cuenta de rescate">
+          {account.shelterName ?? 'Protectora'}
+        </LargeTitle>
 
-        <Card>
-          <Row>
-            <Icon
-              icon={approved ? BadgeCheck : Clock}
-              size="lg"
-              color={approved ? theme.colors.success : theme.colors.warning}
-              decorative
-            />
-            <View style={{ flex: 1 }}>
-              <Body>{approved ? 'Cuenta aprobada' : 'Pendiente de revisión'}</Body>
-              <Caption>
-                {approved
-                  ? 'Ya hemos revisado vuestro perfil.'
-                  : 'Estamos revisando vuestro perfil.'}
-              </Caption>
-            </View>
-            <Badge tone={approved ? 'verified' : 'warning'}>
-              {approved ? 'Aprobada' : 'En revisión'}
-            </Badge>
-          </Row>
+        <ListGroup leading="none">
+          <View style={{ padding: theme.space[4], gap: theme.space[3] }}>
+            <Row>
+              <Icon
+                icon={approved ? BadgeCheck : Clock}
+                size="lg"
+                color={approved ? theme.colors.success : theme.colors.warning}
+                decorative
+              />
+              <View style={{ flex: 1 }}>
+                <Body>{approved ? 'Cuenta aprobada' : 'Pendiente de revisión'}</Body>
+                <Caption>
+                  {approved
+                    ? 'Ya hemos revisado vuestro perfil.'
+                    : 'Estamos revisando vuestro perfil.'}
+                </Caption>
+              </View>
+              <Badge tone={approved ? 'verified' : 'warning'}>
+                {approved ? 'Aprobada' : 'En revisión'}
+              </Badge>
+            </Row>
 
-          {account.shelterProfile ? (
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={`Abrir ${account.shelterProfile}`}
-              onPress={() => {
-                haptics.tap();
-                void Linking.openURL(account.shelterProfile!);
-              }}
-              style={({ pressed }) => ({
-                minHeight: theme.touchTarget.min,
-                justifyContent: 'center',
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: theme.colors.primary,
-                  fontFamily: fonts.body,
-                  fontSize: theme.fontSize.sm,
+            {account.shelterProfile ? (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`Abrir ${account.shelterProfile}`}
+                onPress={() => {
+                  haptics.tap();
+                  void Linking.openURL(account.shelterProfile!);
                 }}
+                style={({ pressed }) => ({
+                  minHeight: theme.touchTarget.min,
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.6 : 1,
+                })}
               >
-                {account.shelterProfile}
-              </Text>
-            </Pressable>
-          ) : null}
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: theme.colors.primary,
+                    fontFamily: fonts.body,
+                    fontSize: theme.fontSize.sm,
+                  }}
+                >
+                  {account.shelterProfile}
+                </Text>
+              </Pressable>
+            ) : null}
 
-          <Caption>{SHELTER_REVIEW_NOTE}</Caption>
-        </Card>
+            <Caption>{SHELTER_REVIEW_NOTE}</Caption>
+          </View>
+        </ListGroup>
 
         {activities.length > 0 ? (
-          <Card>
-            <Row gap={2}>
-              <Icon icon={Siren} size="base" color={theme.colors.foreground} decorative />
-              <Body>Qué hacéis</Body>
-            </Row>
-            {activities.map((activity) => (
-              <Caption key={activity.id}>· {activity.label}</Caption>
-            ))}
-          </Card>
+          <ListGroup leading="none">
+            <View style={{ padding: theme.space[4], gap: theme.space[3] }}>
+              <Row gap={2}>
+                <Icon icon={Siren} size="base" color={theme.colors.foreground} decorative />
+                <Body>Qué hacéis</Body>
+              </Row>
+              {activities.map((activity) => (
+                <Caption key={activity.id}>· {activity.label}</Caption>
+              ))}
+            </View>
+          </ListGroup>
         ) : null}
 
         {/*
@@ -152,33 +169,35 @@ export function ShelterCard() {
           perfil a las tres de la mañana es «¿a qué me he apuntado?», y eso son
           las búsquedas en las que está y los avisos que apartó para volver.
         */}
-        <Card>
-          <Row gap={2}>
-            <Icon icon={Footprints} size="base" color={theme.colors.primary} decorative />
-            <Body>
-              {searching.length === 0
-                ? 'No estáis en ninguna búsqueda'
-                : searching.length === 1
-                  ? 'Estáis en 1 búsqueda'
-                  : `Estáis en ${searching.length} búsquedas`}
-            </Body>
-          </Row>
-          {searching.map((live) => (
-            <Caption key={live.alert.id}>
-              · {live.alert.petName ?? live.scenario.label} — {live.alert.areaName}
-            </Caption>
-          ))}
-          <Row gap={2}>
-            <Icon icon={Bookmark} size="base" color={theme.colors.mutedForeground} decorative />
-            <Caption>
-              {saved.length === 0
-                ? 'Sin avisos guardados'
-                : saved.length === 1
-                  ? '1 aviso guardado'
-                  : `${saved.length} avisos guardados`}
-            </Caption>
-          </Row>
-        </Card>
+        <ListGroup leading="none">
+          <View style={{ padding: theme.space[4], gap: theme.space[3] }}>
+            <Row gap={2}>
+              <Icon icon={Footprints} size="base" color={theme.colors.primary} decorative />
+              <Body>
+                {searching.length === 0
+                  ? 'No estáis en ninguna búsqueda'
+                  : searching.length === 1
+                    ? 'Estáis en 1 búsqueda'
+                    : `Estáis en ${searching.length} búsquedas`}
+              </Body>
+            </Row>
+            {searching.map((live) => (
+              <Caption key={live.alert.id}>
+                · {live.alert.petName ?? live.scenario.label} — {live.alert.areaName}
+              </Caption>
+            ))}
+            <Row gap={2}>
+              <Icon icon={Bookmark} size="base" color={theme.colors.mutedForeground} decorative />
+              <Caption>
+                {saved.length === 0
+                  ? 'Sin avisos guardados'
+                  : saved.length === 1
+                    ? '1 aviso guardado'
+                    : `${saved.length} avisos guardados`}
+              </Caption>
+            </Row>
+          </View>
+        </ListGroup>
 
         <Notice>
           <Row gap={2}>
@@ -193,12 +212,12 @@ export function ShelterCard() {
             perros propios, que es justo lo contrario de lo que define esta
             puerta. */}
         <Caption>
-          En esta demo la cuenta conserva las mascotas de la semilla para que el mapa y las
-          quedadas tengan contenido, pero ya no las lleva puestas: ni la cara de la barra ni el
-          color de la aplicación salen de un perro que no es vuestro. Una cuenta de protectora real
-          no tiene mascotas propias.
+          En esta demo la cuenta conserva las mascotas de la semilla para que el mapa y las quedadas
+          tengan contenido, pero ya no las lleva puestas: ni la cara de la barra ni el color de la
+          aplicación salen de un perro que no es vuestro. Una cuenta de protectora real no tiene
+          mascotas propias.
         </Caption>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {menu ? <ProfileMenu onClose={() => setMenu(false)} /> : null}
     </Screen>
