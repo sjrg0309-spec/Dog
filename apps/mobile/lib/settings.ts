@@ -176,10 +176,10 @@ export const SETTINGS: readonly SettingGroup[] = [
       {
         id: 'direccion',
         label: 'Dirección visual',
-        hint: 'Nocturno, Papel o Señal',
+        hint: 'Nocturno, Papel, Señal o Relieve',
         keywords: [
           'tema', 'aspecto', 'estilo', 'diseño', 'color', 'paleta', 'tipografía',
-          'letra', 'nocturno', 'papel', 'señal', 'instagram',
+          'letra', 'nocturno', 'papel', 'señal', 'relieve', 'instagram',
         ],
         kind: 'choice',
       },

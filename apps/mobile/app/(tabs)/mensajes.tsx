@@ -23,6 +23,7 @@ import {
 } from '@/lib/icons';
 import { clockTime, useThreads, type Thread } from '@/lib/messages';
 import { useScrollDriver } from '@/lib/scroll';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -67,6 +68,7 @@ type Filter = (typeof FILTERS)[number]['id'];
 
 export default function MessagesScreen() {
   const theme = useTheme();
+  const relief = useRelief();
   const router = useRouter();
   const { scrollY, onScroll } = useScrollDriver();
   const threads = useThreads();
@@ -142,15 +144,21 @@ export default function MessagesScreen() {
             los mensajes: una lupa que no filtra nada es peor que no tenerla. */}
         <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[2] }}>
           <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.space[2],
-              height: 38,
-              paddingHorizontal: theme.space[3],
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.colors.surfaceSunken,
-            }}
+            style={[
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.space[2],
+                height: 38,
+                paddingHorizontal: theme.space[3],
+                borderRadius: theme.radius.full,
+                backgroundColor: theme.colors.surfaceSunken,
+              },
+              /* La ranura del buscador. Es lo que pide el estilo para un campo:
+                 no una caja puesta encima del fondo, sino un hueco abierto en
+                 él, con la sombra cayendo por el canto de arriba. */
+              relief.pressed('sm'),
+            ]}
           >
             <Icon icon={Search} size="base" color={theme.colors.mutedForeground} decorative />
             <TextInput

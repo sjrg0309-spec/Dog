@@ -299,6 +299,22 @@ a cuerpo de texto entre elemento y elemento. **Las explicaciones no se han tirad
 dice por qué hace lo que hace—, lo que ha cambiado es su peso: van en gris y pequeñas debajo de la
 lista, no interrumpiéndola.
 
+**Cuatro direcciones visuales, y la cuarta se dibuja con luz.** Una dirección no es una paleta: es
+paleta, tipografía y forma, y se cambia de una pieza desde Configuración (`apps/mobile/lib/direcciones.ts`).
+A «Nocturno», «Papel» y «Señal» se les ha unido **«Relieve»**, que es neumorfismo —Soft UI— hecho
+con una condición que no se negocia: *el relieve separa superficies, el color separa texto*. En ella
+la tarjeta es exactamente del color del fondo y lo que la levanta son dos luces —un brillo arriba a
+la izquierda, una sombra abajo a la derecha— que viven en un solo sitio, `lib/relieve.ts`. Las
+pantallas no preguntan qué dirección hay puesta: piden `useRelief()` y extienden lo que reciben, que
+en las otras tres es un objeto vacío. Por eso la dirección se aplica a la aplicación entera sin
+tocar las pantallas una por una.
+
+El fallo conocido del estilo —que acaba hundiendo también el texto en el fondo— está atado por el
+test: las mismas veinte medidas de contraste que aprueban a las otras tres direcciones aprueban a
+esta, en claro y en oscuro, y una regla más en `lib/interface-rules.test.ts` impide que una pantalla
+escriba su propia sombra, porque bastaría una para que la aplicación tuviera dos soles. En oscuro el
+fondo es carbón mate y no negro puro por un motivo físico: sobre negro no existe la sombra clara.
+
 Dos sitios se quedan fuera a propósito. El **SOS** conserva sus tarjetas con borde rojo: es la
 pantalla en la que una alerta abierta tiene que gritar, y aplanarla al mismo gris que un directorio
 de veterinarios sería quitarle lo único que hace. Y el aviso de bienestar (`WelfareNotice`) sigue

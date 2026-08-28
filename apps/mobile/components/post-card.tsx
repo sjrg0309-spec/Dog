@@ -70,6 +70,7 @@ import {
   totalReactions,
   type Post,
 } from '@/lib/posts';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /** El icono de cada reacción. El nombre y el texto viven en `lib/posts`. */
@@ -89,6 +90,7 @@ export function PostCard({
   distanceLabel?: string | null;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   const router = useRouter();
   const [draft, setDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
@@ -696,19 +698,23 @@ export function PostCard({
               placeholderTextColor={theme.colors.inputPlaceholder}
               accessibilityLabel={`Comentar la publicación de ${post.petName}`}
               multiline
-              style={{
-                flex: 1,
-                minHeight: theme.touchTarget.min,
-                paddingHorizontal: theme.space[3],
-                paddingVertical: theme.space[2],
-                borderRadius: theme.radius.md,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.input,
-                color: theme.colors.inputForeground,
-                fontFamily: fonts.body,
-                fontSize: theme.fontSize.base,
-              }}
+              style={[
+                {
+                  flex: 1,
+                  minHeight: theme.touchTarget.min,
+                  paddingHorizontal: theme.space[3],
+                  paddingVertical: theme.space[2],
+                  borderRadius: theme.radius.md,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.input,
+                  color: theme.colors.inputForeground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.base,
+                },
+                /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+                relief.pressed('sm'),
+              ]}
             />
             <Pressable
               accessibilityRole="button"

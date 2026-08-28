@@ -41,6 +41,7 @@ import { shareResultNote, shareText } from '@/lib/share';
 import { useHazardZones } from '@/lib/rescue';
 import { useSettings } from '@/lib/settings';
 import { useScrollDriver } from '@/lib/scroll';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 import {
   shareAlertText,
@@ -555,6 +556,7 @@ function AlertCard({
   myLocation: { lat: number; lng: number };
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState('');
   const [shared, setShared] = useState<string | null>(null);
@@ -684,17 +686,21 @@ function AlertCard({
             placeholder="Qué has visto y dónde exactamente"
             placeholderTextColor={theme.colors.inputPlaceholder}
             accessibilityLabel="Descripción del avistamiento"
-            style={{
-              minHeight: 80,
-              padding: theme.space[3],
-              borderRadius: theme.radius.md,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-              backgroundColor: theme.colors.input,
-              color: theme.colors.inputForeground,
-              fontFamily: fonts.body,
-              fontSize: theme.fontSize.base,
-            }}
+            style={[
+              {
+                minHeight: 80,
+                padding: theme.space[3],
+                borderRadius: theme.radius.md,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.input,
+                color: theme.colors.inputForeground,
+                fontFamily: fonts.body,
+                fontSize: theme.fontSize.base,
+              },
+              /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+              relief.pressed('sm'),
+            ]}
           />
           <Row gap={2}>
             <Icon icon={Locate} size="sm" color={theme.colors.mutedForeground} decorative />

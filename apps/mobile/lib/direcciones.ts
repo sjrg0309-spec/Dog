@@ -16,6 +16,10 @@
  *  - **Señal.** Pizarra y ámbar de alta visibilidad, letra grande, esquinas
  *    blandas y áreas táctiles crecidas. Pensada para lo que de verdad se hace
  *    con esto: mirarla de noche, en la calle, con una mano.
+ *  - **Relieve.** Todo es del mismo color y lo que separa las cosas es la luz:
+ *    una tarjeta sale del fondo, un campo se hunde en él. Es el «Soft UI» de
+ *    toda la vida, con una condición que aquí no se negocia y se explica abajo:
+ *    el relieve **acompaña** al contraste, nunca lo sustituye.
  *
  * **Cada dirección trae sus dos fondos.** Claro y oscuro siguen siendo un
  * ajuste, porque una aplicación que se usa a las siete de la mañana y a las
@@ -32,12 +36,15 @@ import { useSyncExternalStore } from 'react';
 
 import type { SemanticTokens } from '@petnav/tokens';
 
-export const DIRECTION_IDS = ['nocturno', 'papel', 'senal'] as const;
+export const DIRECTION_IDS = ['nocturno', 'papel', 'senal', 'relieve'] as const;
 export type DirectionId = (typeof DIRECTION_IDS)[number];
 
 /* ------------------------------------------------------------------ mezcla */
 
-const hex = (n: number): string => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+const hex = (n: number): string =>
+  Math.max(0, Math.min(255, Math.round(n)))
+    .toString(16)
+    .padStart(2, '0');
 
 const parse = (value: string): [number, number, number] => [
   parseInt(value.slice(1, 3), 16),
@@ -68,7 +75,7 @@ export function contrastHex(a: string, b: string): number {
   const hi = Math.max(one, two);
   const lo = Math.min(one, two);
   return (hi + 0.05) / (lo + 0.05);
-};
+}
 
 /* ------------------------------------------------------------------ semilla */
 
@@ -102,7 +109,8 @@ function build(seed: Seed, isDark: boolean): SemanticTokens {
   /* Pulsar oscurece en claro y aclara en oscuro. Es la misma regla en las tres
      direcciones, y por eso se deriva en vez de escribirse. */
   const push = isDark ? '#ffffff' : '#000000';
-  const tint = (color: string, amount = isDark ? 0.84 : 0.88): string => mix(color, seed.bg, amount);
+  const tint = (color: string, amount = isDark ? 0.84 : 0.88): string =>
+    mix(color, seed.bg, amount);
   const onTint = (color: string): string => mix(color, seed.fg, isDark ? 0.35 : 0.3);
 
   return {
@@ -193,6 +201,31 @@ export type FontSet = {
   displayExtrabold: string;
 };
 
+/**
+ * El par de luces de una dirección con relieve.
+ *
+ * Neumorfismo es una sola idea: una fuente de luz fija arriba a la izquierda.
+ * De ahí salen exactamente dos colores —el brillo que deja la luz en el canto
+ * de arriba y la sombra que cae en el de abajo— y con esos dos se dibuja todo:
+ * lo que sobresale los lleva por fuera, lo hundido los lleva por dentro y del
+ * revés. No hay un tercer color, ni una sombra «de tarjeta grande»: cambia la
+ * distancia, no el color.
+ */
+export type Relief = {
+  /** El brillo. Arriba a la izquierda, siempre más claro que la superficie. */
+  light: string;
+  /** La sombra. Abajo a la derecha, siempre más oscura que la superficie. */
+  dark: string;
+};
+
+/**
+ * Las direcciones sin relieve declaran `null`, y no es un hueco: es la
+ * respuesta a «¿esta dirección se dibuja con luz?». Con `null` los componentes
+ * caen a lo de siempre —filete de un pelo y sombra suave— en vez de intentar un
+ * relieve de mentira sobre una paleta que no lo aguanta.
+ */
+export type ReliefSet = { light: Relief; dark: Relief } | null;
+
 export type Direction = {
   id: DirectionId;
   name: string;
@@ -211,6 +244,8 @@ export type Direction = {
   media: 'bleed' | 'inset';
   /** Cuánto crecen las áreas táctiles respecto al suelo de 44. */
   touchBoost: number;
+  /** Las dos luces, si la dirección se dibuja con relieve. */
+  relief: ReliefSet;
 };
 
 const NOCTURNO_DARK: Seed = {
@@ -354,6 +389,78 @@ const SENAL_LIGHT: Seed = {
   heat: '#a8500c',
 };
 
+/*
+ * «Relieve»: todo del mismo color, y la luz hace el resto.
+ *
+ * El neumorfismo tiene un fallo conocido y aquí está corregido a propósito: en
+ * su forma de manual, el texto y los iconos también se hunden en el fondo —gris
+ * sobre gris— y la interfaz deja de leerse en cuanto hay sol. Esta dirección se
+ * queda con la parte buena —el relieve como material— y **no negocia el
+ * contraste**: la letra es pizarra sobre el gris azulado, el texto apagado pasa
+ * de 5:1, y las mismas veinte medidas que aprueban a las otras tres la aprueban
+ * a ella. El relieve separa **superficies**; el color separa **texto**. Nunca
+ * se cambian los papeles.
+ *
+ * La segunda regla, que se ve en la paleta: `surface` **es** `background`. Es
+ * el punto entero del estilo —una tarjeta no es un papel más claro puesto
+ * encima, es el mismo material abombado— y por eso lo hundido baja solo un
+ * escalón: si el relieve no llegara a pintarse, la ranura de un campo se
+ * seguiría distinguiendo del fondo.
+ */
+const RELIEVE_LIGHT: Seed = {
+  bg: '#e0e5ec',
+  /* Igual que el fondo, a propósito: lo que levanta la tarjeta es la luz. */
+  surface: '#e0e5ec',
+  elevated: '#e8ecf2',
+  sunken: '#d6dbe3',
+  fg: '#2b3442',
+  mut: '#565f70',
+  /* Es el mismo gris azulado que la sombra de esta dirección. Un borde, cuando
+     hace falta uno, no es más que la sombra vista de canto. */
+  line: '#adb6c6',
+  primary: '#3452b5',
+  primaryOn: '#ffffff',
+  live: '#a8460f',
+  danger: '#b3261e',
+  dangerOn: '#ffffff',
+  ok: '#106b45',
+  okOn: '#ffffff',
+  warn: '#7a5300',
+  warnOn: '#ffffff',
+  info: '#0a55b0',
+  infoOn: '#ffffff',
+  heat: '#a8460f',
+};
+
+/*
+ * En oscuro el fondo es carbón mate y no negro puro, y no por gusto: **sobre
+ * negro no existe la sombra clara**. El relieve necesita poder ir un paso hacia
+ * la luz y otro hacia la sombra desde la superficie, y el negro puro solo deja
+ * uno. Es la misma razón por la que «Nocturno» no podría llevar relieve aunque
+ * se quisiera.
+ */
+const RELIEVE_DARK: Seed = {
+  bg: '#2e3239',
+  surface: '#2e3239',
+  elevated: '#383d46',
+  sunken: '#262a30',
+  fg: '#eef1f6',
+  mut: '#a4aebd',
+  line: '#3d434d',
+  primary: '#8ba2f2',
+  primaryOn: '#0b1330',
+  live: '#ff9a63',
+  danger: '#ff8078',
+  dangerOn: '#2b0705',
+  ok: '#5cd39b',
+  okOn: '#04241a',
+  warn: '#f5c65c',
+  warnOn: '#241a00',
+  info: '#8ba2f2',
+  infoOn: '#0b1330',
+  heat: '#ff9a63',
+};
+
 export const DIRECTIONS: Record<DirectionId, Direction> = {
   nocturno: {
     id: 'nocturno',
@@ -372,6 +479,7 @@ export const DIRECTIONS: Record<DirectionId, Direction> = {
     },
     media: 'bleed',
     touchBoost: 0,
+    relief: null,
   },
   papel: {
     id: 'papel',
@@ -390,6 +498,7 @@ export const DIRECTIONS: Record<DirectionId, Direction> = {
     },
     media: 'bleed',
     touchBoost: 0,
+    relief: null,
   },
   senal: {
     id: 'senal',
@@ -408,6 +517,36 @@ export const DIRECTIONS: Record<DirectionId, Direction> = {
     },
     media: 'inset',
     touchBoost: 8,
+    relief: null,
+  },
+  relieve: {
+    id: 'relieve',
+    name: 'Relieve',
+    tagline: 'Todo del mismo color, y la luz hace el resto',
+    light: build(RELIEVE_LIGHT, false),
+    dark: build(RELIEVE_DARK, true),
+    /* Blando, pero menos que «Señal»: el relieve ya redondea de por sí —una
+       esquina con brillo arriba y sombra abajo se lee más mullida de lo que
+       mide—, así que pasarse convierte cada tarjeta en una pastilla. */
+    radius: { xs: 8, sm: 12, md: 14, lg: 16, xl: 20, '2xl': 26, full: 9999 },
+    fonts: {
+      body: 'PlusJakartaSans_400Regular',
+      bodyBold: 'PlusJakartaSans_700Bold',
+      displaySemibold: 'PlusJakartaSans_600SemiBold',
+      displayBold: 'PlusJakartaSans_700Bold',
+      displayExtrabold: 'PlusJakartaSans_800ExtraBold',
+    },
+    /* La foto va dentro del marco. A sangre rompería la ilusión: una tarjeta
+       de relieve es un objeto con canto, y un objeto con canto no tiene una
+       fotografía saliéndose por el borde. */
+    media: 'inset',
+    touchBoost: 0,
+    relief: {
+      /* El par canónico del gris #e0e5ec, y los dos únicos colores que dibujan
+         toda la interfaz en esta dirección. */
+      light: { light: '#ffffff', dark: '#a3b1c6' },
+      dark: { light: '#3a4049', dark: '#22262b' },
+    },
   },
 };
 
@@ -415,6 +554,7 @@ export const DIRECTION_LABEL: Record<DirectionId, string> = {
   nocturno: 'Nocturno',
   papel: 'Papel',
   senal: 'Señal',
+  relieve: 'Relieve',
 };
 
 /* ------------------------------------------------------------------ almacén */

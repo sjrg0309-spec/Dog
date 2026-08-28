@@ -35,7 +35,7 @@
  * Y una cosa manda sobre todo esto: **la dirección visual**. Los radios salen de
  * `theme.radius`, así que «Papel» —que es de imprenta y tiene el filete recto—
  * conserva las esquinas casi cuadradas y «Señal» las tiene blandas. Un radio
- * escrito a mano aquí aplanaría las tres a una.
+ * escrito a mano aquí las aplanaría todas a una.
  */
 
 import {
@@ -53,6 +53,7 @@ import { Appear, Press } from './motion';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import { ChevronRight, type LucideIcon } from '@/lib/icons';
+import { useRelief } from '@/lib/relieve';
 import { useGroupedSurfaces, useTheme } from '@/lib/theme';
 
 /**
@@ -118,6 +119,7 @@ export function ListGroup({
   flush?: boolean;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   const { card } = useGroupedSurfaces();
 
   /* Los nulos se filtran antes de repartir las líneas: una fila condicional que
@@ -128,24 +130,33 @@ export function ListGroup({
   return (
     <InGroup.Provider value={true}>
       <View
-        style={{
-          marginHorizontal: LIST_GUTTER,
-          borderRadius: theme.radius['2xl'],
-          backgroundColor: card,
-          overflow: 'hidden',
-          /* El borde de un pelo hace el trabajo en claro, donde la tarjeta
-             blanca sobre gris casi no tiene contraste; en oscuro sobra, porque
-             ahí lo que la separa es que está más clara que el fondo. */
-          borderWidth: theme.isDark ? 0 : StyleSheet.hairlineWidth,
-          borderColor: theme.colors.border,
-          /* Una sombra corta y muy suave. No es una tarjeta de Material
-             flotando dos centímetros: es el pelo de profundidad que despega la
-             lista del fondo cuando los dos son casi del mismo gris. */
-          shadowColor: '#000',
-          shadowOpacity: theme.isDark ? 0 : 0.05,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 2 },
-        }}
+        style={[
+          {
+            marginHorizontal: LIST_GUTTER,
+            borderRadius: theme.radius['2xl'],
+            backgroundColor: card,
+            /* Recorta a las filas, no a la sombra: lo que una vista con
+               `overflow` esconde son sus hijos, y el relieve se pinta por
+               fuera del marco. */
+            overflow: 'hidden',
+            /* El borde de un pelo hace el trabajo en claro, donde la tarjeta
+               blanca sobre gris casi no tiene contraste; en oscuro sobra,
+               porque ahí lo que la separa es que está más clara que el fondo.
+               Y con relieve sobra siempre: ahí la tarjeta **es** del color del
+               fondo y quien la levanta es la luz, así que un filete alrededor
+               sería el recorte del papel asomando por debajo del efecto. */
+            borderWidth: relief.on ? 0 : theme.isDark ? 0 : StyleSheet.hairlineWidth,
+            borderColor: theme.colors.border,
+            /* Una sombra corta y muy suave. No es una tarjeta de Material
+               flotando dos centímetros: es el pelo de profundidad que despega
+               la lista del fondo cuando los dos son casi del mismo gris. */
+            shadowColor: '#000',
+            shadowOpacity: relief.on || theme.isDark ? 0 : 0.05,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 2 },
+          },
+          relief.raised('md'),
+        ]}
       >
         {items.map((child, index) => (
           <View key={index}>
@@ -414,6 +425,7 @@ export function PillButton({
   accessibilityHint?: string;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   const primary = variant === 'primary';
   const fg = primary ? theme.colors.primaryForeground : theme.colors.foreground;
@@ -435,20 +447,27 @@ export function PillButton({
         haptics.tap();
         onPress?.();
       }}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: theme.space[1.5],
-        minHeight: 34,
-        paddingHorizontal: theme.space[3],
-        /* Redonda del todo, como los botones de una ficha de iOS. El radio
-           medio la dejaba a medio camino entre una pastilla y un botón de
-           formulario. */
-        borderRadius: theme.radius.full,
-        backgroundColor: primary ? theme.colors.primary : theme.colors.surfaceSunken,
-        opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
-      })}
+      style={({ pressed }) => [
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: theme.space[1.5],
+          minHeight: 34,
+          paddingHorizontal: theme.space[3],
+          /* Redonda del todo, como los botones de una ficha de iOS. El radio
+             medio la dejaba a medio camino entre una pastilla y un botón de
+             formulario. */
+          borderRadius: theme.radius.full,
+          backgroundColor: primary ? theme.colors.primary : theme.colors.surfaceSunken,
+          opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
+        },
+        /* Con relieve el aviso de que se ha pulsado deja de ser una opacidad y
+           pasa a ser la propia pastilla hundiéndose. Es el único gesto que el
+           estilo trae de fábrica y sale gratis: el dedo aprieta, la pieza cede
+           y vuelve. */
+        pressed ? relief.pressed('sm') : relief.raised('sm'),
+      ]}
     >
       {icon ? <Icon icon={icon} size="sm" color={fg} decorative /> : null}
       <Text
@@ -488,6 +507,7 @@ export function IconTile({
   size?: number;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   const palette: Record<TileTone, { fill: string; ink: string }> = {
     primary: { fill: theme.colors.primary, ink: theme.colors.primaryForeground },
@@ -502,17 +522,22 @@ export function IconTile({
 
   return (
     <View
-      style={{
-        width: size,
-        height: size,
-        /* Cuadrado de esquina blanda y no círculo: el círculo es para las caras,
-           y mezclar los dos en la misma columna hace que las personas y las
-           cosas se lean igual. */
-        borderRadius: theme.radius.lg,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: fill,
-      }}
+      style={[
+        {
+          width: size,
+          height: size,
+          /* Cuadrado de esquina blanda y no círculo: el círculo es para las
+             caras, y mezclar los dos en la misma columna hace que las personas
+             y las cosas se lean igual. */
+          borderRadius: theme.radius.lg,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: fill,
+        },
+        /* Sobresale aunque vaya teñida: en una columna de treinta fichas, un
+           relieve pequeño es lo que las separa de una mancha impresa. */
+        relief.raised('sm'),
+      ]}
     >
       <Icon icon={icon} size="sm" color={ink} strokeWidth={2.4} decorative />
     </View>
@@ -685,6 +710,7 @@ export function FilterChips<T extends string>({
   onChange: (id: T) => void;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   return (
     <ScrollView
@@ -707,14 +733,21 @@ export function FilterChips<T extends string>({
               haptics.tap();
               onChange(option.id);
             }}
-            style={({ pressed }) => ({
-              height: 30,
-              justifyContent: 'center',
-              paddingHorizontal: theme.space[3],
-              borderRadius: theme.radius.full,
-              backgroundColor: active ? theme.colors.accent : theme.colors.surfaceSunken,
-              opacity: pressed ? 0.7 : 1,
-            })}
+            style={({ pressed }) => [
+              {
+                height: 30,
+                justifyContent: 'center',
+                paddingHorizontal: theme.space[3],
+                borderRadius: theme.radius.full,
+                backgroundColor: active ? theme.colors.accent : theme.colors.surfaceSunken,
+                opacity: pressed ? 0.7 : 1,
+              },
+              /* El filtro puesto se queda hundido y los demás sobresalen. Es la
+                 lectura más literal que tiene este estilo —un interruptor de
+                 verdad se queda dentro— y ahorra tener que fiarlo todo al
+                 tinte del acento. */
+              active ? relief.pressed('sm') : relief.raised('sm'),
+            ]}
           >
             <Text
               numberOfLines={1}
@@ -777,6 +810,7 @@ export function Stagger({ children, from = 0 }: { children: ReactNode; from?: nu
  */
 export function CardRail({ children }: { children: ReactNode }) {
   const theme = useTheme();
+  const relief = useRelief();
   const { width } = useWindowDimensions();
   /* La ficha ocupa el 72 % de la pantalla: lo justo para que la siguiente
      asome. Con el 100 % nadie sabe que hay más; con el 50 % la ficha es un
@@ -794,10 +828,18 @@ export function CardRail({ children }: { children: ReactNode }) {
       snapToInterval={card + gap}
       snapToAlignment="start"
       contentContainerStyle={{ paddingHorizontal: LIST_GUTTER, gap }}
+      /* Sitio arriba y abajo para que quepa la sombra. Un `ScrollView` recorta
+         a la caja de su contenido, y sin este margen el brillo de la ficha se
+         cortaba en una banda recta justo encima —se veía en la captura del
+         carrusel de comunidades—. En las otras tres direcciones no hay nada que
+         recortar, así que no se les mueve el carrusel de sitio. */
+      style={relief.on ? { marginVertical: -theme.space[3] } : undefined}
     >
       {items.map((child, index) => (
         <Appear key={index} index={index}>
-          <View style={{ width: card }}>{child}</View>
+          <View style={{ width: card, paddingVertical: relief.on ? theme.space[3] : 0 }}>
+            {child}
+          </View>
         </Appear>
       ))}
     </ScrollView>
@@ -825,24 +867,30 @@ export function RailCard({
   onPress?: () => void;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   const { card } = useGroupedSurfaces();
   const [down, setDown] = useState(false);
 
   const content = (
     <View
-      style={{
-        gap: theme.space[2],
-        padding: theme.space[4],
-        borderRadius: theme.radius['2xl'],
-        backgroundColor: card,
-        borderWidth: theme.isDark ? 0 : StyleSheet.hairlineWidth,
-        borderColor: theme.colors.border,
-        shadowColor: '#000',
-        shadowOpacity: theme.isDark ? 0 : 0.05,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-        minHeight: 148,
-      }}
+      style={[
+        {
+          gap: theme.space[2],
+          padding: theme.space[4],
+          borderRadius: theme.radius['2xl'],
+          backgroundColor: card,
+          /* Mismo trato que `ListGroup`: con relieve el filete sobra, porque la
+             ficha es del color del fondo y quien la levanta es la luz. */
+          borderWidth: relief.on ? 0 : theme.isDark ? 0 : StyleSheet.hairlineWidth,
+          borderColor: theme.colors.border,
+          shadowColor: '#000',
+          shadowOpacity: relief.on || theme.isDark ? 0 : 0.05,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
+          minHeight: 148,
+        },
+        relief.raised('md'),
+      ]}
     >
       {leading}
       <View style={{ flex: 1, gap: 2 }}>
@@ -927,6 +975,7 @@ export function Spotlight({
   tone?: 'alert' | 'live' | 'primary';
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   const surface: Record<'alert' | 'live' | 'primary', { bg: string; ink: string; soft: string }> = {
     alert: {
@@ -950,17 +999,23 @@ export function Spotlight({
 
   return (
     <View
-      style={{
-        marginHorizontal: LIST_GUTTER,
-        borderRadius: theme.radius['2xl'],
-        backgroundColor: bg,
-        padding: theme.space[4],
-        gap: theme.space[3],
-        shadowColor: bg,
-        shadowOpacity: theme.isDark ? 0 : 0.28,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 6 },
-      }}
+      style={[
+        {
+          marginHorizontal: LIST_GUTTER,
+          borderRadius: theme.radius['2xl'],
+          backgroundColor: bg,
+          padding: theme.space[4],
+          gap: theme.space[3],
+          /* Un halo del color del propio bloque. Con relieve se apaga: el halo
+             de color y las dos luces del estilo son dos fuentes distintas a la
+             vez, y la pantalla deja de tener un solo sol. */
+          shadowColor: bg,
+          shadowOpacity: relief.on || theme.isDark ? 0 : 0.28,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+        },
+        relief.raised('lg'),
+      ]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
         <Icon icon={icon} size="base" color={ink} strokeWidth={2.4} decorative />

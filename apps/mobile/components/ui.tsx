@@ -16,6 +16,7 @@ import { Press } from './motion';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import type { LucideIcon } from '@/lib/icons';
+import { useRelief } from '@/lib/relieve';
 import { useGroupedSurfaces, useTheme } from '@/lib/theme';
 
 /**
@@ -167,6 +168,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const theme = useTheme();
+  const relief = useRelief();
   return (
     <View
       style={[
@@ -177,12 +179,12 @@ export function Card({ children, style }: { children: ReactNode; style?: ViewSty
              separa la tarjeta del fondo es que está más clara. Es la misma
              regla que sigue `ListGroup`, y por eso las dos se ven del mismo
              material aunque una viva en el SOS y la otra en una lista. */
-          borderWidth: theme.isDark ? 0 : StyleSheet.hairlineWidth,
+          borderWidth: relief.on ? 0 : theme.isDark ? 0 : StyleSheet.hairlineWidth,
           borderRadius: theme.radius['2xl'],
           padding: theme.space[5],
           gap: theme.space[3],
           shadowColor: '#000',
-          shadowOpacity: theme.isDark ? 0 : 0.05,
+          shadowOpacity: relief.on || theme.isDark ? 0 : 0.05,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: 2 },
         },
@@ -288,6 +290,7 @@ export function Button({
   loading?: boolean;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   const styles = {
     primary: {
@@ -333,30 +336,39 @@ export function Button({
         onPressOut={() => setDown(false)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        style={({ pressed }) => ({
-          // 44 es el suelo del área táctil, no el objetivo.
-          minHeight: theme.touchTarget.min,
-          flexDirection: 'row',
-          gap: theme.space[2],
-          /* Antes eran 20 a cada lado. En un botón ancho no se notaba; en dos
-           botones que comparten una fila de 390 puntos, esos 40 puntos son la
-           diferencia entre «Lo he visto» en una línea y en dos. Se vio en la
-           captura de la ficha de una alerta, con cuatro acciones en rejilla. */
-          paddingHorizontal: theme.space[3],
-          borderRadius: theme.radius.md,
-          borderWidth: 1,
-          borderColor: focused ? theme.colors.focusRing : style.border,
-          backgroundColor: style.bg,
-          alignItems: 'center',
-          justifyContent: 'center',
-          // El foco se ve, y se ve por algo más que el color del borde: en web
-          // esta es la única pista que tiene quien navega con teclado.
-          outlineColor: theme.colors.focusRing,
-          outlineWidth: focused ? 3 : 0,
-          outlineStyle: 'solid',
-          outlineOffset: 2,
-          opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
-        })}
+        style={({ pressed }) => [
+          {
+            // 44 es el suelo del área táctil, no el objetivo.
+            minHeight: theme.touchTarget.min,
+            flexDirection: 'row',
+            gap: theme.space[2],
+            /* Antes eran 20 a cada lado. En un botón ancho no se notaba; en dos
+               botones que comparten una fila de 390 puntos, esos 40 puntos son
+               la diferencia entre «Lo he visto» en una línea y en dos. Se vio
+               en la captura de la ficha de una alerta, con cuatro acciones en
+               rejilla. */
+            paddingHorizontal: theme.space[3],
+            borderRadius: theme.radius.md,
+            /* El filete del botón «outline» desaparece con relieve: ahí el
+               botón secundario no es un contorno, es una pieza del mismo gris
+               que sobresale. El del foco se queda, porque eso no es estilo. */
+            borderWidth: relief.on && !focused ? 0 : 1,
+            borderColor: focused ? theme.colors.focusRing : style.border,
+            backgroundColor: style.bg,
+            alignItems: 'center',
+            justifyContent: 'center',
+            // El foco se ve, y se ve por algo más que el color del borde: en web
+            // esta es la única pista que tiene quien navega con teclado.
+            outlineColor: theme.colors.focusRing,
+            outlineWidth: focused ? 3 : 0,
+            outlineStyle: 'solid',
+            outlineOffset: 2,
+            opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
+          },
+          /* El botón cede de verdad. Con las otras direcciones esto lo dice la
+             opacidad y el muelle de `Press`; aquí lo dice además el material. */
+          pressed && !inert ? relief.pressed('md') : relief.raised('md'),
+        ]}
       >
         {loading ? (
           <ActivityIndicator size="small" color={style.fg} />
@@ -387,18 +399,25 @@ export function Button({
  */
 export function Notice({ children }: { children: ReactNode }) {
   const theme = useTheme();
+  const relief = useRelief();
   return (
     <View
-      style={{
-        /* Sin borde y con la esquina del resto de bloques. El recuadro con
-           filete es el aviso de un formulario, y este componente se usa sobre
-           todo para lo contrario: explicar por qué una lista está vacía. Lo que
-           lo separa del fondo es el tono, no una raya alrededor. */
-        backgroundColor: theme.colors.surfaceSunken,
-        borderRadius: theme.radius['2xl'],
-        padding: theme.space[4],
-        gap: theme.space[2],
-      }}
+      style={[
+        {
+          /* Sin borde y con la esquina del resto de bloques. El recuadro con
+             filete es el aviso de un formulario, y este componente se usa sobre
+             todo para lo contrario: explicar por qué una lista está vacía. Lo
+             que lo separa del fondo es el tono, no una raya alrededor. */
+          backgroundColor: theme.colors.surfaceSunken,
+          borderRadius: theme.radius['2xl'],
+          padding: theme.space[4],
+          gap: theme.space[2],
+        },
+        /* Hundido y no elevado, y la diferencia importa: un aviso no se toca.
+           Con relieve, lo que sobresale invita a un dedo; lo que se hunde es
+           una hendidura en la pantalla donde alguien ha escrito algo. */
+        relief.pressed('sm'),
+      ]}
     >
       {children}
     </View>
@@ -427,17 +446,24 @@ export function Segmented<T extends string>({
   onChange: (id: T) => void;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   return (
     <View
       accessibilityRole="tablist"
-      style={{
-        flexDirection: 'row',
-        backgroundColor: theme.colors.surfaceSunken,
-        borderRadius: theme.radius.full,
-        padding: theme.space[0.5],
-        gap: theme.space[0.5],
-      }}
+      style={[
+        {
+          flexDirection: 'row',
+          backgroundColor: theme.colors.surfaceSunken,
+          borderRadius: theme.radius.full,
+          padding: theme.space[0.5],
+          gap: theme.space[0.5],
+        },
+        /* La pista es una ranura y la opción puesta, la pieza que va dentro.
+           Es el control donde mejor se lee este estilo, porque el relieve dice
+           lo mismo que dice el color: una de las dos está encima. */
+        relief.pressed('sm'),
+      ]}
     >
       {options.map((option) => {
         const selected = option.id === value;
@@ -453,15 +479,18 @@ export function Segmented<T extends string>({
               haptics.tap();
               onChange(option.id);
             }}
-            style={({ pressed }) => ({
-              flex: 1,
-              minHeight: theme.touchTarget.min - 6,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: theme.radius.full,
-              backgroundColor: selected ? theme.colors.surface : 'transparent',
-              opacity: pressed ? 0.7 : 1,
-            })}
+            style={({ pressed }) => [
+              {
+                flex: 1,
+                minHeight: theme.touchTarget.min - 6,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: theme.radius.full,
+                backgroundColor: selected ? theme.colors.surface : 'transparent',
+                opacity: pressed ? 0.7 : 1,
+              },
+              selected ? relief.raised('sm') : null,
+            ]}
           >
             <Text
               numberOfLines={1}

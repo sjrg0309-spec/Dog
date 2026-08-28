@@ -20,6 +20,7 @@ import { UPLOAD_NOTE, publish } from '@/lib/posts';
 import { publishReel } from '@/lib/reels';
 import { publishStory } from '@/lib/stories';
 import { useScrollDriver } from '@/lib/scroll';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -520,6 +521,7 @@ function Field({
   multiline?: boolean;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   return (
     <View style={{ gap: theme.space[2] }}>
@@ -540,18 +542,22 @@ function Field({
         placeholder={placeholder}
         placeholderTextColor={theme.colors.inputPlaceholder}
         accessibilityLabel={label}
-        style={{
-          minHeight: multiline ? 88 : theme.touchTarget.min,
-          paddingHorizontal: theme.space[3],
-          paddingVertical: theme.space[2],
-          borderRadius: theme.radius.md,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          backgroundColor: theme.colors.input,
-          color: theme.colors.inputForeground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize.base,
-        }}
+        style={[
+          {
+            minHeight: multiline ? 88 : theme.touchTarget.min,
+            paddingHorizontal: theme.space[3],
+            paddingVertical: theme.space[2],
+            borderRadius: theme.radius.md,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.input,
+            color: theme.colors.inputForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize.base,
+          },
+          /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+          relief.pressed('sm'),
+        ]}
       />
       {help ? <Caption>{help}</Caption> : null}
     </View>
