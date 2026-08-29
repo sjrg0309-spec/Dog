@@ -35,7 +35,7 @@ import Animated from 'react-native-reanimated';
 import { describeZone, formatDistance, shareAlertText } from '@petnav/core';
 
 import { Avatar } from './avatar';
-import { NavBar, Separator } from './chrome';
+import { NAV_BAR_HEIGHT, NavBar, Separator } from './chrome';
 import { Icon } from './icon';
 import { MiniMap } from './mini-map';
 import { Press, Pulse } from './motion';
@@ -45,7 +45,7 @@ import { useWeatherState } from '@/lib/conditions';
 import { PLACES } from '@/lib/demo-data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { Bookmark, Footprints, MessageCircleMore, Send, Siren } from '@/lib/icons';
+import { Bookmark, Footprints, MessageCircleMore, PawPrint, Send, Siren } from '@/lib/icons';
 import { useHazardZones } from '@/lib/rescue';
 import {
   describeSearchers,
@@ -85,8 +85,34 @@ export function RescueBoard() {
         title="Rescate"
         scrolled={false}
         scrollY={scrollY}
+        /* De cristal, como la del feed: es la misma pantalla de inicio para la
+           otra puerta de la aplicación, y no tendría sentido que la de una
+           protectora fuera opaca y la de un tutor no. */
+        floating
         trailing={
           <>
+            {/* La puerta al panel del refugio. Va en la cabecera y no en una
+                fila del tablero por lo mismo que publicar va en la del feed:
+                es lo que esta cuenta viene a hacer, no una de las cosas que
+                hay debajo. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Vuestros animales"
+              accessibilityHint="La lista de animales del colectivo y lo que le falta a cada uno"
+              onPress={() => {
+                haptics.tap();
+                router.push('/refugio');
+              }}
+              style={({ pressed }) => ({
+                width: theme.touchTarget.min,
+                height: theme.touchTarget.min,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Icon icon={PawPrint} size="lg" decorative />
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Mensajes"
@@ -125,7 +151,11 @@ export function RescueBoard() {
         }
       />
 
-      <ScrollView onScroll={onScroll} scrollEventThrottle={16}>
+      <ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT }}
+      >
         {!account.shelterReviewed ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[3] }}>
             <Caption>
@@ -161,36 +191,36 @@ export function RescueBoard() {
               >
                 {({ pressed }) => (
                   <Press pressed={pressed} scale={0.94} style={{ alignItems: 'center', gap: 6 }}>
-                <Pulse active>
-                  <View
-                    style={{
-                      width: 68,
-                      height: 68,
-                      borderRadius: 34,
-                      borderWidth: 2,
-                      borderColor: theme.colors.destructive,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Avatar
-                      id={live.alert.id}
-                      name={live.alert.petName ?? live.scenario.label}
-                      size={58}
-                    />
-                  </View>
-                </Pulse>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    maxWidth: 72,
-                    color: theme.colors.foreground,
-                    fontFamily: fonts.body,
-                    fontSize: theme.fontSize['2xs'],
-                  }}
-                >
-                  {live.alert.petName ?? 'Peligro'}
-                </Text>
+                    <Pulse active>
+                      <View
+                        style={{
+                          width: 68,
+                          height: 68,
+                          borderRadius: 34,
+                          borderWidth: 2,
+                          borderColor: theme.colors.destructive,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Avatar
+                          id={live.alert.id}
+                          name={live.alert.petName ?? live.scenario.label}
+                          size={58}
+                        />
+                      </View>
+                    </Pulse>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        maxWidth: 72,
+                        color: theme.colors.foreground,
+                        fontFamily: fonts.body,
+                        fontSize: theme.fontSize['2xs'],
+                      }}
+                    >
+                      {live.alert.petName ?? 'Peligro'}
+                    </Text>
                   </Press>
                 )}
               </Pressable>

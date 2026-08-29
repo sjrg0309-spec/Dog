@@ -45,6 +45,7 @@ import { Drawer } from './drawer';
 import { PawTrail } from './paw-trail';
 import { SceneView } from './scene';
 import { buildScene } from '@/lib/artwork';
+import { photoSource, type PhotoRef } from '@/lib/photos';
 import { Badge, Caption, Row } from './ui';
 import { BLOCK_NOTE, REPORT_NOTE, REPORT_REASONS } from '@petnav/core';
 import { blockOwnerOf, reportOwnerOf } from '@/lib/moderation';
@@ -70,6 +71,7 @@ import {
   totalReactions,
   type Post,
 } from '@/lib/posts';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /** El icono de cada reacción. El nombre y el texto viven en `lib/posts`. */
@@ -89,6 +91,7 @@ export function PostCard({
   distanceLabel?: string | null;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   const router = useRouter();
   const [draft, setDraft] = useState('');
   const [showComments, setShowComments] = useState(false);
@@ -559,9 +562,7 @@ export function PostCard({
               fontSize: theme.fontSize.sm,
             }}
           >
-            {totalReactions(post) === 1
-              ? '1 reacción'
-              : `${totalReactions(post)} reacciones`}
+            {totalReactions(post) === 1 ? '1 reacción' : `${totalReactions(post)} reacciones`}
             {post.barkCount > 0
               ? ` · ${post.barkCount === 1 ? '1 ladrido' : `${post.barkCount} ladridos`}`
               : ''}
@@ -696,19 +697,23 @@ export function PostCard({
               placeholderTextColor={theme.colors.inputPlaceholder}
               accessibilityLabel={`Comentar la publicación de ${post.petName}`}
               multiline
-              style={{
-                flex: 1,
-                minHeight: theme.touchTarget.min,
-                paddingHorizontal: theme.space[3],
-                paddingVertical: theme.space[2],
-                borderRadius: theme.radius.md,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.input,
-                color: theme.colors.inputForeground,
-                fontFamily: fonts.body,
-                fontSize: theme.fontSize.base,
-              }}
+              style={[
+                {
+                  flex: 1,
+                  minHeight: theme.touchTarget.min,
+                  paddingHorizontal: theme.space[3],
+                  paddingVertical: theme.space[2],
+                  borderRadius: theme.radius.md,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.input,
+                  color: theme.colors.inputForeground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.base,
+                },
+                /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+                relief.pressed('sm'),
+              ]}
             />
             <Pressable
               accessibilityRole="button"
@@ -744,7 +749,6 @@ export function PostCard({
           </View>
         </Drawer>
       ) : null}
-
     </View>
   );
 }
@@ -800,7 +804,7 @@ function PostCarousel({ post }: { post: Post }) {
     return (
       <View style={{ paddingHorizontal: inset }}>
         <PostImage
-          uri={only.uri}
+          photo={only}
           alt={only.alt}
           seed={post.id}
           petId={post.petId}
@@ -830,7 +834,7 @@ function PostCarousel({ post }: { post: Post }) {
         {photos.map((photo, position) => (
           <PostImage
             key={photo.path}
-            uri={photo.uri}
+            photo={photo}
             alt={`${photo.alt}. Foto ${position + 1} de ${photos.length}`}
             seed={`${post.id}-${position}`}
             petId={post.petId}
@@ -912,7 +916,7 @@ function PostCarousel({ post }: { post: Post }) {
  * imagen, no lo que este generador ha dibujado.
  */
 function PostImage({
-  uri,
+  photo,
   alt,
   seed,
   petId,
@@ -920,7 +924,7 @@ function PostImage({
   size,
   corner,
 }: {
-  uri: string | null;
+  photo: PhotoRef;
   alt: string;
   seed: string;
   petId: string;
@@ -951,12 +955,34 @@ function PostImage({
     [seed, petId, at],
   );
 
-  if (uri) {
+  /* La foto de verdad si la hay —del carrete del tutor, empaquetada con la
+     aplicación o servida por una URL—, y si no, la escena dibujada. Antes esto
+     sólo miraba `uri`, así que las publicaciones de la semilla, que traen
+     `path` y no `uri`, salían todas dibujadas aunque hubiera fichero. */
+  const source = photoSource(photo);
+
+  /*
+   * Si la foto no llega, se dibuja.
+   *
+   * Una `<Image>` con un origen que falla no enseña nada: deja el rectángulo
+   * del color de fondo, sin decir por qué. Y falla más de lo que parece —una
+   * URL caducada, un objeto borrado del almacenamiento, un móvil sin cobertura
+   * a mitad del parque—, así que sin esto el modo de fallo normal de una
+   * aplicación de fotos es un hueco gris.
+   *
+   * El respaldo ya existía y era bueno: la escena generada, que además lleva su
+   * etiqueta diciendo que es un dibujo. Lo único que faltaba era llegar a ella
+   * cuando la foto se cae, y no sólo cuando no la hay.
+   */
+  const [failed, setFailed] = useState(false);
+
+  if (source && !failed) {
     return (
       <Image
-        source={{ uri }}
+        source={source}
         accessibilityLabel={alt}
         accessible
+        onError={() => setFailed(true)}
         style={{
           width: size,
           height: tall,
@@ -991,7 +1017,9 @@ function PostImage({
         }}
       >
         <Icon icon={Sparkles} size="sm" color="#fff" decorative />
-        <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}>
+        <Text
+          style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}
+        >
           Ilustración generada
         </Text>
       </View>

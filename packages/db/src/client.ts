@@ -22,13 +22,24 @@ export type ConnectionOptions = {
   database?: string;
 };
 
+/**
+ * Los valores por defecto **son los que crea `scripts/db-reset.sh`**, y eso es
+ * la definición de que funcionen: el README dice «ejecuta el reset y ya está»,
+ * así que si estos tres no son los que el reset acaba de crear, ese «ya está»
+ * es mentira y quien lo sigue se encuentra con «database "…" does not exist».
+ *
+ * Pasó: aquí ponía `petnav` mientras el script creaba `coincide`. Nadie lo veía
+ * porque quien tiene las variables de entorno puestas nunca llega a los valores
+ * por defecto. Hay un test —`connection.test.ts`— que lee el script y comprueba
+ * que los tres siguen coincidiendo, en vez de fiarlo a que alguien se acuerde.
+ */
 export function connectionConfig(overrides: ConnectionOptions = {}) {
   return {
     host: overrides.host ?? process.env.PGHOST ?? '127.0.0.1',
     port: overrides.port ?? Number(process.env.PGPORT ?? 5432),
-    user: overrides.user ?? process.env.PGUSER ?? 'petnav',
-    password: overrides.password ?? process.env.PGPASSWORD ?? 'petnav',
-    database: overrides.database ?? process.env.PGDATABASE ?? 'petnav',
+    user: overrides.user ?? process.env.PGUSER ?? 'coincide',
+    password: overrides.password ?? process.env.PGPASSWORD ?? 'coincide',
+    database: overrides.database ?? process.env.PGDATABASE ?? 'coincide',
   };
 }
 

@@ -131,6 +131,7 @@ import {
   X,
 } from '@/lib/icons';
 import { useReducedMotion } from '@/lib/motion';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 const SIZES = [
@@ -1679,6 +1680,7 @@ function BreedPicker({
   onChange: (ids: string[]) => void;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   const [query, setQuery] = useState('');
   const results = searchBreeds(query).slice(0, 8);
   const mixed = selected.includes(MIXED_BREED_ID);
@@ -1721,16 +1723,20 @@ function BreedPicker({
           placeholderTextColor={theme.colors.inputPlaceholder}
           accessibilityLabel="Buscar una raza"
           autoCapitalize="none"
-          style={{
-            minHeight: theme.touchTarget.comfortable,
-            paddingLeft: theme.space[12],
-            paddingRight: theme.space[4],
-            borderRadius: theme.radius.full,
-            backgroundColor: theme.colors.input,
-            color: theme.colors.inputForeground,
-            fontFamily: fonts.body,
-            fontSize: theme.fontSize.base,
-          }}
+          style={[
+            {
+              minHeight: theme.touchTarget.comfortable,
+              paddingLeft: theme.space[12],
+              paddingRight: theme.space[4],
+              borderRadius: theme.radius.full,
+              backgroundColor: theme.colors.input,
+              color: theme.colors.inputForeground,
+              fontFamily: fonts.body,
+              fontSize: theme.fontSize.base,
+            },
+            /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+            relief.pressed('sm'),
+          ]}
         />
         <View
           pointerEvents="none"
@@ -2570,6 +2576,7 @@ function Input({
   secret?: boolean;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   /*
    * El ojo para ver lo que escribes.
    *
@@ -2593,16 +2600,20 @@ function Input({
         autoCorrect={!secret}
         secureTextEntry={secret && !shown}
         keyboardType={numeric ? 'number-pad' : url ? 'url' : 'default'}
-        style={{
-          minHeight: theme.touchTarget.comfortable,
-          paddingLeft: theme.space[4],
-          paddingRight: secret ? theme.space[12] : theme.space[4],
-          borderRadius: theme.radius.md,
-          backgroundColor: theme.colors.input,
-          color: theme.colors.inputForeground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize.base,
-        }}
+        style={[
+          {
+            minHeight: theme.touchTarget.comfortable,
+            paddingLeft: theme.space[4],
+            paddingRight: secret ? theme.space[12] : theme.space[4],
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.input,
+            color: theme.colors.inputForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize.base,
+          },
+          /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+          relief.pressed('sm'),
+        ]}
       />
       {secret ? (
         <Pressable
@@ -2693,6 +2704,7 @@ function NumberBox({
   label: string;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   return (
     <View style={{ flex: 1, gap: theme.space[1] }}>
@@ -2704,16 +2716,20 @@ function NumberBox({
         placeholder="0"
         placeholderTextColor={theme.colors.inputPlaceholder}
         accessibilityLabel={label}
-        style={{
-          minHeight: theme.touchTarget.comfortable,
-          paddingHorizontal: theme.space[4],
-          borderRadius: theme.radius.md,
-          backgroundColor: theme.colors.input,
-          color: theme.colors.inputForeground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize.base,
-          fontVariant: ['tabular-nums'],
-        }}
+        style={[
+          {
+            minHeight: theme.touchTarget.comfortable,
+            paddingHorizontal: theme.space[4],
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.input,
+            color: theme.colors.inputForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize.base,
+            fontVariant: ['tabular-nums'],
+          },
+          /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+          relief.pressed('sm'),
+        ]}
       />
     </View>
   );

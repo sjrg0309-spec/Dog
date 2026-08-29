@@ -56,6 +56,7 @@ import {
   type Message,
   type Thread,
 } from '@/lib/messages';
+import { useRelief } from '@/lib/relieve';
 import { useTheme, type Theme } from '@/lib/theme';
 
 /**
@@ -73,6 +74,7 @@ const tintColor = (theme: Theme, tint: 0 | 1 | 2): string =>
 
 export default function ChatScreen() {
   const theme = useTheme();
+  const relief = useRelief();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const pet = useActivePet();
@@ -255,15 +257,19 @@ export default function ChatScreen() {
           }}
         >
           <View
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              backgroundColor: theme.colors.input,
-              borderRadius: theme.radius.xl,
-              paddingLeft: theme.space[4],
-              paddingRight: theme.space[1],
-            }}
+            style={[
+              {
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'flex-end',
+                backgroundColor: theme.colors.input,
+                borderRadius: theme.radius.xl,
+                paddingLeft: theme.space[4],
+                paddingRight: theme.space[1],
+              },
+              /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+              relief.pressed('sm'),
+            ]}
           >
             <TextInput
               value={draft}

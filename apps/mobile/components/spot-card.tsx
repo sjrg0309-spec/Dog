@@ -22,6 +22,13 @@
  * hay sistema de reseñas: inventarse una nota de 4,9 sobre 217 opiniones para
  * que la ficha parezca completa sería exactamente la clase de dato que hace que
  * alguien coja el coche.
+ *
+ * **Y ya no vive dentro de una tarjeta.** La galería llega de un borde al otro
+ * de la pantalla y el texto va debajo con el mismo margen que el pie de una
+ * publicación, que es como se enseña una foto en esta aplicación. Metida en una
+ * `Card`, la imagen perdía setenta puntos de ancho por los dos rellenos y la
+ * ficha se leía como un anuncio dentro de la pantalla en vez de como su
+ * contenido.
  */
 
 import { useMemo, useState } from 'react';
@@ -32,7 +39,8 @@ import { formGroup, formatCents, splitCost } from '@petnav/core';
 import { Icon } from './icon';
 import { Press } from './motion';
 import { SceneView } from './scene';
-import { Badge, Body, Button, Caption, Card, Heading, Row } from '@/components/ui';
+import { LIST_GUTTER } from './list';
+import { Badge, Body, Button, Caption, Heading, Row } from '@/components/ui';
 import { buildScene } from '@/lib/artwork';
 import { ADDRESS_NOTE, confirmBooking, proposeBooking, useBooking } from '@/lib/bookings';
 import { OTHER_PETS, type DemoPet, type DemoSpot } from '@/lib/demo-data';
@@ -58,96 +66,98 @@ export function SpotCard({ pet, spot }: { pet: DemoPet; spot: DemoSpot }) {
   const perPet = shares[0] ?? 0;
 
   return (
-    <Card>
+    <View style={{ gap: theme.space[3], paddingBottom: theme.space[4] }}>
       <SpotGallery spot={spot} />
 
-      <Row>
-        <Heading>{spot.title}</Heading>
-        {spot.isFenced ? <Badge tone="accent">Cerrado</Badge> : null}
-      </Row>
-
-      <Caption>
-        {spot.zone} · hasta {spot.maxPets} animales · {formatCents(spot.pricePerSlotCents)} por{' '}
-        {spot.slotMinutes >= 60 ? `${spot.slotMinutes / 60} h` : `${spot.slotMinutes} min`}
-      </Caption>
-
-      <SpotSpecs spot={spot} />
-
-      <Body muted>{spot.description}</Body>
-      <Caption>Admite: {spot.speciesIds.map(speciesName).join(', ')}</Caption>
-
-      <View
-        style={{
-          backgroundColor: theme.colors.surfaceSunken,
-          borderRadius: theme.radius.md,
-          padding: theme.space[3],
-          gap: theme.space[2],
-        }}
-      >
-        <Body>Grupo propuesto</Body>
+      <View style={{ paddingHorizontal: theme.space[4], gap: theme.space[3] }}>
         <Row>
-          {group.pets.map((member) => (
-            <Badge key={member.id} tone={member.id === pet.id ? 'accent' : 'neutral'}>
-              {'name' in member ? (member as { name: string }).name : member.id}
-            </Badge>
-          ))}
+          <Heading>{spot.title}</Heading>
+          {spot.isFenced ? <Badge tone="accent">Cerrado</Badge> : null}
         </Row>
-        <Caption>
-          Afinidad del grupo {group.affinity.min} % · {formatCents(perPet)} cada uno
-        </Caption>
-        {group.rejected.length > 0 ? (
-          <Caption>
-            {group.rejected.length === 1
-              ? '1 quedó fuera del grupo'
-              : `${group.rejected.length} quedaron fuera del grupo`}
-            : {group.rejected[0]?.reason.toLowerCase()}
-          </Caption>
-        ) : null}
-      </View>
 
-      {booking?.status === 'confirmed' ? (
-        <SpotAddress spot={spot} />
-      ) : booking?.status === 'proposed' ? (
-        <View style={{ gap: theme.space[2] }}>
-          <Row gap={2}>
-            <Icon icon={MapPin} size="base" color={theme.colors.warning} decorative />
-            <Body>Propuesta enviada al anfitrión</Body>
+        <Caption>
+          {spot.zone} · hasta {spot.maxPets} animales · {formatCents(spot.pricePerSlotCents)} por{' '}
+          {spot.slotMinutes >= 60 ? `${spot.slotMinutes / 60} h` : `${spot.slotMinutes} min`}
+        </Caption>
+
+        <SpotSpecs spot={spot} />
+
+        <Body muted>{spot.description}</Body>
+        <Caption>Admite: {spot.speciesIds.map(speciesName).join(', ')}</Caption>
+
+        <View
+          style={{
+            backgroundColor: theme.colors.surfaceSunken,
+            borderRadius: theme.radius.md,
+            padding: theme.space[3],
+            gap: theme.space[2],
+          }}
+        >
+          <Body>Grupo propuesto</Body>
+          <Row>
+            {group.pets.map((member) => (
+              <Badge key={member.id} tone={member.id === pet.id ? 'accent' : 'neutral'}>
+                {'name' in member ? (member as { name: string }).name : member.id}
+              </Badge>
+            ))}
           </Row>
           <Caption>
-            La dirección llega cuando acepte. Proponer no es entrar: hasta entonces solo se sabe la
-            zona, igual que antes de reservar.
+            Afinidad del grupo {group.affinity.min} % · {formatCents(perPet)} cada uno
           </Caption>
-          {/* El atajo de demostración, dicho como lo que es. */}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Simular que el anfitrión acepta"
+          {group.rejected.length > 0 ? (
+            <Caption>
+              {group.rejected.length === 1
+                ? '1 quedó fuera del grupo'
+                : `${group.rejected.length} quedaron fuera del grupo`}
+              : {group.rejected[0]?.reason.toLowerCase()}
+            </Caption>
+          ) : null}
+        </View>
+
+        {booking?.status === 'confirmed' ? (
+          <SpotAddress spot={spot} />
+        ) : booking?.status === 'proposed' ? (
+          <View style={{ gap: theme.space[2] }}>
+            <Row gap={2}>
+              <Icon icon={MapPin} size="base" color={theme.colors.warning} decorative />
+              <Body>Propuesta enviada al anfitrión</Body>
+            </Row>
+            <Caption>
+              La dirección llega cuando acepte. Proponer no es entrar: hasta entonces solo se sabe
+              la zona, igual que antes de reservar.
+            </Caption>
+            {/* El atajo de demostración, dicho como lo que es. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Simular que el anfitrión acepta"
+              onPress={() => {
+                haptics.commit();
+                confirmBooking(spot.id);
+              }}
+              style={({ pressed }) => ({
+                minHeight: theme.touchTarget.min,
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Caption>
+                En esta demo no hay anfitrión al otro lado: toca aquí para simular que acepta y ver
+                qué se abre.
+              </Caption>
+            </Pressable>
+          </View>
+        ) : (
+          <Button
+            label={`Proponer reserva · ${formatCents(perPet)} cada uno`}
+            accessibilityHint="Envía la propuesta al grupo y al anfitrión"
             onPress={() => {
               haptics.commit();
-              confirmBooking(spot.id);
+              proposeBooking({ spotId: spot.id, pets: group.pets.length, perPetCents: perPet });
             }}
-            style={({ pressed }) => ({
-              minHeight: theme.touchTarget.min,
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Caption>
-              En esta demo no hay anfitrión al otro lado: toca aquí para simular que acepta y ver
-              qué se abre.
-            </Caption>
-          </Pressable>
-        </View>
-      ) : (
-        <Button
-          label={`Proponer reserva · ${formatCents(perPet)} cada uno`}
-          accessibilityHint="Envía la propuesta al grupo y al anfitrión"
-          onPress={() => {
-            haptics.commit();
-            proposeBooking({ spotId: spot.id, pets: group.pets.length, perPetCents: perPet });
-          }}
-        />
-      )}
-    </Card>
+          />
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -164,10 +174,11 @@ function SpotGallery({ spot }: { spot: DemoSpot }) {
   const { width: screen } = useWindowDimensions();
   const [index, setIndex] = useState(0);
 
-  /* El ancho es el de la tarjeta, no el de la pantalla: la ficha vive dentro de
-     una `Card` con su relleno, y usar el ancho entero dejaba la última vista
-     cortada por la derecha. */
-  const width = Math.min(screen, 520) - theme.space[5] * 2 - theme.space[4] * 2;
+  /* El ancho es el de la tarjeta agrupada: la pantalla menos su margen a cada
+     lado. Es el número que decide si el enganche de página cae en el borde de
+     la vista o deja la siguiente asomando cortada, así que se descuenta lo que
+     descuenta el grupo y nada más. */
+  const width = Math.min(screen, 520) - LIST_GUTTER * 2;
   const height = Math.round(width * 0.62);
 
   const scenes = useMemo(
@@ -187,7 +198,9 @@ function SpotGallery({ spot }: { spot: DemoSpot }) {
   );
 
   return (
-    <View style={{ borderRadius: theme.radius.md, overflow: 'hidden' }}>
+    /* Sin esquina redonda: una foto a sangre no lleva marco, y el radio que
+       tenía era el de la tarjeta que ya no está. */
+    <View style={{ overflow: 'hidden' }}>
       <ScrollView
         horizontal
         pagingEnabled

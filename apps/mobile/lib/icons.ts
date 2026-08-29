@@ -92,6 +92,8 @@ export {
   /** El ajuste de movimiento reducido. Es el símbolo estándar y se reconoce. */
   Accessibility,
   Phone,
+  /** La casa de acogida del panel del refugio. */
+  Home,
   // Mapa y lugares
   MapPin,
   MapPinned,

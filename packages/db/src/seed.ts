@@ -19,7 +19,7 @@
  * pasean y las que un cálculo ingenuo dejaría fuera.
  */
 
-import type { Db } from './client.js';
+import { connectionConfig, type Db } from './client.js';
 
 export const SEED_IDS = {
   profiles: {
@@ -90,6 +90,32 @@ const E = SEED_IDS.playdates;
 const C = SEED_IDS.communities;
 
 export async function seed(db: Db): Promise<void> {
+  /*
+   * Lo primero que hace cualquier test de integración es sembrar, así que este
+   * es el sitio donde se nota que no hay base de datos con la que hablar. Sin
+   * esto, quien clona el repositorio y ejecuta `pnpm test` recibe cinco veces
+   * `ECONNREFUSED 127.0.0.1:5432` y ninguna pista de que la solución son dos
+   * órdenes que el README ya documenta.
+   *
+   * No se convierte en un `skip`: unas pruebas que se saltan solas son unas
+   * pruebas que un día dejan de ejecutarse en el sitio donde importaban y nadie
+   * se entera. Sigue fallando; lo que cambia es que dice qué hacer.
+   */
+  try {
+    await db.query('select 1');
+  } catch (error) {
+    const config = connectionConfig();
+    throw new Error(
+      `No hay una base de datos en ${config.host}:${config.port}/${config.database}. ` +
+        'Estas son pruebas de integración: lo que comprueban —las políticas RLS, ' +
+        'los disparadores de bienestar, la paridad entre el techo que calcula ' +
+        'Postgres y el que calcula @petnav/core— vive en el esquema, no en ' +
+        'TypeScript, así que necesitan un Postgres 16 con PostGIS de verdad. ' +
+        'Levántalo con `./scripts/db-reset.sh` (README → «Poner en marcha»).',
+      { cause: error },
+    );
+  }
+
   await db.query('begin');
   try {
     await db.query(`
@@ -245,10 +271,18 @@ export async function seed(db: Db): Promise<void> {
           ${atLocalTime(1, 20)}, ${atLocalTime(1, 20, 30)},
           'public','{mini,small,medium}','{low,medium}', true, 5, 30,'vuelta-corta-sombra')`,
       [
-        E.manana, E.nocturna, E.sombra,
-        P.marta, P.diego, P.carlos,
-        A.nina, A.rocky, A.kira,
-        L.central, L.berlin, L.retiro,
+        E.manana,
+        E.nocturna,
+        E.sombra,
+        P.marta,
+        P.diego,
+        P.carlos,
+        A.nina,
+        A.rocky,
+        A.kira,
+        L.central,
+        L.berlin,
+        L.retiro,
       ],
     );
 
@@ -327,11 +361,19 @@ export async function seed(db: Db): Promise<void> {
          'Hoy media hora y a casa. La app no me dejaba ni eso a mediodía y tenía razón.',
          $13, now() - interval '3 days')`,
       [
-        SEED_IDS.posts.ninaPelota, SEED_IDS.posts.tobyCharco, SEED_IDS.posts.rockySombra,
-        SEED_IDS.posts.ninaKira, SEED_IDS.posts.kiraSombra,
-        A.nina, A.toby, A.rocky,
-        P.marta, P.carlos, P.diego,
-        L.central, L.retiro,
+        SEED_IDS.posts.ninaPelota,
+        SEED_IDS.posts.tobyCharco,
+        SEED_IDS.posts.rockySombra,
+        SEED_IDS.posts.ninaKira,
+        SEED_IDS.posts.kiraSombra,
+        A.nina,
+        A.toby,
+        A.rocky,
+        P.marta,
+        P.carlos,
+        P.diego,
+        L.central,
+        L.retiro,
         A.kira,
       ],
     );
@@ -340,9 +382,13 @@ export async function seed(db: Db): Promise<void> {
       `insert into public.post_likes (post_id, profile_id) values
         ($1,$6), ($1,$7), ($2,$5), ($3,$5), ($4,$6), ($4,$7)`,
       [
-        SEED_IDS.posts.ninaPelota, SEED_IDS.posts.tobyCharco,
-        SEED_IDS.posts.rockySombra, SEED_IDS.posts.ninaKira,
-        P.marta, P.carlos, P.diego,
+        SEED_IDS.posts.ninaPelota,
+        SEED_IDS.posts.tobyCharco,
+        SEED_IDS.posts.rockySombra,
+        SEED_IDS.posts.ninaKira,
+        P.marta,
+        P.carlos,
+        P.diego,
       ],
     );
 
