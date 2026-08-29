@@ -45,6 +45,7 @@ import { Drawer } from './drawer';
 import { PawTrail } from './paw-trail';
 import { SceneView } from './scene';
 import { buildScene } from '@/lib/artwork';
+import { photoSource, type PhotoRef } from '@/lib/photos';
 import { Badge, Caption, Row } from './ui';
 import { BLOCK_NOTE, REPORT_NOTE, REPORT_REASONS } from '@petnav/core';
 import { blockOwnerOf, reportOwnerOf } from '@/lib/moderation';
@@ -561,9 +562,7 @@ export function PostCard({
               fontSize: theme.fontSize.sm,
             }}
           >
-            {totalReactions(post) === 1
-              ? '1 reacción'
-              : `${totalReactions(post)} reacciones`}
+            {totalReactions(post) === 1 ? '1 reacción' : `${totalReactions(post)} reacciones`}
             {post.barkCount > 0
               ? ` · ${post.barkCount === 1 ? '1 ladrido' : `${post.barkCount} ladridos`}`
               : ''}
@@ -750,7 +749,6 @@ export function PostCard({
           </View>
         </Drawer>
       ) : null}
-
     </View>
   );
 }
@@ -806,7 +804,7 @@ function PostCarousel({ post }: { post: Post }) {
     return (
       <View style={{ paddingHorizontal: inset }}>
         <PostImage
-          uri={only.uri}
+          photo={only}
           alt={only.alt}
           seed={post.id}
           petId={post.petId}
@@ -836,7 +834,7 @@ function PostCarousel({ post }: { post: Post }) {
         {photos.map((photo, position) => (
           <PostImage
             key={photo.path}
-            uri={photo.uri}
+            photo={photo}
             alt={`${photo.alt}. Foto ${position + 1} de ${photos.length}`}
             seed={`${post.id}-${position}`}
             petId={post.petId}
@@ -918,7 +916,7 @@ function PostCarousel({ post }: { post: Post }) {
  * imagen, no lo que este generador ha dibujado.
  */
 function PostImage({
-  uri,
+  photo,
   alt,
   seed,
   petId,
@@ -926,7 +924,7 @@ function PostImage({
   size,
   corner,
 }: {
-  uri: string | null;
+  photo: PhotoRef;
   alt: string;
   seed: string;
   petId: string;
@@ -957,10 +955,16 @@ function PostImage({
     [seed, petId, at],
   );
 
-  if (uri) {
+  /* La foto de verdad si la hay —del carrete del tutor o empaquetada con la
+     aplicación—, y si no, la escena dibujada. Antes esto sólo miraba `uri`, así
+     que las publicaciones de la semilla, que traen `path` y no `uri`, salían
+     todas dibujadas aunque hubiera fichero. */
+  const source = photoSource(photo);
+
+  if (source) {
     return (
       <Image
-        source={{ uri }}
+        source={source}
         accessibilityLabel={alt}
         accessible
         style={{
@@ -997,7 +1001,9 @@ function PostImage({
         }}
       >
         <Icon icon={Sparkles} size="sm" color="#fff" decorative />
-        <Text style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}>
+        <Text
+          style={{ color: '#fff', fontFamily: fonts.bodyBold, fontSize: theme.fontSize['2xs'] }}
+        >
           Ilustración generada
         </Text>
       </View>
