@@ -1,0 +1,111 @@
+# El repositorio se comprueba solo.
+#
+# Hasta ahora no lo hacía nadie: cada cambio se verificaba a mano ejecutando
+# `pnpm test`, y eso funciona exactamente hasta el día que a alguien se le
+# olvida. Lo que sigue no añade comprobaciones nuevas —son las mismas 991 que
+# ya existían— sino que las ejecuta sin depender de que alguien se acuerde.
+#
+# ## Por qué hay un Postgres aquí dentro
+#
+# Las 85 pruebas de `@petnav/db` no son unitarias: hablan con un Postgres de
+# verdad, porque lo que comprueban —las políticas RLS, los disparadores de
+# bienestar, la paridad entre el techo que calcula la base y el que calcula
+# `packages/core`— vive en el esquema y no en TypeScript. Un simulacro probaría
+# el simulacro. Así que el trabajo levanta el mismo Postgres 16 con PostGIS que
+# levanta `.claude/hooks/session-start.sh` en una sesión remota y que el README
+# manda montar a mano, y aplica **las mismas migraciones** que se despliegan.
+#
+# ## Lo que este CI **no** comprueba, y por qué
+#
+# Falta `pnpm format:check`. No es un olvido: hoy hay 92 ficheros que Prettier
+# reformatearía, así que ese paso nacería en rojo, y un CI que siempre falla no
+# enseña a arreglar el formato — enseña a ignorar el CI. El día que alguien
+# ejecute `pnpm format` sobre el repositorio entero en su propio commit, este
+# paso se añade al final y a partir de ahí sujeta.
+#
+# ## Por qué `build` va antes y solo
+#
+# El `tsconfig` de la web incluye `.next/types/**`, que genera el propio build.
+# Lanzar `build` y `typecheck` a la vez es una carrera: el typecheck lee ficheros
+# que el build está regenerando y falla con seis TS6053 sobre ficheros que
+# existían un segundo antes. `apps/web/turbo.json` ya declara esa dependencia;
+# separarlo aquí además lo deja claro en el registro cuando algo se rompe.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  # Una rama que recibe tres empujones seguidos no necesita tres CI: interesa
+  # el último. Cancelar los anteriores devuelve el resultado antes y no ocupa
+  # ejecutores comprobando código que ya nadie va a mirar.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: typecheck · test · lint · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        # La imagen de PostGIS y no la de Postgres a secas: la primera línea de
+        # la primera migración es `create extension postgis`, así que sin ella
+        # no hay esquema que aplicar.
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: coincide
+          POSTGRES_PASSWORD: coincide
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # Sin esto el trabajo sigue en cuanto el contenedor arranca, que no es
+        # lo mismo que en cuanto la base acepta conexiones.
+        options: >-
+          --health-cmd "pg_isready -U coincide"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: coincide
+      PGPASSWORD: coincide
+      PGDATABASE: coincide
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # La caché va por el `pnpm-lock.yaml`: mientras no cambie una
+          # dependencia, la instalación es una descompresión.
+          cache: pnpm
+
+      - name: Instalar dependencias
+        # `--frozen-lockfile` y no `install` a secas: si alguien tocó un
+        # `package.json` sin regenerar el candado, eso es un fallo que hay que
+        # ver aquí y no un candado reescrito en silencio dentro del ejecutor.
+        run: pnpm install --frozen-lockfile
+
+      - name: Cliente de Postgres
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Esquema y migraciones
+        # El mismo script que usa cualquiera en su máquina. Si algún día deja de
+        # funcionar, se entera CI antes que la siguiente persona que clone.
+        run: ./scripts/db-reset.sh
+
+      - name: Compilar
+        run: pnpm build
+
+      - name: Comprobar
+        run: pnpm exec turbo run typecheck test lint
