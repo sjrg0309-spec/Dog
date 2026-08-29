@@ -33,16 +33,23 @@
 
 name: CI
 
+# `push` sólo en la rama por defecto, y todo lo demás por `pull_request`.
+#
+# La forma obvia —`push` en todas las ramas **y** `pull_request`— parece más
+# completa y lo que hace es ejecutarlo todo dos veces: una rama con PR abierto
+# dispara los dos eventos sobre el mismo commit. Se vio en el primer empujón,
+# dos ejecuciones idénticas en paralelo. La cobertura no se pierde: lo que no
+# está en un PR es la rama por defecto, y esa la cubre el `push`.
 on:
   push:
-    branches: ['**']
+    branches: [claude/zealous-gauss-m0nv0r]
   pull_request:
 
 concurrency:
   # Una rama que recibe tres empujones seguidos no necesita tres CI: interesa
   # el último. Cancelar los anteriores devuelve el resultado antes y no ocupa
   # ejecutores comprobando código que ya nadie va a mirar.
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
