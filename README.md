@@ -125,20 +125,31 @@ Requiere Node 22, pnpm y un PostgreSQL 16 con PostGIS.
 ```bash
 pnpm install
 
-# Base de datos local: crea el esquema y aplica todas las migraciones
+# Compila los paquetes del workspace. No es opcional y va antes que todo lo
+# demás: `@petnav/core`, `@petnav/tokens` y compañía se resuelven por su
+# `dist/`, así que sin este paso Metro corta con «Unable to resolve
+# "@petnav/core"» y Next con lo mismo. Las órdenes de abajo lo hacen solas.
+pnpm build
+
+# Aplicación móvil en http://localhost:8081
+pnpm mobile
+
+# Web en http://localhost:3000 — esta sí necesita la base de datos
 ./scripts/db-reset.sh
 node packages/db/dist/seed-cli.js
-
-# Web en http://localhost:3000
-pnpm --filter @petnav/web build
-pnpm --filter @petnav/web start
-
-# Aplicación móvil
-pnpm --filter @petnav/mobile start
+pnpm web
 
 # Todo a la vez, base de datos incluida
 pnpm test
 ```
+
+**`pnpm mobile` y `pnpm web` pasan por turbo a propósito.** Llamar al script del
+paquete directamente —`pnpm --filter @petnav/mobile run web`— salta el grafo de
+dependencias y arranca antes de que los paquetes del workspace estén
+compilados; con turbo, `^build` va primero y no hay forma de olvidarlo.
+
+**La aplicación móvil no necesita base de datos**: funciona con datos en
+memoria. La necesitan la web y las 85 pruebas de `@petnav/db`.
 
 **`pnpm test` incluye pruebas de integración de verdad.** Las 85 de `@petnav/db` hablan con un
 Postgres real, y es a propósito: lo que comprueban —las políticas RLS, el disparador que impide una
