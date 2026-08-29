@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { BUNDLED_PHOTOS, resolvePhoto } from './photos';
+import { BUNDLED_PHOTOS, REMOTE_PHOTOS, resolvePhoto } from './photos';
 import { SEED_POSTS } from './posts';
 
 /* Un `require` de Metro devuelve un número; en Node no hay tal cosa, así que
@@ -18,20 +18,31 @@ import { SEED_POSTS } from './posts';
 const FILE = 42 as never;
 
 describe('resolver la foto', () => {
-  it('el carrete del tutor manda sobre el fichero empaquetado', () => {
-    /* Y el orden importa: si acaba de elegir una foto, esa es la foto, aunque
-       la publicación arrastre todavía la ruta de la anterior. */
-    expect(
-      resolvePhoto({ 'posts/x.jpg': FILE }, { uri: 'file:///nueva.jpg', path: 'posts/x.jpg' }),
-    ).toEqual({ uri: 'file:///nueva.jpg' });
+  const FICHERO = { 'posts/x.jpg': FILE };
+  const URL = { 'posts/x.jpg': 'https://cdn/x.png' };
+
+  it('el carrete del tutor gana a todo lo demás', () => {
+    /* Si acaba de elegir una foto, esa es la foto, aunque la publicación
+       arrastre todavía la ruta de la anterior. */
+    expect(resolvePhoto(FICHERO, URL, { uri: 'file:///nueva.jpg', path: 'posts/x.jpg' })).toEqual({
+      uri: 'file:///nueva.jpg',
+    });
   });
 
-  it('sin carrete, coge el fichero empaquetado', () => {
-    expect(resolvePhoto({ 'posts/x.jpg': FILE }, { uri: null, path: 'posts/x.jpg' })).toBe(FILE);
+  it('el fichero empaquetado gana a la URL', () => {
+    /* Es el escalón que ordena la transición: el día que las fotos se
+       empaqueten, ganan solas sin tener que acordarse de borrar las URL. */
+    expect(resolvePhoto(FICHERO, URL, { uri: null, path: 'posts/x.jpg' })).toBe(FILE);
   });
 
-  it('sin ninguno de los dos, devuelve nulo para que se dibuje la escena', () => {
-    expect(resolvePhoto({}, { uri: null, path: 'posts/x.jpg' })).toBeNull();
+  it('sin fichero, tira de la URL', () => {
+    expect(resolvePhoto({}, URL, { uri: null, path: 'posts/x.jpg' })).toEqual({
+      uri: 'https://cdn/x.png',
+    });
+  });
+
+  it('sin nada, devuelve nulo para que se dibuje la escena', () => {
+    expect(resolvePhoto({}, {}, { uri: null, path: 'posts/x.jpg' })).toBeNull();
   });
 });
 
@@ -39,11 +50,21 @@ describe('el mapa de fotos empaquetadas', () => {
   const paths = new Set(SEED_POSTS.flatMap((post) => post.photos.map((photo) => photo.path)));
 
   it('no tiene ninguna entrada que no use ninguna publicación', () => {
-    const huérfanas = Object.keys(BUNDLED_PHOTOS).filter((key) => !paths.has(key));
+    const huérfanas = [...Object.keys(BUNDLED_PHOTOS), ...Object.keys(REMOTE_PHOTOS)].filter(
+      (key) => !paths.has(key),
+    );
     expect(
       huérfanas,
-      `Fotos empaquetadas que ninguna publicación pide:\n${huérfanas.join('\n')}`,
+      `Fotos declaradas que ninguna publicación pide:\n${huérfanas.join('\n')}`,
     ).toEqual([]);
+  });
+
+  it('todas las URL provisionales son https', () => {
+    /* Una `http://` la bloquea el transporte seguro de iOS sin decir nada: la
+       foto no sale y no hay error en ninguna parte. */
+    for (const [path, url] of Object.entries(REMOTE_PHOTOS)) {
+      expect(url, `${path} no es https`).toMatch(/^https:\/\//);
+    }
   });
 
   it('cada publicación de la semilla dice qué foto quiere', () => {

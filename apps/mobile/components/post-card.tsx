@@ -955,18 +955,34 @@ function PostImage({
     [seed, petId, at],
   );
 
-  /* La foto de verdad si la hay —del carrete del tutor o empaquetada con la
-     aplicación—, y si no, la escena dibujada. Antes esto sólo miraba `uri`, así
-     que las publicaciones de la semilla, que traen `path` y no `uri`, salían
-     todas dibujadas aunque hubiera fichero. */
+  /* La foto de verdad si la hay —del carrete del tutor, empaquetada con la
+     aplicación o servida por una URL—, y si no, la escena dibujada. Antes esto
+     sólo miraba `uri`, así que las publicaciones de la semilla, que traen
+     `path` y no `uri`, salían todas dibujadas aunque hubiera fichero. */
   const source = photoSource(photo);
 
-  if (source) {
+  /*
+   * Si la foto no llega, se dibuja.
+   *
+   * Una `<Image>` con un origen que falla no enseña nada: deja el rectángulo
+   * del color de fondo, sin decir por qué. Y falla más de lo que parece —una
+   * URL caducada, un objeto borrado del almacenamiento, un móvil sin cobertura
+   * a mitad del parque—, así que sin esto el modo de fallo normal de una
+   * aplicación de fotos es un hueco gris.
+   *
+   * El respaldo ya existía y era bueno: la escena generada, que además lleva su
+   * etiqueta diciendo que es un dibujo. Lo único que faltaba era llegar a ella
+   * cuando la foto se cae, y no sólo cuando no la hay.
+   */
+  const [failed, setFailed] = useState(false);
+
+  if (source && !failed) {
     return (
       <Image
         source={source}
         accessibilityLabel={alt}
         accessible
+        onError={() => setFailed(true)}
         style={{
           width: size,
           height: tall,

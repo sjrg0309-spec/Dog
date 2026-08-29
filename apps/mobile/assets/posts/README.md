@@ -10,6 +10,13 @@ descomenta su línea en `lib/photos.ts`. Metro resuelve los `require` al
 empaquetar, así que hay que nombrarlos uno a uno; a cambio, un fichero que falta
 se ve al compilar y no en la pantalla de alguien.
 
+**No hace falta borrar nada al hacerlo.** Ahora mismo estas ocho se sirven desde
+una URL provisional (`REMOTE_PHOTOS`, en el mismo fichero), y el orden de
+resolución es: el carrete del tutor, luego el fichero empaquetado, luego la URL,
+y sólo si no hay ninguno, el dibujo. Es decir, en cuanto pongas el fichero gana
+él solo. La URL puede quedarse ahí hasta que estén las ocho y entonces se va
+entera.
+
 ## Qué tiene que salir en cada una
 
 El guion no es libre: cada foto tiene ya escrito su texto alternativo en
