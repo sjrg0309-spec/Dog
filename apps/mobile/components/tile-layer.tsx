@@ -47,6 +47,8 @@ export function TileLayer({
   width,
   height,
   onUnavailable,
+  overscan = 0,
+  attribution = true,
 }: {
   /**
    * El centro llega **en dos números y no en un objeto**, y no es manía.
@@ -70,6 +72,26 @@ export function TileLayer({
   height: number;
   /** Las imágenes no llegan: quien nos dibuja tiene que enseñar otra cosa. */
   onUnavailable: (unavailable: boolean) => void;
+  /**
+   * Cuánto se dibuja **de más** por cada lado, en píxeles.
+   *
+   * Desde que el mapa se arrastra, lo que asoma por el borde mientras el dedo
+   * tira no existía: las teselas se piden para el cuadro exacto y el resto era
+   * fondo liso hasta soltar. Un anillo de media tesela alrededor tapa el
+   * recorrido de un arrastre normal y cuesta unas pocas imágenes más por
+   * encuadre —no por gesto, que es lo que vigila el auditor: sigue siendo una
+   * petición por tesela—. A cero, el comportamiento de siempre.
+   */
+  overscan?: number;
+  /**
+   * Si la atribución va aquí dentro o la pone quien nos dibuja.
+   *
+   * Dentro de la capa se mueve con las teselas, y desde que el mapa se
+   * arrastra eso la saca de la esquina. El mapa la coloca en su cromo fijo con
+   * `TileAttribution`; esta capa la sigue llevando por defecto para que nadie
+   * la pueda olvidar sin decirlo.
+   */
+  attribution?: boolean;
 }) {
   const theme = useTheme();
 
@@ -77,12 +99,19 @@ export function TileLayer({
      recibe cada `<Image>` sea el mismo mientras no cambie el encuadre. */
   const tiles = useMemo(
     () =>
-      visibleTiles({ lat: centerLat, lng: centerLng }, zoom, width, height).map((tile) => ({
+      visibleTiles(
+        { lat: centerLat, lng: centerLng },
+        zoom,
+        width + overscan * 2,
+        height + overscan * 2,
+      ).map((tile) => ({
         ...tile,
+        left: tile.left - overscan,
+        top: tile.top - overscan,
         key: `${tile.z}/${tile.x}/${tile.y}`,
         source: { uri: tileUrl(tile) },
       })),
-    [centerLat, centerLng, zoom, width, height],
+    [centerLat, centerLng, zoom, width, height, overscan],
   );
 
   const total = tiles.length;
@@ -131,7 +160,16 @@ export function TileLayer({
   );
 
   return (
-    <View style={{ width, height, overflow: 'hidden', backgroundColor: theme.colors.surfaceSunken }}>
+    <View
+      style={{
+        width,
+        height,
+        // Con anillo de más, el recorte lo hace el mapa, que es quien sabe
+        // hasta dónde se ve; aquí se dejaría fuera justo lo que se pidió.
+        overflow: overscan > 0 ? 'visible' : 'hidden',
+        backgroundColor: theme.colors.surfaceSunken,
+      }}
+    >
       {tiles.map((tile) => (
         <Tile
           key={tile.key}
@@ -142,34 +180,44 @@ export function TileLayer({
         />
       ))}
 
-      {/* La atribución. No es opcional ni decorativa: es la condición de uso de
-          los datos, y va visible sobre el mapa como pide la licencia. */}
-      <View
-        pointerEvents="none"
+      {attribution ? <TileAttribution /> : null}
+    </View>
+  );
+}
+
+/**
+ * La atribución. No es opcional ni decorativa: es la condición de uso de los
+ * datos, y va visible sobre el mapa como pide la licencia. Va en la esquina de
+ * abajo a la derecha de quien la coloque: aquí, o en el cromo fijo del mapa.
+ */
+export function TileAttribution() {
+  const theme = useTheme();
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
+        borderTopLeftRadius: theme.radius.xs,
+        backgroundColor: theme.colors.background,
+        opacity: 0.85,
+      }}
+    >
+      {/* Once, no nueve. La atribución es letra pequeña por obligación de la
+          licencia, y eso no la exime del mínimo de tamaño: una condición
+          legal que no se puede leer tampoco se cumple. */}
+      <Text
         style={{
-          position: 'absolute',
-          right: 0,
-          bottom: 0,
-          paddingHorizontal: 5,
-          paddingVertical: 2,
-          borderTopLeftRadius: theme.radius.xs,
-          backgroundColor: theme.colors.background,
-          opacity: 0.85,
+          color: theme.colors.mutedForeground,
+          fontFamily: fonts.body,
+          fontSize: theme.fontSize['2xs'],
         }}
       >
-        {/* Once, no nueve. La atribución es letra pequeña por obligación de la
-            licencia, y eso no la exime del mínimo de tamaño: una condición
-            legal que no se puede leer tampoco se cumple. */}
-        <Text
-          style={{
-            color: theme.colors.mutedForeground,
-            fontFamily: fonts.body,
-            fontSize: theme.fontSize['2xs'],
-          }}
-        >
-          {TILE_ATTRIBUTION}
-        </Text>
-      </View>
+        {TILE_ATTRIBUTION}
+      </Text>
     </View>
   );
 }

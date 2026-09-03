@@ -179,7 +179,12 @@ export function PostCard({
             <Pressable
               accessibilityRole="link"
               accessibilityLabel={`Ver ${post.placeName} en el mapa`}
-              onPress={() => router.push('/explorar')}
+              /* Con el sitio puesto: el mapa lo elige y sube su ficha. Ir al
+                 mapa «a secas» obligaba a buscar el parque que se acaba de
+                 leer, que es el trabajo que un enlace existe para ahorrar. */
+              onPress={() =>
+                router.push({ pathname: '/explorar', params: { sitio: post.placeName ?? '' } })
+              }
               style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             >
               <Text

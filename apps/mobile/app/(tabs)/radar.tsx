@@ -20,13 +20,7 @@ import {
 import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { WelfareNotice } from '@/components/welfare-notice';
 import { Badge, Body, Button, Caption, Heading, Row, Screen } from '@/components/ui';
-import {
-  ESCORT_LATE_NOTE,
-  ESCORT_NOTE,
-  assessWelfare,
-  type Conditions,
-  type WelfareVerdict,
-} from '@petnav/core';
+import { ESCORT_LATE_NOTE, ESCORT_NOTE, assessWelfare } from '@petnav/core';
 
 import { useActivePet } from '@/lib/active-pet';
 import { haptics } from '@/lib/haptics';
@@ -48,7 +42,7 @@ import {
   startEscort,
   useEscort,
 } from '@/lib/escort';
-import { setGhostMode, useGhostMode } from '@/lib/presence';
+import { checkIn, checkOut, setGhostMode, useGhostMode, useLivePresence } from '@/lib/presence';
 import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 import { recordWalk, useWalks } from '@/lib/walks';
@@ -104,49 +98,56 @@ export default function RadarScreen() {
   const escort = useEscort();
   const [escortWith, setEscortWith] = useState<string | null>(null);
 
-  /* Hace falta guardar **cuándo empezó**, no solo hasta cuándo dura: sin eso,
-     al cerrar el check-in no hay forma de saber cuánto se estuvo fuera, que es
-     el dato del que vive el resumen entero. */
-  const [session, setSession] = useState<{
-    startedAt: Date;
-    until: Date;
-    /* Lo que se propuso **al salir**, congelado aquí. Recalcularlo al cerrar
-       lo mediría con la temperatura de dentro de dos horas, así que el resumen
-       compararía lo que se hizo contra un consejo que nunca se dio. */
-    recommendedMinutes: number;
-    temperatureC: number | null;
-    surface: Conditions['surface'];
-    welfareLevel: WelfareVerdict['level'];
-  } | null>(null);
-  const activeUntil = session?.until ?? null;
+  /* La sesión vive en `lib/presence`, no aquí: la fila de estados y el chip
+     de las cabeceras la enseñan también, y un check-in que empieza en otra
+     pantalla tiene que verse en esta sin que nadie la avise. Lo que llega es
+     ya la sesión **en vivo** —nula en cuanto vence—, así que la pantalla no
+     tiene que mirar el reloj. */
+  const session = useLivePresence();
+  const activeUntil = session ? new Date(session.until) : null;
 
-  const checkIn = (minutes: number) => {
+  const startWalk = (minutes: number) => {
+    if (!here) return;
+
     /* Si hay alguien elegido, el acompañamiento empieza con el paseo: pedirlo
        aparte sería un segundo botón que se olvida justo el día que importa. */
-    if (escortWith !== null && here) {
-      const contact = escortContacts().find((candidate) => candidate.id === escortWith);
-      if (contact) {
-        startEscort({
-          contactId: contact.id,
-          contactName: contact.name,
-          placeName: here.name,
-          minutes,
-        });
-      }
-    }
+    const contact =
+      escortWith !== null
+        ? escortContacts().find((candidate) => candidate.id === escortWith)
+        : undefined;
 
-    const until = new Date();
-    until.setMinutes(until.getMinutes() + minutes);
+    const startedAt = Date.now();
     const conditions = build ? build(minutes) : null;
     const verdict = conditions ? assessWelfare(pet, conditions) : null;
-    setSession({
-      startedAt: new Date(),
-      until,
+    /* El almacén se niega con el modo fantasma puesto. Esta pantalla no
+       enseña el botón en ese caso, así que aquí nunca debería devolver
+       `false`; se comprueba igual para no arrancar un acompañamiento de un
+       paseo que no ha empezado. */
+    const started = checkIn({
+      petId: pet.id,
+      placeId: here.id,
+      placeName: here.name,
+      startedAt,
+      until: startedAt + minutes * 60_000,
+      /* Lo que se propuso **al salir**, congelado. Recalcularlo al cerrar lo
+         mediría con la temperatura de dentro de dos horas, así que el resumen
+         compararía lo que se hizo contra un consejo que nunca se dio. */
       recommendedMinutes: verdict?.recommendedMinutes ?? minutes,
       temperatureC: conditions?.temperatureC ?? null,
       surface: conditions?.surface ?? 'unknown',
       welfareLevel: verdict?.level ?? 'ok',
+      escortContactId: contact?.id ?? null,
     });
+    if (!started) return;
+
+    if (contact) {
+      startEscort({
+        contactId: contact.id,
+        contactName: contact.name,
+        placeName: here.name,
+        minutes,
+      });
+    }
   };
 
   /**
@@ -158,24 +159,27 @@ export default function RadarScreen() {
    * ¿lo hacéis fijo?», el 👎 que baja la afinidad— dependía de un dato que no
    * se llegaba a escribir.
    */
-  const checkOut = () => {
-    if (!session) return;
+  const endWalk = () => {
+    /* El almacén devuelve la sesión que cierra: es lo que evita tener que
+       copiarla antes y que se pierda por el camino. */
+    const closed = checkOut();
+    if (!closed) return;
 
-    /* Con quién se coincidió: los que están fuera **en el mismo sitio**. En
-       una aplicación de verdad esto sale del solapamiento de presencias del
-       radar; aquí sale de la misma lista que dibuja la pantalla, que es la que
-       el usuario tiene delante. */
-    const together = others.filter((other) => other.placeName === (here?.name ?? null));
+    /* Con quién se coincidió: los que están fuera **en el mismo sitio** donde
+       se hizo el check-in. En una aplicación de verdad esto sale del
+       solapamiento de presencias del radar; aquí sale de la misma lista que
+       dibuja la pantalla, que es la que el usuario tiene delante. */
+    const together = others.filter((other) => other.placeName === closed.placeName);
 
     const id = recordWalk({
-      petId: pet.id,
-      placeId: here?.id ?? null,
-      startedAt: session.startedAt.toISOString(),
+      petId: closed.petId,
+      placeId: closed.placeId,
+      startedAt: new Date(closed.startedAt).toISOString(),
       endedAt: new Date().toISOString(),
-      recommendedMinutes: session.recommendedMinutes,
-      welfareLevel: session.welfareLevel,
-      temperatureC: session.temperatureC,
-      surface: session.surface,
+      recommendedMinutes: closed.recommendedMinutes,
+      welfareLevel: closed.welfareLevel,
+      temperatureC: closed.temperatureC,
+      surface: closed.surface,
       companions: together.map((other) => ({ petId: other.id, outcome: null })),
     });
 
@@ -183,7 +187,6 @@ export default function RadarScreen() {
        aviso de «no ha vuelto» a la una de la mañana porque alguien se olvidó de
        tocar un segundo botón. */
     closeEscort();
-    setSession(null);
     router.push(`/paseo?id=${id}`);
   };
 
@@ -271,7 +274,7 @@ export default function RadarScreen() {
               <Badge tone="live">En vivo</Badge>
             </Row>
             <Body>
-              {pet.name} aparece en {here?.name ?? PLACES.central.name} hasta las{' '}
+              {pet.name} aparece en {session?.placeName ?? PLACES.central.name} hasta las{' '}
               {formatTime(activeUntil)}.
             </Body>
             <Caption>
@@ -321,7 +324,7 @@ export default function RadarScreen() {
               </View>
             ) : null}
 
-            <Button label="Hemos terminado" variant="outline" onPress={checkOut} />
+            <Button label="Hemos terminado" variant="outline" onPress={endWalk} />
           </Panel>
         ) : ghost ? (
           /* Con el modo fantasma puesto no se ofrece salir, y no es una
@@ -371,7 +374,7 @@ export default function RadarScreen() {
                   label={`Estamos fuera · ${duration.label}`}
                   variant={duration.minutes === longest ? 'live' : 'outline'}
                   accessibilityHint={`Os hará visibles durante ${duration.label} y se apagará solo`}
-                  onPress={() => checkIn(duration.minutes)}
+                  onPress={() => startWalk(duration.minutes)}
                 />
               ))}
             </View>
