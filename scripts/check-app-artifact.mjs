@@ -54,7 +54,10 @@ page.on('request', (request) => requests.push(request.url()));
  */
 const tileRequests = [];
 await page.route('https://tile.openstreetmap.org/**', async (route) => {
-  const match = route.request().url().match(/(\d+)\/(\d+)\/(\d+)\.png$/);
+  const match = route
+    .request()
+    .url()
+    .match(/(\d+)\/(\d+)\/(\d+)\.png$/);
   if (!match) return route.abort();
   tileRequests.push(match[0]);
   await route.fulfill({
@@ -63,10 +66,21 @@ await page.route('https://tile.openstreetmap.org/**', async (route) => {
     body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#dde"/></svg>',
   });
 });
+/*
+ * El almacén provisional de las ocho fotos del feed (`lib/photos.ts`,
+ * `REMOTE_PHOTOS`). Es el tercer dominio previsto, con el del tiempo y el de
+ * las calles: aquí tampoco llega —el mismo proxy—, y lo que se comprueba es que
+ * al caerse la foto la tarjeta dibuja su escena en vez de dejar un hueco, que
+ * ya lo hace `PostImage`. El día que las fotos se empaqueten, esta constante
+ * sobra y la regla de terceros vuelve a ser de dos dominios.
+ */
+const PHOTO_HOST = 'd8j0ntlcm91z4.cloudfront.net';
+
 page.on('requestfailed', (request) => {
   /* La del tiempo falla siempre en este contenedor, por el proxy de salida.
      Que falle no es el defecto; que no se intente, sí. Se comprueba abajo. */
   if (request.url().includes('api.open-meteo.com')) return;
+  if (request.url().includes(PHOTO_HOST)) return;
   // Las teselas se sirven desde el servidor de mentira de arriba; si alguna
   // falla de verdad, la regla de teselas lo dirá con más contexto que esto.
   if (request.url().includes('tile.openstreetmap.org')) return;
@@ -382,7 +396,9 @@ if (!/Lo que se abre hoy/i.test(barrio)) {
 if (!/Quién pasea ahora/i.test(barrio)) {
   problems.push('el final del alta no nombra la puerta que queda cerrada');
 }
-console.log(`fin del alta: ${/coincide con (\d+) perros?/i.exec(barrio)?.[0] ?? 'sin coincidencias'}`);
+console.log(
+  `fin del alta: ${/coincide con (\d+) perros?/i.exec(barrio)?.[0] ?? 'sin coincidencias'}`,
+);
 
 await page.getByRole('button', { name: 'Entrar', exact: true }).first().click();
 await page.waitForTimeout(1200);
@@ -482,55 +498,57 @@ for (const tab of TABS) {
       }
       console.log(`bloqueo: ${label.slice(0, 40)} · feed ${before.length} → ${after.length}`);
 
-/*
- * El contador rueda, y se comprueba a media animación.
- *
- * Es la parte de «cómo se siente» que sí se puede medir. Un contador que
- * cambia por sustitución y otro que rueda **acaban en el mismo número**, así
- * que mirar el resultado no distingue uno de otro: los dos ponen 3 donde ponía
- * 2. Lo que los distingue es el medio segundo de en medio, y ahí el que rueda
- * tiene los dos números a la vez dentro de una caja recortada, uno saliendo y
- * otro entrando.
- *
- * Así que se pulsa, se espera 120 ms —dentro del muelle, no después— y se
- * busca esa caja. Si no hay dos números apilados, el número no está rodando.
- */
-{
-  const reaction = page.getByRole('button', { name: /\d+ en total$/ }).first();
-  if (!(await reaction.count())) {
-    problems.push('el feed no ofrece ninguna reacción con contador');
-  } else {
-    const beforeLabel = (await reaction.getAttribute('aria-label')) ?? '';
-    await reaction.click();
-    await page.waitForTimeout(120);
+      /*
+       * El contador rueda, y se comprueba a media animación.
+       *
+       * Es la parte de «cómo se siente» que sí se puede medir. Un contador que
+       * cambia por sustitución y otro que rueda **acaban en el mismo número**, así
+       * que mirar el resultado no distingue uno de otro: los dos ponen 3 donde ponía
+       * 2. Lo que los distingue es el medio segundo de en medio, y ahí el que rueda
+       * tiene los dos números a la vez dentro de una caja recortada, uno saliendo y
+       * otro entrando.
+       *
+       * Así que se pulsa, se espera 120 ms —dentro del muelle, no después— y se
+       * busca esa caja. Si no hay dos números apilados, el número no está rodando.
+       */
+      {
+        const reaction = page.getByRole('button', { name: /\d+ en total$/ }).first();
+        if (!(await reaction.count())) {
+          problems.push('el feed no ofrece ninguna reacción con contador');
+        } else {
+          const beforeLabel = (await reaction.getAttribute('aria-label')) ?? '';
+          await reaction.click();
+          await page.waitForTimeout(120);
 
-    const rolling = await page.evaluate(() => {
-      const found = [];
-      for (const element of document.querySelectorAll('#root *')) {
-        if (getComputedStyle(element).overflow !== 'hidden') continue;
-        if (element.children.length !== 2) continue;
-        const numbers = [...element.children].map((child) => child.textContent.trim());
-        if (numbers.every((text) => /^\d+$/.test(text))) found.push(numbers.join('→'));
+          const rolling = await page.evaluate(() => {
+            const found = [];
+            for (const element of document.querySelectorAll('#root *')) {
+              if (getComputedStyle(element).overflow !== 'hidden') continue;
+              if (element.children.length !== 2) continue;
+              const numbers = [...element.children].map((child) => child.textContent.trim());
+              if (numbers.every((text) => /^\d+$/.test(text))) found.push(numbers.join('→'));
+            }
+            return found;
+          });
+
+          await page.waitForTimeout(700);
+          const afterLabel = (await reaction.getAttribute('aria-label')) ?? '';
+          console.log(
+            `contador: ${rolling.join(', ') || 'no rueda'} · ${beforeLabel} → ${afterLabel}`,
+          );
+
+          if (rolling.length === 0) {
+            problems.push('el contador de reacciones cambia de golpe en vez de rodar');
+          }
+          if (beforeLabel === afterLabel) {
+            problems.push('reaccionar no cambió el contador');
+          }
+
+          /* Y se deja como estaba: lo que venga después cuenta reacciones. */
+          await reaction.click();
+          await page.waitForTimeout(500);
+        }
       }
-      return found;
-    });
-
-    await page.waitForTimeout(700);
-    const afterLabel = (await reaction.getAttribute('aria-label')) ?? '';
-    console.log(`contador: ${rolling.join(', ') || 'no rueda'} · ${beforeLabel} → ${afterLabel}`);
-
-    if (rolling.length === 0) {
-      problems.push('el contador de reacciones cambia de golpe en vez de rodar');
-    }
-    if (beforeLabel === afterLabel) {
-      problems.push('reaccionar no cambió el contador');
-    }
-
-    /* Y se deja como estaba: lo que venga después cuenta reacciones. */
-    await reaction.click();
-    await page.waitForTimeout(500);
-  }
-}
     }
   }
 }
@@ -633,7 +651,9 @@ for (const tab of TABS) {
          más: el margen de tres dejaba pasar un factor de re-render que se
          comió doscientas peticiones sin que saltara nada. */
       if (tileRequests.length > unique * 2) {
-        problems.push(`${tileRequests.length} peticiones para ${unique} teselas: se están repitiendo`);
+        problems.push(
+          `${tileRequests.length} peticiones para ${unique} teselas: se están repitiendo`,
+        );
       }
       for (const level of new Set(tileRequests.map((ref) => Number(ref.split('/')[0])))) {
         if (level < 1 || level > 19) problems.push(`nivel de tesela absurdo: ${level}`);
@@ -642,6 +662,226 @@ for (const tab of TABS) {
         () => document.querySelectorAll('img[src*="tile.openstreetmap.org"]').length,
       );
       if (drawn === 0) problems.push('las teselas se piden pero no se colocan en la pantalla');
+    }
+  }
+}
+
+/*
+ * La hoja del mapa tiene tres posiciones y las tres se alcanzan con un toque.
+ *
+ * Es la regla que `lib/interface-rules.test.ts` comprueba leyendo el código,
+ * comprobada aquí ejecutándolo: el asa es un botón que dice a dónde va —«Ver
+ * la lista», «Ver la lista entera», «Ver el mapa entero»— y cada toque mueve
+ * la hoja a una altura **distinta**. Se mide la posición del asa, no si el
+ * botón cambió de nombre: un botón que cambia de rótulo sin mover nada es
+ * exactamente el fallo que una lectura del código no ve.
+ */
+{
+  /* El muelle de la hoja tarda en asentarse y Playwright no toca lo que se
+     mueve: antes de cada toque se espera a que el asa lleve dos lecturas
+     seguidas en el mismo sitio. */
+  const still = async () => {
+    let last = null;
+    for (let i = 0; i < 30; i++) {
+      const box = await page
+        .getByRole('button', { name: /^Ver (la lista|la lista entera|el mapa entero)$/ })
+        .first()
+        .boundingBox();
+      const y = box ? Math.round(box.y) : null;
+      if (y !== null && y === last) return;
+      last = y;
+      await page.waitForTimeout(120);
+    }
+  };
+  const handleY = async () => {
+    await still();
+    const handle = page
+      .getByRole('button', { name: /^Ver (la lista|la lista entera|el mapa entero)$/ })
+      .first();
+    return (await handle.boundingBox())?.y ?? null;
+  };
+  const peek = await handleY();
+  if (peek === null) {
+    problems.push('el mapa no tiene el asa de la hoja');
+  } else {
+    await page.getByRole('button', { name: 'Ver la lista' }).first().click();
+    await page.waitForTimeout(900);
+    const mid = await handleY();
+    await page.getByRole('button', { name: 'Ver la lista entera' }).first().click();
+    await page.waitForTimeout(900);
+    const full = await handleY();
+    console.log(
+      `hoja: asa a ${Math.round(peek)} → ${Math.round(mid ?? -1)} → ${Math.round(full ?? -1)}`,
+    );
+    if (mid === null || full === null || !(full < mid && mid < peek)) {
+      problems.push(`la hoja no pasa por tres alturas distintas: ${peek} → ${mid} → ${full}`);
+    }
+    /* Entera, la lista tiene su salida con nombre: «Mapa». Y devuelve la hoja
+       a la posición baja, que es donde se vive. */
+    const toMap = page.getByRole('button', { name: 'Ver el mapa', exact: true }).first();
+    if (!(await toMap.count())) {
+      problems.push('con la hoja entera no hay una píldora que se llame «Mapa»');
+      await page.getByRole('button', { name: 'Ver el mapa entero' }).first().click();
+    } else {
+      await toMap.click();
+    }
+    await page.waitForTimeout(900);
+    const back = await handleY();
+    if (back === null || Math.abs(back - peek) > 4) {
+      problems.push(`la hoja no volvió a la posición baja: ${peek} → ${back}`);
+    }
+
+    /* Y con el dedo, desde el cuerpo: la hoja sube al arrastrarla. Se
+       arrastra desde debajo del asa —la tira de caras o la cabecera— porque
+       es donde cae el pulgar, y se mide que el asa haya subido de verdad. */
+    if (back !== null) {
+      await page.mouse.move(100, back + 70);
+      await page.mouse.down();
+      await page.mouse.move(100, back + 50);
+      await page.mouse.move(100, back - 260, { steps: 18 });
+      await page.mouse.up();
+      await page.waitForTimeout(1100);
+      const dragged = await handleY();
+      console.log(
+        `hoja arrastrada desde el cuerpo: asa ${Math.round(back)} → ${Math.round(dragged ?? -1)}`,
+      );
+      if (dragged === null || dragged > back - 100) {
+        problems.push(`arrastrar la hoja desde el cuerpo no la sube: ${back} → ${dragged}`);
+      }
+      /* De vuelta abajo por el camino con nombre, para lo que viene después. */
+      const toMapAgain = page.getByRole('button', { name: 'Ver el mapa', exact: true }).first();
+      if (await toMapAgain.count()) await toMapAgain.click();
+      else
+        await page
+          .getByRole('button', { name: 'Ver la lista entera' })
+          .first()
+          .click()
+          .then(() =>
+            page.getByRole('button', { name: 'Ver el mapa', exact: true }).first().click(),
+          )
+          .catch(() => {});
+      await page.waitForTimeout(900);
+    }
+  }
+}
+
+/*
+ * Tocar un sitio abre su ficha, y la ficha ofrece salir sólo cuando conviene.
+ *
+ * Aquí no se sabe qué tiempo hace —la consulta no sale del contenedor—, así
+ * que la ficha **no puede** ofrecer «Salir aquí ahora»: tiene que decir por
+ * qué. Es el mismo principio que el radar sin duraciones, comprobado en la
+ * otra puerta que ahora existe para salir. Lo que sí tiene que estar siempre
+ * es cómo llegar, y el aspa para volver a la lista.
+ */
+{
+  await page.getByRole('button', { name: 'Ver la lista' }).first().click();
+  await page.waitForTimeout(700);
+  const row = page.getByRole('button', { name: /^Parque Central, a / }).first();
+  if (!(await row.count())) {
+    problems.push('la lista del mapa no tiene la fila del Parque Central');
+  } else {
+    await row.click();
+    await page.waitForTimeout(900);
+    const card = (await page.locator('#root').innerText()).trim();
+    if (!(await page.getByRole('button', { name: 'Cerrar y volver a la lista' }).count())) {
+      problems.push('tocar un sitio no abrió su ficha');
+    }
+    if (!(await page.getByRole('button', { name: /Cómo llegar/ }).count())) {
+      problems.push('la ficha del sitio no ofrece cómo llegar');
+    }
+    const offers = (await page.getByRole('button', { name: /Salir aquí ahora/ }).count()) > 0;
+    const explains =
+      /no se propone salir|no le conviene|no puedes encender|modo fantasma|Ya estás fuera/i.test(
+        card,
+      );
+    console.log(
+      `ficha del sitio: ${offers ? 'ofrece salir' : explains ? 'explica por qué no' : 'ni ofrece ni explica'}`,
+    );
+    if (!offers && !explains) {
+      problems.push('la ficha del sitio ni ofrece salir ni dice por qué no');
+    }
+    if (offers && /No sabemos qué tiempo hace/i.test(card)) {
+      problems.push('la ficha ofrece salir sin saber qué tiempo hace');
+    }
+    await page.getByRole('button', { name: 'Cerrar y volver a la lista' }).first().click();
+    await page.waitForTimeout(500);
+    /* De vuelta a la posición baja por el camino con nombre: el asa sube a
+       entera y la píldora «Mapa» baja del todo. Un `.or()` entre dos rótulos
+       del asa elegía el que hubiera —y a media altura el que hay sube—, así
+       que la hoja se quedaba tapando los botones del mapa. */
+    await page.getByRole('button', { name: 'Ver la lista entera' }).first().click();
+    await page.waitForTimeout(700);
+    await page.getByRole('button', { name: 'Ver el mapa', exact: true }).first().click();
+    await page.waitForTimeout(800);
+  }
+}
+
+/*
+ * El mapa se arrastra, y arrastrarlo mueve el mundo y pide las teselas nuevas.
+ *
+ * Se miden las dos cosas, porque fallan por separado: un marcador que no se
+ * mueve es un gesto que no llegó al mapa —la primera versión de esta prueba
+ * arrastraba desde la hoja sin saberlo—, y un marcador que se mueve sin
+ * teselas nuevas es un lienzo que se desplazó en la pantalla y no en el mundo.
+ * El arrastre empieza en una zona del mapa sin marcadores ni hoja, y va lo
+ * bastante lejos —más de una tesela— para que tenga que pedir alguna. Y el
+ * botón de volver a donde estás tiene que existir aunque el gesto funcione:
+ * un gesto nunca es el único camino.
+ */
+{
+  const anchor = page.getByRole('button', { name: /Cebos envenenados/ }).first();
+  /* La referencia es el encuadre de «donde estás», no el que dejó la ficha
+     de antes: volver a donde estás devuelve a la persona, no a la última
+     vista. Se pulsa primero para partir de ahí. */
+  const locate = page.getByRole('button', { name: 'Volver a donde estás' }).first();
+  if (!(await locate.count())) problems.push('el mapa no tiene el botón de volver a donde estás');
+  else {
+    await locate.click();
+    await page.waitForTimeout(900);
+  }
+  const before = await anchor.boundingBox();
+  /* Lo que hay dibujado, no lo que se ha pedido: las peticiones se cuentan
+     para toda la auditoría y a esta altura el encuadre nuevo puede caer en
+     teselas ya pedidas antes. Las imágenes del lienzo sí cambian siempre que
+     el mundo se mueve. */
+  const drawnTiles = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('img[src*="tile.openstreetmap.org"]')]
+        .map((img) => img.getAttribute('src'))
+        .sort()
+        .join('|'),
+    );
+  const tilesBefore = await drawnTiles();
+  await page.mouse.move(300, 300);
+  await page.mouse.down();
+  await page.mouse.move(280, 280);
+  await page.mouse.move(120, 40, { steps: 20 });
+  await page.mouse.up();
+  await page.waitForTimeout(1600);
+  const after = await anchor.boundingBox();
+  const tilesAfter = await drawnTiles();
+  const moved =
+    before && after
+      ? { x: Math.round(after.x - before.x), y: Math.round(after.y - before.y) }
+      : null;
+  console.log(
+    `arrastre del mapa: marcador ${moved ? `${moved.x},${moved.y}` : 'sin medir'} · teselas dibujadas ${tilesAfter === tilesBefore ? 'iguales' : 'distintas'}`,
+  );
+  if (!moved || moved.x > -80 || moved.y > -120) {
+    problems.push(
+      `arrastrar el mapa no movió los marcadores con el dedo: ${JSON.stringify(moved)}`,
+    );
+  }
+  if (tilesAfter === tilesBefore) {
+    problems.push('arrastrar el mapa dejó las mismas teselas dibujadas: el mundo no se movió');
+  }
+  if (await locate.count()) {
+    await locate.click();
+    await page.waitForTimeout(900);
+    const back = await anchor.boundingBox();
+    if (before && back && (Math.abs(back.y - before.y) > 4 || Math.abs(back.x - before.x) > 4)) {
+      problems.push('volver a donde estás no devolvió el mapa a su sitio');
     }
   }
 }
@@ -771,7 +1011,10 @@ for (const tab of TABS) {
     }
 
     /* El atajo de demostración, por el camino real: perfil → menú → ajustes. */
-    await page.getByRole('tab', { name: /Perfil/i }).first().click();
+    await page
+      .getByRole('tab', { name: /Perfil/i })
+      .first()
+      .click();
     await page.waitForTimeout(700);
     const menu = page.getByRole('button', { name: /Menú del perfil/i }).first();
     if (!(await menu.count())) {
@@ -779,7 +1022,10 @@ for (const tab of TABS) {
     } else {
       await menu.click();
       await page.waitForTimeout(500);
-      await page.getByRole('button', { name: /^Configuración$/ }).first().click();
+      await page
+        .getByRole('button', { name: /^Configuración$/ })
+        .first()
+        .click();
       await page.waitForTimeout(900);
 
       /*
@@ -864,7 +1110,10 @@ for (const tab of TABS) {
       /* Se deja como estaba para que lo que venga después no herede otra
          dirección: una auditoría que se cambia el decorado a sí misma mide otra
          aplicación a partir de aquí. */
-      await page.getByRole('radio', { name: /^Nocturno\./ }).first().click();
+      await page
+        .getByRole('radio', { name: /^Nocturno\./ })
+        .first()
+        .click();
       await page.waitForTimeout(450);
 
       const chipSwitch = page.getByRole('switch', { name: /Chip verificado/i }).first();
@@ -875,14 +1124,21 @@ for (const tab of TABS) {
         await chipSwitch.click();
         await page.waitForTimeout(600);
 
-        await page.getByRole('button', { name: /^Volver$/ }).first().click();
+        await page
+          .getByRole('button', { name: /^Volver$/ })
+          .first()
+          .click();
         await page.waitForTimeout(700);
 
         if (!(await goRadar())) {
           problems.push('no se pudo volver al radar tras verificar el chip');
         } else {
           const open = (await page.locator('#root').innerText()).trim();
-          const shows = /Le quedan \d+ min/.test(open) || /no hay ning/i.test(open);
+          /* Con la puerta abierta el radar enseña las fichas de quien está
+             fuera —cada una con su «Vamos»— o dice que no hay ninguno. Antes
+             el texto era «Le quedan N min»; la ficha agrupada lo dice con una
+             insignia y un botón, así que se mira eso. */
+          const shows = /\bVamos\b/.test(open) || /Ningún .+ fuera ahora/i.test(open);
           console.log(`radar tras verificar el chip: ${shows ? 'abre' : 'sigue cerrado'}`);
           if (!shows) {
             problems.push('con el chip verificado el radar sigue sin enseñar quién está fuera');
@@ -891,6 +1147,68 @@ for (const tab of TABS) {
             problems.push('la puerta del radar no se abrió al verificar el chip');
           }
         }
+      }
+    }
+  }
+}
+
+/*
+ * Las caras se agrupan al alejar el mapa, y el globo acerca.
+ *
+ * Con el chip ya verificado hay caras en el mapa, en su parque. A nivel de
+ * barrio van sueltas; un nivel más lejos, dos en el mismo sitio son un globo
+ * con la cifra, y tocarlo acerca hasta que se vuelven a separar. Es la regla
+ * de anclar al sitio dibujada a otra escala, y se comprueba con el botón de
+ * alejar, que es el camino sin gesto.
+ */
+{
+  const mapTab = page.getByRole('tab', { name: /Explorar/i }).first();
+  if (await mapTab.count()) {
+    await mapTab.click();
+    await page.waitForTimeout(1200);
+    const clusters = page.getByRole('button', { name: /^\d+ perros en / });
+    if (await clusters.count()) {
+      problems.push('a nivel de barrio las caras ya salen agrupadas');
+    }
+    await page.getByRole('button', { name: 'Alejar' }).first().click();
+    await page.waitForTimeout(1200);
+    const grouped = await clusters.count();
+    console.log(`globos al alejar: ${grouped}`);
+    if (grouped === 0) {
+      problems.push('al alejar el mapa las caras no se agrupan en globos');
+    } else {
+      await clusters.first().click();
+      await page.waitForTimeout(1200);
+      if (await clusters.count()) {
+        problems.push('tocar un globo no acerca lo bastante para abrirlo');
+      }
+    }
+    await page.getByRole('button', { name: 'Volver a donde estás' }).first().click();
+    await page.waitForTimeout(600);
+  }
+}
+
+/*
+ * La presencia es una sola cosa: la píldora del feed lleva al radar.
+ *
+ * «Salir ahora» está en la cabecera del feed y en la fila de estados, y las
+ * dos leen el mismo almacén que el radar. Aquí se comprueba el camino: tocar
+ * la píldora abre el radar, que es la única puerta para salir.
+ */
+{
+  const feedTab = page.getByRole('tab', { name: /^Feed$/ }).first();
+  if (await feedTab.count()) {
+    await feedTab.click();
+    await page.waitForTimeout(900);
+    const chip = page.getByRole('button', { name: /^Salir ahora$/ }).first();
+    if (!(await chip.count())) {
+      problems.push('el feed no tiene la píldora de «Salir ahora»');
+    } else {
+      await chip.click();
+      await page.waitForTimeout(1200);
+      const radar = (await page.locator('#root').innerText()).trim();
+      if (!/Fuera ahora/.test(radar)) {
+        problems.push('la píldora de «Salir ahora» no abre el radar');
       }
     }
   }
@@ -937,7 +1255,12 @@ for (const tab of TABS) {
           await rows.first().click();
           await page.waitForTimeout(1200);
           const summary = (await page.locator('#root').innerText()).trim();
-          if (!/Estuvisteis fuera/i.test(summary)) {
+          /* El titular del resumen es la duración en grande, y la frase
+             «Estuvisteis fuera …» va en su etiqueta accesible, no en el texto
+             pintado: se pregunta por el encabezado, que es lo que oye quien
+             lee con voz. */
+          const headline = page.getByRole('heading', { name: /Estuvisteis fuera/i });
+          if ((await headline.count()) === 0) {
             problems.push('la fila del historial no abrió el resumen del paseo');
           }
           if (!/min|h /.test(summary)) {
@@ -948,7 +1271,6 @@ for (const tab of TABS) {
     }
   }
 }
-
 
 /*
  * «Voy a buscar» tiene que verse desde el otro lado.
@@ -985,7 +1307,9 @@ for (const tab of TABS) {
       problems.push('la ficha de una alerta no ofrece apuntarse a buscar');
     } else {
       if (!/2 personas buscando/.test(before)) {
-        problems.push(`la alerta no dice cuánta gente busca antes de apuntarse: ${before.slice(0, 120)}`);
+        problems.push(
+          `la alerta no dice cuánta gente busca antes de apuntarse: ${before.slice(0, 120)}`,
+        );
       }
       await join.scrollIntoViewIfNeeded().catch(() => {});
       await join.click();
@@ -1003,7 +1327,10 @@ for (const tab of TABS) {
       /* Y se deshace, porque una cuenta que solo sube deja de significar nada.
          Además esto devuelve la alerta a su estado de partida para lo que venga
          después. */
-      await page.getByRole('button', { name: /^Ya no voy a buscar$/ }).first().click();
+      await page
+        .getByRole('button', { name: /^Ya no voy a buscar$/ })
+        .first()
+        .click();
       await page.waitForTimeout(600);
       const undone = (await page.locator('#root').innerText()).trim();
       if (!/2 personas buscando/.test(undone)) {
@@ -1105,6 +1432,18 @@ for (const tab of TABS) {
     await mapTab.click();
     await page.waitForTimeout(900);
 
+    /* Con tres posiciones, los destinos del final de la lista viven en la
+       hoja entera: se sube por el asa, con nombre, antes de buscarlos. En la
+       posición baja el enlace existe pero queda por debajo de la pantalla, y
+       un toque a ciegas ahí es el toque que se queda esperando. */
+    for (const label of ['Ver la lista', 'Ver la lista entera']) {
+      const handle = page.getByRole('button', { name: label }).first();
+      if (await handle.count()) {
+        await handle.click();
+        await page.waitForTimeout(900);
+      }
+    }
+
     const toSpots = page
       .getByRole('link', { name: /Espacios privados/i })
       .or(page.getByRole('button', { name: /Espacios privados/i }))
@@ -1143,7 +1482,9 @@ for (const tab of TABS) {
           problems.push('proponer una reserva no cambia nada en la ficha');
         }
 
-        const simulate = page.getByRole('button', { name: /Simular que el anfitrión acepta/i }).first();
+        const simulate = page
+          .getByRole('button', { name: /Simular que el anfitrión acepta/i })
+          .first();
         if (!(await simulate.count())) {
           problems.push('no hay forma de ver una reserva confirmada en la demo');
         } else {
@@ -1152,7 +1493,9 @@ for (const tab of TABS) {
           await page.waitForTimeout(800);
 
           const confirmed = (await page.locator('#root').innerText()).trim();
-          console.log(`dirección tras confirmar: ${confirmed.includes(CALLE) ? 'aparece' : 'no aparece'}`);
+          console.log(
+            `dirección tras confirmar: ${confirmed.includes(CALLE) ? 'aparece' : 'no aparece'}`,
+          );
           if (!confirmed.includes(CALLE)) {
             problems.push('con la reserva confirmada la dirección sigue sin aparecer');
           }
@@ -1178,17 +1521,28 @@ for (const tab of TABS) {
  * En este contenedor la petición no llega —el proxy de salida bloquea el
  * dominio— y da igual: lo que se audita es que se emita y con qué.
  */
-const external = [...new Set(requests.filter((url) => !url.startsWith(FILE) && !url.startsWith('data:') && !url.startsWith('blob:')))];
+const external = [
+  ...new Set(
+    requests.filter(
+      (url) => !url.startsWith(FILE) && !url.startsWith('data:') && !url.startsWith('blob:'),
+    ),
+  ),
+];
 const weatherCalls = external.filter((url) => url.includes('api.open-meteo.com'));
-/* Dos dominios previstos, y sólo dos: el del tiempo y el de las calles. Que la
-   lista sea corta y explícita es el punto — cualquier otra cosa que aparezca es
-   algo que se coló en el empaquetado. */
+/* Tres dominios previstos, y sólo tres: el del tiempo, el de las calles y el
+   almacén provisional de las fotos. Que la lista sea corta y explícita es el
+   punto — cualquier otra cosa que aparezca es algo que se coló en el
+   empaquetado. */
 const strangers = external.filter(
-  (url) => !url.includes('api.open-meteo.com') && !url.includes('tile.openstreetmap.org'),
+  (url) =>
+    !url.includes('api.open-meteo.com') &&
+    !url.includes('tile.openstreetmap.org') &&
+    !url.includes(PHOTO_HOST),
 );
 
 if (weatherCalls.length === 0) problems.push('la app no llegó a consultar el tiempo');
-if (strangers.length) problems.push(`peticiones a terceros no previstos: ${strangers.slice(0, 5).join(', ')}`);
+if (strangers.length)
+  problems.push(`peticiones a terceros no previstos: ${strangers.slice(0, 5).join(', ')}`);
 
 for (const call of weatherCalls) {
   const query = new URL(call).searchParams;
@@ -1205,7 +1559,8 @@ console.log(`consultas de tiempo: ${weatherCalls.length}`);
 /* Y el fallo de esa consulta no puede llevarse la aplicación por delante: aquí
    siempre falla, así que este es el sitio donde eso se comprueba gratis. */
 const alive = await page.locator('#root').innerText();
-if (alive.trim().length < 80) problems.push('la app se quedó vacía tras fallar la consulta del tiempo');
+if (alive.trim().length < 80)
+  problems.push('la app se quedó vacía tras fallar la consulta del tiempo');
 
 /*
  * La barra tiene cinco pestañas, ni una más.
@@ -1225,12 +1580,16 @@ if (alive.trim().length < 80) problems.push('la app se quedó vacía tras fallar
   if (count !== 5) {
     const names = await bar
       .getByRole('tab')
-      .evaluateAll((nodes) => nodes.map((node) => (node.getAttribute('aria-label') || node.textContent || '').trim()));
+      .evaluateAll((nodes) =>
+        nodes.map((node) => (node.getAttribute('aria-label') || node.textContent || '').trim()),
+      );
     problems.push(`la barra tiene ${count} pestañas y no 5: ${names.join(', ')}`);
   }
 }
 
-const loadedFonts = await page.evaluate(() => [...document.fonts].filter((font) => font.status === 'loaded').length);
+const loadedFonts = await page.evaluate(
+  () => [...document.fonts].filter((font) => font.status === 'loaded').length,
+);
 console.log(`tipografías cargadas: ${loadedFonts}`);
 if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada');
 
@@ -1290,9 +1649,11 @@ if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada')
    * Playwright calcule el nombre accesible igual que lo hace un lector de
    * pantalla, que es lo que aquí se quiere comprobar.
    */
-  const tabs = await shelter.getByRole('tab').evaluateAll((nodes) =>
-    nodes.map((node) => (node.getAttribute('aria-label') || node.textContent || '').trim()),
-  );
+  const tabs = await shelter
+    .getByRole('tab')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => (node.getAttribute('aria-label') || node.textContent || '').trim()),
+    );
 
   if (!(await shelter.getByRole('tab', { name: /Rescate/i }).count())) {
     problems.push(`la cuenta de protectora no abre en Rescate: ${tabs.join(', ')}`);
@@ -1339,7 +1700,9 @@ if (loadedFonts === 0) problems.push('no cargó ninguna tipografía incrustada')
     if (!/Guardados/.test(withSaved)) {
       problems.push('guardar un aviso no lo lleva a ningún sitio donde volver a verlo');
     }
-    if (!(await shelter.getByRole('button', { name: /^Quitar de guardados el aviso de / }).count())) {
+    if (
+      !(await shelter.getByRole('button', { name: /^Quitar de guardados el aviso de / }).count())
+    ) {
       problems.push('un aviso guardado no se puede desguardar');
     }
   }

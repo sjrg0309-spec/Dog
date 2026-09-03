@@ -28,6 +28,7 @@ import type { DemoPet } from '@/lib/data';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import { Plus } from '@/lib/icons';
+import { useGhostMode, useLivePresence } from '@/lib/presence';
 import type { StoryGroup } from '@/lib/stories';
 import { useTheme } from '@/lib/theme';
 
@@ -39,7 +40,6 @@ export function StoryRail({
   myStoryCount,
   onCreate,
   onOpen,
-  checkedIn,
   onCheckIn,
   disabled = false,
   disabledReason,
@@ -50,7 +50,14 @@ export function StoryRail({
   myStoryCount: number;
   onCreate: () => void;
   onOpen: (petId: string) => void;
-  checkedIn: boolean;
+  /**
+   * @deprecated Si estás fuera lo sabe `lib/presence`, no quien dibuja la
+   * fila: se acepta y se ignora para que las pantallas que aún lo pasan sigan
+   * compilando mientras se retira. Con dos fuentes se podía estar fuera según
+   * el radar y en casa según el inicio, que es justo lo que se ha quitado.
+   */
+  checkedIn?: boolean;
+  /** Qué hacer al tocar «Salir ahora». Con la sesión en vivo no se llama: se abre el radar. */
   onCheckIn: () => void;
   /** Hoy no le conviene salir: el atajo de salir no se ofrece. */
   disabled?: boolean;
@@ -61,6 +68,12 @@ export function StoryRail({
   /* «Prefiero quedar con antelación»: el acomodo que cambia qué se ofrece
      primero, no qué se puede hacer. */
   const planAhead = useHandlerNeed('plan_ahead');
+  /* La presencia se lee del almacén y no de una propiedad: es el mismo dato
+     que enseña el radar, así que un check-in hecho allí enciende esta burbuja
+     sin que nadie la avise, y vence aquí a la misma hora que allí. */
+  const session = useLivePresence();
+  const ghost = useGhostMode();
+  const checkedIn = session !== null;
   const others = groups.filter((group) => group.petId !== me.id);
 
   return (
@@ -106,7 +119,13 @@ export function StoryRail({
             proponer una quedada. No es que el check-in desaparezca —sigue en el
             radar, a un toque— sino que deja de ser lo primero que se ve, que es
             justo lo que pidió quien encendió ese acomodo: un plan con hora y
-            sitio antes que un «estoy fuera, vente ahora». */}
+            sitio antes que un «estoy fuera, vente ahora».
+
+            Con el modo fantasma puesto la burbuja dice «Invisible» en vez de
+            ofrecer salir: el interruptor de privacidad tiene que verse
+            encendido desde donde se mira, y ofrecer «Salir ahora» para que el
+            radar diga que no sería un botón que miente. Lleva al radar, que es
+            donde está el interruptor. */}
         {disabled ? null : planAhead ? (
           <Bubble
             id={`${me.id}-plan`}
@@ -120,6 +139,19 @@ export function StoryRail({
               router.push('/quedadas');
             }}
           />
+        ) : ghost && !checkedIn ? (
+          <Bubble
+            id={`${me.id}-radar`}
+            name={me.name}
+            label="Invisible"
+            hint="Modo fantasma puesto. Abrir el radar para volver a aparecer"
+            ring="none"
+            live={false}
+            onPress={() => {
+              haptics.tap();
+              router.push('/radar');
+            }}
+          />
         ) : (
           <Bubble
             id={`${me.id}-radar`}
@@ -127,14 +159,17 @@ export function StoryRail({
             label={checkedIn ? 'Estás fuera' : 'Salir ahora'}
             hint={
               checkedIn
-                ? 'Dejar de estar visible'
+                ? `Fuera en ${session.placeName}. Abrir el radar para ver hasta cuándo o terminar`
                 : `Hacer visible a ${me.name} durante un rato; se apaga solo`
             }
             ring={checkedIn ? 'unseen' : 'none'}
             live={checkedIn}
             onPress={() => {
               haptics.tap();
-              onCheckIn();
+              /* Terminar no es un toque en una burbuja: el radar guarda el
+                 paseo y abre su resumen, así que es allí donde se cierra. */
+              if (checkedIn) router.push('/radar');
+              else onCheckIn();
             }}
           />
         )}
@@ -221,43 +256,43 @@ function Bubble({
       style={{ width: 70 }}
     >
       {({ pressed }) => (
-      /* La burbuja se hunde bajo el dedo en vez de aclararse. Bajar la opacidad
+        /* La burbuja se hunde bajo el dedo en vez de aclararse. Bajar la opacidad
          era lo que había, y sobre una fila de retratos de colores se lee como
          que la foto se ha estropeado; encoger se lee como que el dedo ha
          entrado. 0,92 y no 0,97 como en las tarjetas: una burbuja de setenta
          puntos necesita más recorrido para que se note lo mismo. */
-      <Press pressed={pressed} scale={0.92}>
-      <View style={{ alignItems: 'center', gap: theme.space[1], width: 70 }}>
-        <View>
-          {/* El pulso es el único movimiento continuo de la aplicación y solo
+        <Press pressed={pressed} scale={0.92}>
+          <View style={{ alignItems: 'center', gap: theme.space[1], width: 70 }}>
+            <View>
+              {/* El pulso es el único movimiento continuo de la aplicación y solo
               lo lleva quien está fuera **ahora**. Por eso significa algo. */}
-          <Pulse active={live === true}>
-            <StoryRing size={60} state={ring}>
-              <Avatar id={id} name={name} size={60} />
-            </StoryRing>
-          </Pulse>
+              <Pulse active={live === true}>
+                <StoryRing size={60} state={ring}>
+                  <Avatar id={id} name={name} size={60} />
+                </StoryRing>
+              </Pulse>
 
-          {showAdd ? (
-            <View
-              style={{
-                position: 'absolute',
-                right: 0,
-                bottom: 0,
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: theme.colors.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 2,
-                borderColor: theme.colors.background,
-              }}
-            >
-              <Icon icon={Plus} size="sm" color={theme.colors.primaryForeground} decorative />
-            </View>
-          ) : null}
+              {showAdd ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    bottom: 0,
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: theme.colors.primary,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: theme.colors.background,
+                  }}
+                >
+                  <Icon icon={Plus} size="sm" color={theme.colors.primaryForeground} decorative />
+                </View>
+              ) : null}
 
-          {/* EN VIVO va debajo y encima del retrato, como en Instagram. Lleva la
+              {/* EN VIVO va debajo y encima del retrato, como en Instagram. Lleva la
               palabra escrita: el color solo no dice nada a quien no lo separa.
 
               Va **medio dentro** del retrato y no colgando por debajo: con la
@@ -265,49 +300,49 @@ function Bubble({
               captura «Rocky» aparecía tachado por su propia etiqueta de EN
               VIVO. Metiéndola cuatro píxeles hacia dentro cae sobre la foto,
               que es donde Instagram la pone, y el nombre queda libre. */}
-          {live ? (
-            <View
+              {live ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    alignSelf: 'center',
+                    paddingHorizontal: theme.space[2],
+                    paddingVertical: 1,
+                    borderRadius: theme.radius.xs,
+                    backgroundColor: theme.colors.liveRing,
+                    borderWidth: 2,
+                    borderColor: theme.colors.background,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.background,
+                      fontFamily: fonts.bodyBold,
+                      // Once, que es el suelo de las dos guías. A nueve, la insignia
+                      // que dice que alguien está fuera **ahora** era lo más
+                      // pequeño de la pantalla, que es exactamente al revés.
+                      fontSize: theme.fontSize['2xs'],
+                      letterSpacing: 0.4,
+                    }}
+                  >
+                    EN VIVO
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            <Text
+              numberOfLines={1}
               style={{
-                position: 'absolute',
-                bottom: 4,
-                alignSelf: 'center',
-                paddingHorizontal: theme.space[2],
-                paddingVertical: 1,
-                borderRadius: theme.radius.xs,
-                backgroundColor: theme.colors.liveRing,
-                borderWidth: 2,
-                borderColor: theme.colors.background,
+                color: ring === 'unseen' ? theme.colors.foreground : theme.colors.mutedForeground,
+                fontFamily: ring === 'unseen' ? fonts.bodyBold : fonts.body,
+                fontSize: theme.fontSize.xs,
               }}
             >
-              <Text
-                style={{
-                  color: theme.colors.background,
-                  fontFamily: fonts.bodyBold,
-                  // Once, que es el suelo de las dos guías. A nueve, la insignia
-                  // que dice que alguien está fuera **ahora** era lo más
-                  // pequeño de la pantalla, que es exactamente al revés.
-                  fontSize: theme.fontSize['2xs'],
-                  letterSpacing: 0.4,
-                }}
-              >
-                EN VIVO
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        <Text
-          numberOfLines={1}
-          style={{
-            color: ring === 'unseen' ? theme.colors.foreground : theme.colors.mutedForeground,
-            fontFamily: ring === 'unseen' ? fonts.bodyBold : fonts.body,
-            fontSize: theme.fontSize.xs,
-          }}
-        >
-          {label}
-        </Text>
-      </View>
-      </Press>
+              {label}
+            </Text>
+          </View>
+        </Press>
       )}
     </Pressable>
   );

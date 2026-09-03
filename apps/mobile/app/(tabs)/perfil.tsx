@@ -7,7 +7,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { Avatar } from '@/components/avatar';
 import { LargeTitle, NAV_BAR_HEIGHT, NavBar, Separator } from '@/components/chrome';
 import { Icon } from '@/components/icon';
-import { PetSwitcher } from '@/components/pet-switcher';
+import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { ProfileMenu } from '@/components/profile-menu';
 import { ShelterCard } from '@/components/shelter-card';
 import { SceneView } from '@/components/scene';
@@ -131,24 +131,31 @@ function PetProfile() {
         revealAt={64}
         floating
         trailing={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Menú del perfil"
-            accessibilityHint="Configuración, actividad, guardados e historial"
-            onPress={() => {
-              haptics.tap();
-              setMenu(true);
-            }}
-            style={({ pressed }) => ({
-              width: theme.touchTarget.min,
-              height: theme.touchTarget.min,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Icon icon={Menu} size="lg" decorative />
-          </Pressable>
+          <>
+            {/* El otro perro de la casa, en la cabecera y no en una franja de
+                sesenta píxeles encima del retrato: es el mismo control que ya
+                lleva el feed, y aquí hacía que la cuadrícula empezara pasada
+                la mitad de la pantalla. */}
+            <PetSwitcherCompact />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Menú del perfil"
+              accessibilityHint="Configuración, actividad, guardados e historial"
+              onPress={() => {
+                haptics.tap();
+                setMenu(true);
+              }}
+              style={({ pressed }) => ({
+                width: theme.touchTarget.min,
+                height: theme.touchTarget.min,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Icon icon={Menu} size="lg" decorative />
+            </Pressable>
+          </>
         }
       />
 
@@ -157,10 +164,6 @@ function PetProfile() {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
-        <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[3] }}>
-          <PetSwitcher />
-        </View>
-
         {/* Quién es — cabecera de perfil de Instagram: retrato a la
             izquierda, tres cifras a la derecha, y la biografía debajo a todo
             el ancho. Se toma prestada porque resuelve bien lo mismo que aquí
@@ -171,7 +174,7 @@ function PetProfile() {
             alignItems: 'center',
             gap: theme.space[5],
             paddingHorizontal: theme.space[4],
-            paddingTop: theme.space[5],
+            paddingTop: theme.space[3],
           }}
         >
           <StoryRing size={80} state={walkMode ? 'unseen' : 'none'}>
@@ -277,11 +280,11 @@ function PetProfile() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ flexGrow: 0, marginBottom: theme.space[5] }}
+          style={{ flexGrow: 0, marginBottom: theme.space[4] }}
           contentContainerStyle={{
             paddingHorizontal: theme.space[4],
-            paddingTop: theme.space[5],
-            gap: theme.space[4],
+            paddingTop: theme.space[4],
+            gap: theme.space[3],
           }}
         >
           {/* Cada destacado hace algo. Cuatro círculos bonitos que no llevan a
@@ -303,15 +306,18 @@ function PetProfile() {
               style={({ pressed }) => ({
                 alignItems: 'center',
                 gap: theme.space[1],
-                width: 74,
+                width: 68,
                 opacity: pressed ? 0.6 : 1,
               })}
             >
+              {/* Cincuenta y seis y no sesenta y cuatro: son atajos, no
+                  retratos. Ocho píxeles menos por fila son los que faltaban
+                  para que la cuadrícula asome sin bajar. */}
               <View
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
                   borderWidth: 1.5,
                   borderColor:
                     highlight.label === 'Modo Paseo' && walkMode
@@ -342,7 +348,7 @@ function PetProfile() {
         </ScrollView>
 
         {/* Modo Paseo */}
-        <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[6] }}>
+        <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[2] }}>
           <WalkMode pet={pet} on={walkMode} onToggle={() => setWalkMode((value) => !value)} />
         </View>
 
@@ -351,7 +357,7 @@ function PetProfile() {
             detrás de una pestaña y no a continuación por una razón: es privada,
             y tenerla siempre abierta en la pantalla que más se enseña a otros
             es la forma más fácil de que se vea sin querer. */}
-        <View style={{ flexDirection: 'row', paddingTop: theme.space[6] }}>
+        <View style={{ flexDirection: 'row', paddingTop: theme.space[3] }}>
           {[
             { id: 'grid' as const, icon: Grid3x3, label: 'Fotos' },
             { id: 'saved' as const, icon: Bookmark, label: 'Guardados' },

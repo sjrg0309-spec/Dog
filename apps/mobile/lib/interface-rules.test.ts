@@ -226,3 +226,42 @@ describe('área táctil', () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * La cuarta regla: un gesto nunca es el único camino.
+ *
+ * Es la que menos se ve y la que más deja fuera. Una hoja que solo sube
+ * arrastrando y un mapa que solo se acerca pellizcando funcionan para quien
+ * los descubre con el pulgar; quien navega con lector de pantalla, o con una
+ * mano ocupada por la correa, no descubre nada. La guía de plataforma lo dice
+ * con otras palabras —«no dependas de gestos para funciones esenciales»— y el
+ * repositorio lo venía cumpliendo a mano: el asa de la hoja es un botón, los
+ * botones de acercar y alejar existen. Aquí queda escrito, para que un
+ * refactor que quite un botón porque «ya hay gesto» no pase.
+ */
+describe('gestos con camino sin gesto', () => {
+  it('la hoja cambia de posición con un toque en el asa, no solo arrastrando', () => {
+    const source = readFileSync(join(ROOT, 'components/sheet.tsx'), 'utf8');
+    expect(source).toMatch(/Gesture\.Pan\(\)/);
+    /* El asa es un `Pressable` que pasa a la siguiente posición y lo anuncia
+       como expandido o no: es el camino sin gesto. */
+    expect(source).toMatch(/nextDetent\(/);
+    expect(source).toMatch(/accessibilityState=\{\{\s*expanded/);
+  });
+
+  it('cada gesto del mapa tiene su botón gemelo en la pantalla del mapa', () => {
+    const map = readFileSync(join(ROOT, 'components/mini-map.tsx'), 'utf8');
+    const screen = readFileSync(join(ROOT, 'app/(tabs)/explorar.tsx'), 'utf8');
+    const twins: Array<[gesture: RegExp, button: string]> = [
+      [/Gesture\.Pinch\(\)/, 'label="Acercar"'],
+      [/Gesture\.Pinch\(\)/, 'label="Alejar"'],
+      [/Gesture\.Pan\(\)/, 'label="Volver a donde estás"'],
+    ];
+    for (const [gesture, button] of twins) {
+      if (!gesture.test(map)) continue;
+      expect(screen, `El mapa tiene ${gesture} y a la pantalla le falta ${button}`).toContain(
+        button,
+      );
+    }
+  });
+});

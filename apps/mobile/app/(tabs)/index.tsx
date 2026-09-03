@@ -7,6 +7,7 @@ import Animated from 'react-native-reanimated';
 import { NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcherCompact } from '@/components/pet-switcher';
+import { PresenceChip } from '@/components/presence-chip';
 import { Appear } from '@/components/motion';
 import { PostCard } from '@/components/post-card';
 import { ReelTray } from '@/components/reel-tray';
@@ -155,7 +156,6 @@ function PetFeed() {
   );
   const outside = useOutsideRadiusCount(location, radiusM);
 
-  const [checkedIn, setCheckedIn] = useState(false);
   /* La etiqueta EN VIVO de la fila de historias dice quién está fuera ahora, así
      que va detrás de la misma puerta que el mapa de gente. */
   const outNow = useVisiblePets(social && canSeePeople ? walkingNow(pet.speciesId) : []);
@@ -200,6 +200,12 @@ function PetFeed() {
             {/* El animal activo primero: es el contexto de todo lo que hay
                 debajo, así que va antes que lo que te ha pasado a ti. */}
             <PetSwitcherCompact />
+
+            {/* Salir ahora, o «estás fuera» con el rato que queda: la
+                presencia es una sola cosa en toda la aplicación y aquí es
+                donde se piensa en ella al abrirla. Lo que hace Snapchat con
+                «compartir ubicación», anclado al parque y no a la persona. */}
+            <PresenceChip compact />
 
             {/* Publicar, actividad y mensajes, en ese orden y a la derecha del
                 wordmark. Es la cabecera de Instagram, y el orden no es casual:
@@ -290,8 +296,10 @@ function PetFeed() {
               myStoryCount={myStories.length}
               onCreate={() => router.push('/publicar?modo=estado')}
               onOpen={(petId) => router.push(`/estados?pet=${petId}`)}
-              checkedIn={checkedIn}
-              onCheckIn={() => setCheckedIn((value) => !value)}
+              /* Salir se decide en el radar, que es quien pregunta cuánto
+                 rato y quien tiene el veredicto delante. Antes esta burbuja
+                 encendía un estado propio que no llegaba a ninguna parte. */
+              onCheckIn={() => router.push('/radar')}
               disabled={stopped}
               disabledReason={
                 stopped
