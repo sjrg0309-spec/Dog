@@ -1,0 +1,23 @@
+{
+  "enabledPlugins": {
+    "voltagent-core-dev@voltagent-subagents": true,
+    "voltagent-lang@voltagent-subagents": true,
+    "voltagent-qa-sec@voltagent-subagents": true,
+    "playwright@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "voltagent-subagents": {
+      "source": {
+        "source": "github",
+        "repo": "VoltAgent/awesome-claude-code-subagents"
+      }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    }
+  }
+}
