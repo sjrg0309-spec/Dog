@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { Avatar } from '@/components/avatar';
-import { LargeTitle, NavBar, Separator, useScrolled } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
-import { Body, Caption, Notice, Screen } from '@/components/ui';
+import { EmptyState, IconTile, ListGroup, SectionHeader } from '@/components/list';
+import { Caption, Screen } from '@/components/ui';
 import {
   markActivityRead,
   useActivity,
@@ -15,6 +17,7 @@ import {
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
 import {
+  Bell,
   Bone,
   Clock,
   Eye,
@@ -25,6 +28,7 @@ import {
   type LucideIcon,
 } from '@/lib/icons';
 import { timeAgo } from '@/lib/posts';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -56,7 +60,10 @@ const META: Record<ActivityKind, { icon: LucideIcon; tint: 'primary' | 'live' | 
 export default function ActivityScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { scrolled, onScroll } = useScrolled();
+  /* El desplazamiento en crudo: el rótulo de la barra se cruza con el título
+     grande, el grande se encoge y la barra de pestañas se condensa al bajar.
+     Los tres salen del mismo valor, calculado en el hilo de la interfaz. */
+  const { scrollY, onScroll } = useScrollDriver();
   const items = useActivity();
 
   // Se marca leído al abrir la pantalla, no al tocar cada línea. Una lista que
@@ -69,84 +76,63 @@ export default function ActivityScreen() {
   const rest = items.filter((item) => !item.actionable);
 
   return (
-    <Screen>
-      <NavBar title="Actividad" scrolled={scrolled} showTitle={scrolled} />
+    <Screen grouped>
+      <NavBar title="Actividad" scrolled={false} scrollY={scrollY} revealAt={52} floating />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
-        <LargeTitle subtitle="Lo que ha hecho alguien. Aquí no hay nada que te hayamos inventado para que vuelvas.">
+        <LargeTitle
+          scrollY={scrollY}
+          subtitle="Lo que ha hecho alguien. Aquí no hay nada inventado para que vuelvas."
+        >
           Actividad
         </LargeTitle>
 
+        {/* Lo accionable, en su propio grupo y arriba. La separación no es de
+            orden: un avistamiento y una vacuna vencida piden hacer algo hoy, y
+            que alguien haya movido la cola con tu foto, no. */}
         {actionable.length > 0 ? (
           <>
-            <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[2] }}>
-              <Text
-                accessibilityRole="header"
-                style={{
-                  color: theme.colors.foreground,
-                  fontFamily: fonts.displayBold,
-                  fontSize: theme.fontSize.lg,
-                }}
-              >
-                Pide algo de ti
-              </Text>
-            </View>
-            <Separator />
-            {actionable.map((item) => (
-              <Row
-                key={item.id}
-                item={item}
-                onPress={() => {
-                  haptics.tap();
-                  if (item.kind === 'sighting') router.push('/sos');
-                  else if (item.kind === 'reminder') router.push('/perfil');
-                  else router.push('/descubrir');
-                }}
-              />
-            ))}
-            <Separator />
+            <SectionHeader title="Pide algo de ti" first />
+            <ListGroup leading="avatar">
+              {actionable.map((item) => (
+                <Row
+                  key={item.id}
+                  item={item}
+                  onPress={() => {
+                    haptics.tap();
+                    if (item.kind === 'sighting') router.push('/sos');
+                    else if (item.kind === 'reminder') router.push('/perfil');
+                    else router.push('/descubrir');
+                  }}
+                />
+              ))}
+            </ListGroup>
           </>
         ) : null}
 
-        <View
-          style={{
-            paddingHorizontal: theme.space[4],
-            paddingTop: theme.space[6],
-            paddingBottom: theme.space[2],
-          }}
-        >
-          <Text
-            accessibilityRole="header"
-            style={{
-              color: theme.colors.foreground,
-              fontFamily: fonts.displayBold,
-              fontSize: theme.fontSize.lg,
-            }}
-          >
-            Lo demás
-          </Text>
-        </View>
-        <Separator />
-        {rest.map((item) => (
-          <Row key={item.id} item={item} onPress={() => haptics.tap()} />
-        ))}
+        {rest.length > 0 ? (
+          <>
+            <SectionHeader title="Lo demás" first={actionable.length === 0} />
+            <ListGroup leading="avatar">
+              {rest.map((item) => (
+                <Row key={item.id} item={item} onPress={() => haptics.tap()} />
+              ))}
+            </ListGroup>
+          </>
+        ) : null}
 
         {items.length === 0 ? (
-          <View style={{ padding: theme.space[4] }}>
-            <Notice>
-              <Body>Todavía no ha pasado nada.</Body>
-              <Caption>
-                Cuando alguien reaccione, comente o coincida contigo, aparecerá aquí. No rellenamos
-                esta lista con sugerencias.
-              </Caption>
-            </Notice>
-          </View>
+          <EmptyState
+            icon={Bell}
+            title="Todavía no ha pasado nada"
+            body="Cuando alguien reaccione, comente o coincida contigo, aparecerá aquí. No rellenamos esta lista con sugerencias."
+          />
         ) : null}
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }
@@ -170,31 +156,29 @@ function Row({ item, onPress }: { item: ActivityItem; onPress: () => void }) {
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.space[3],
-        paddingHorizontal: theme.space[4],
+        paddingHorizontal: theme.space[3] + 2,
         paddingVertical: theme.space[3],
         minHeight: theme.touchTarget.comfortable,
+        /* Lo no leído se tiñe del acento, no de la superficie. Dentro de la
+           tarjeta agrupada la superficie **es** el fondo de la fila, así que
+           marcar así lo nuevo no marcaba nada. */
         backgroundColor: pressed
           ? theme.colors.surfaceSunken
           : item.read
             ? 'transparent'
-            : theme.colors.surface,
+            : theme.colors.accent,
       })}
     >
       {item.actorPetId ? (
         <Avatar id={item.actorPetId} name={item.actorName ?? '·'} size={44} />
       ) : (
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.colors.surfaceSunken,
-          }}
-        >
-          <Icon icon={meta.icon} size="lg" color={tint} decorative />
-        </View>
+        /* Sin cara detrás, la ficha teñida: el icono dice de qué es el aviso
+           —una vacuna, un avistamiento— y el tinte, si corre prisa. */
+        <IconTile
+          icon={meta.icon}
+          tone={meta.tint === 'alert' ? 'alert' : meta.tint === 'live' ? 'live' : 'primary'}
+          size={44}
+        />
       )}
 
       <View style={{ flex: 1 }}>
@@ -214,9 +198,7 @@ function Row({ item, onPress }: { item: ActivityItem; onPress: () => void }) {
         <Caption>{timeAgo(item.at)}</Caption>
       </View>
 
-      {item.actorPetId ? (
-        <Icon icon={meta.icon} size="base" color={tint} decorative />
-      ) : null}
+      {item.actorPetId ? <Icon icon={meta.icon} size="base" color={tint} decorative /> : null}
     </Pressable>
   );
 }

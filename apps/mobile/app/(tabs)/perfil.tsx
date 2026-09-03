@@ -5,7 +5,7 @@ import Animated from 'react-native-reanimated';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Avatar } from '@/components/avatar';
-import { LargeTitle, NavBar, Separator } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar, Separator } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { PetSwitcher } from '@/components/pet-switcher';
 import { ProfileMenu } from '@/components/profile-menu';
@@ -13,17 +13,7 @@ import { ShelterCard } from '@/components/shelter-card';
 import { SceneView } from '@/components/scene';
 import { StoryRing } from '@/components/story-ring';
 import { buildScene } from '@/lib/artwork';
-import {
-  Badge,
-  Body,
-  Button,
-  Caption,
-  Card,
-  DataRow,
-  Notice,
-  Row,
-  Screen,
-} from '@/components/ui';
+import { Badge, Body, Button, Caption, Card, DataRow, Notice, Row, Screen } from '@/components/ui';
 import { useAccount } from '@/lib/account';
 import { DOG_ROLES, publicPetCard } from '@petnav/core';
 import { useActivePet } from '@/lib/active-pet';
@@ -139,6 +129,7 @@ function PetProfile() {
         scrolled={false}
         scrollY={scrollY}
         revealAt={64}
+        floating
         trailing={
           <Pressable
             accessibilityRole="button"
@@ -164,7 +155,7 @@ function PetProfile() {
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
         <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[3] }}>
           <PetSwitcher />
@@ -334,12 +325,7 @@ function PetProfile() {
                       : theme.colors.surface,
                 }}
               >
-                <Icon
-                  icon={highlight.icon}
-                  size="lg"
-                  color={theme.colors.foreground}
-                  decorative
-                />
+                <Icon icon={highlight.icon} size="lg" color={theme.colors.foreground} decorative />
               </View>
               <Text
                 numberOfLines={1}
@@ -366,13 +352,11 @@ function PetProfile() {
             y tenerla siempre abierta en la pantalla que más se enseña a otros
             es la forma más fácil de que se vea sin querer. */}
         <View style={{ flexDirection: 'row', paddingTop: theme.space[6] }}>
-          {(
-            [
-              { id: 'grid' as const, icon: Grid3x3, label: 'Fotos' },
-              { id: 'saved' as const, icon: Bookmark, label: 'Guardados' },
-              { id: 'record' as const, icon: Lock, label: 'Ficha médica' },
-            ]
-          ).map((option) => {
+          {[
+            { id: 'grid' as const, icon: Grid3x3, label: 'Fotos' },
+            { id: 'saved' as const, icon: Bookmark, label: 'Guardados' },
+            { id: 'record' as const, icon: Lock, label: 'Ficha médica' },
+          ].map((option) => {
             const active = tab === option.id;
             return (
               <Pressable
@@ -483,10 +467,8 @@ function PetProfile() {
                   lineHeight: theme.fontSize.sm * 1.4,
                 }}
               >
-                {overdue.length === 1
-                  ? '1 cosa vencida.'
-                  : `${overdue.length} cosas vencidas.`}{' '}
-                Con la pauta sin terminar, un parque abierto con desconocidos no es su sitio: la
+                {overdue.length === 1 ? '1 cosa vencida.' : `${overdue.length} cosas vencidas.`} Con
+                la pauta sin terminar, un parque abierto con desconocidos no es su sitio: la
                 aplicación lo tiene en cuenta al proponer encuentros.
               </Text>
             </View>
@@ -575,15 +557,7 @@ function Stat({ value, label }: { value: number; label: string }) {
  * fotos —que es el caso de esta demostración— tiene que decirlo en lugar de
  * enseñar tres filas de cuadrados grises.
  */
-function PostGrid({
-  posts,
-  name,
-  empty,
-}: {
-  posts: Post[];
-  name: string;
-  empty?: string;
-}) {
+function PostGrid({ posts, name, empty }: { posts: Post[]; name: string; empty?: string }) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const cell = (width - 4) / 3;
@@ -821,7 +795,9 @@ function MedicalCard({ entry }: { entry: MedicalEntry }) {
     >
       <Row gap={2}>
         <Icon
-          icon={entry.kind === 'deworming' ? Pill : entry.kind === 'checkup' ? Stethoscope : Syringe}
+          icon={
+            entry.kind === 'deworming' ? Pill : entry.kind === 'checkup' ? Stethoscope : Syringe
+          }
           size="base"
           color={late ? theme.colors.warning : theme.colors.mutedForeground}
           decorative

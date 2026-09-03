@@ -50,6 +50,14 @@
  * llegue a 44, y en React Native eso se hace con `hitSlop`. Así que la regla no
  * es «todo mide 44», es «todo se puede tocar en 44», que es lo que dice la guía
  * de verdad.
+ *
+ * **La cuarta regla es de la misma familia y llegó con «Relieve».** Esa
+ * dirección promete **una sola fuente de luz**: arriba a la izquierda, para
+ * toda la aplicación. Basta con que una pantalla escriba su propia sombra
+ * —«aquí queda mejor un poco más abajo»— para que la promesa se rompa, y el
+ * fallo no se ve en esa captura: se ve al poner las dos pantallas juntas, donde
+ * de pronto hay dos soles. Por eso el relieve se pide a `lib/relieve` y no se
+ * escribe: es la misma lógica que la escala de tamaños, con las sombras.
  */
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -131,6 +139,39 @@ describe('tamaño de texto', () => {
   });
 });
 
+describe('la luz', () => {
+  /*
+   * Dónde sí se puede escribir una sombra a mano, y por qué.
+   *
+   * `ajustes` dibuja la miniatura de **cada** dirección con los valores de esa
+   * dirección, no con los de la que esté puesta: es un retrato de la opción, y
+   * `useRelief` devolvería siempre la luz de la activa. Es la misma excepción
+   * que ya tiene con el color y la tipografía, unas líneas más abajo en el
+   * mismo componente.
+   */
+  const ALLOWED = ['app/ajustes.tsx'];
+
+  it('ninguna pantalla escribe su propia sombra de relieve', () => {
+    const offenders: string[] = [];
+
+    for (const file of sources()) {
+      if (ALLOWED.includes(relative(file))) continue;
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .forEach((line, index) => {
+          if (/\bboxShadow\s*:/.test(line)) {
+            offenders.push(`${relative(file)}:${index + 1}`);
+          }
+        });
+    }
+
+    expect(
+      offenders,
+      `Sombras escritas a mano en vez de pedidas a useRelief():\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+});
+
 describe('área táctil', () => {
   it('todo lo que se toca llega a 44 pt, con o sin hitSlop', () => {
     const offenders: string[] = [];
@@ -144,7 +185,9 @@ describe('área táctil', () => {
            se cierra. Cuarenta y cinco líneas de tope porque alguno lleva un
            estilo largo, y porque leer más metería dentro los hijos. */
         const block = lines.slice(index, index + 45);
-        const end = block.findIndex((candidate, offset) => offset > 0 && /^\s*\/?>\s*$/.test(candidate));
+        const end = block.findIndex(
+          (candidate, offset) => offset > 0 && /^\s*\/?>\s*$/.test(candidate),
+        );
         const props = block.slice(0, end === -1 ? block.length : end + 1).join('\n');
 
         const dimension = (key: string): number | null => {

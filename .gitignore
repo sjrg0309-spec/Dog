@@ -27,6 +27,11 @@ playwright-report/
 blob-report/
 artifacts/screenshots/*.png
 
+# La aplicación entera en un fichero, que se regenera con
+# `node scripts/build-app-page.mjs` a partir del export web. Son siete megas de
+# paquete y recursos en línea: se rehace en un minuto y no se versiona.
+artifacts/petnav-app-demo.html
+
 # El prototipo publicable y sus datos: se regeneran con
 # `node scripts/build-demo-data.mjs && node scripts/build-demo-page.mjs`.
 artifacts/coincide-demo.html

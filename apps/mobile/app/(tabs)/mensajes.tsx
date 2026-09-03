@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { NavBar } from '@/components/chrome';
+import { NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { Icon } from '@/components/icon';
 import { FacePile } from '@/components/face-pile';
+import { FilterChips } from '@/components/list';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
@@ -22,6 +23,7 @@ import {
 } from '@/lib/icons';
 import { clockTime, useThreads, type Thread } from '@/lib/messages';
 import { useScrollDriver } from '@/lib/scroll';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -66,6 +68,7 @@ type Filter = (typeof FILTERS)[number]['id'];
 
 export default function MessagesScreen() {
   const theme = useTheme();
+  const relief = useRelief();
   const router = useRouter();
   const { scrollY, onScroll } = useScrollDriver();
   const threads = useThreads();
@@ -100,6 +103,10 @@ export default function MessagesScreen() {
         title="Mensajes"
         scrolled={false}
         scrollY={scrollY}
+        /* La barra, de cristal y encima: el buscador y las conversaciones pasan
+           por debajo desenfocados, que es lo que hace que la lista se sienta
+           bajo la barra y no detrás de un tabique. */
+        floating
         trailing={
           <Pressable
             accessibilityRole="button"
@@ -124,7 +131,10 @@ export default function MessagesScreen() {
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[10] }}
+        contentContainerStyle={{
+          paddingTop: NAV_BAR_HEIGHT,
+          paddingBottom: theme.space[10],
+        }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Buscador y filtros: la cabecera de WhatsApp. Sustituyen al título
@@ -134,15 +144,21 @@ export default function MessagesScreen() {
             los mensajes: una lupa que no filtra nada es peor que no tenerla. */}
         <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[2] }}>
           <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: theme.space[2],
-              height: 38,
-              paddingHorizontal: theme.space[3],
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.colors.surfaceSunken,
-            }}
+            style={[
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.space[2],
+                height: 38,
+                paddingHorizontal: theme.space[3],
+                borderRadius: theme.radius.full,
+                backgroundColor: theme.colors.surfaceSunken,
+              },
+              /* La ranura del buscador. Es lo que pide el estilo para un campo:
+                 no una caja puesta encima del fondo, sino un hueco abierto en
+                 él, con la sombra cayendo por el canto de arriba. */
+              relief.pressed('sm'),
+            ]}
           >
             <Icon icon={Search} size="base" color={theme.colors.mutedForeground} decorative />
             <TextInput
@@ -162,54 +178,13 @@ export default function MessagesScreen() {
           </View>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: theme.space[4],
-            gap: theme.space[2],
-            paddingBottom: theme.space[3],
-          }}
-        >
-          {FILTERS.map((option) => {
-            const active = option.id === filter;
-            return (
-              <Pressable
-                key={option.id}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-                /* El chip mide treinta de alto porque así se ven los chips —en
-                   Material son treinta y dos—, y aun así hay que poder tocarlo
-                   en cuarenta y cuatro. `hitSlop` amplía el área sin tocar el
-                   dibujo, que es justo la salida que da la guía para un control
-                   que tiene que verse pequeño. */
-                hitSlop={8}
-                onPress={() => {
-                  haptics.tap();
-                  setFilter(option.id);
-                }}
-                style={({ pressed }) => ({
-                  height: 30,
-                  justifyContent: 'center',
-                  paddingHorizontal: theme.space[3],
-                  borderRadius: theme.radius.full,
-                  backgroundColor: active ? theme.colors.accent : theme.colors.surfaceSunken,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Text
-                  style={{
-                    color: active ? theme.colors.accentForeground : theme.colors.mutedForeground,
-                    fontFamily: active ? fonts.bodyBold : fonts.body,
-                    fontSize: theme.fontSize.xs,
-                  }}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {/* Los chips son los mismos que los del panel del refugio, y son los
+            mismos porque una fila de filtros escrita dos veces se desincroniza
+            en la segunda pasada: la altura, el radio y el área de toque son
+            decisiones que se toman una vez. */}
+        <View style={{ paddingBottom: theme.space[3] }}>
+          <FilterChips options={FILTERS} value={filter} onChange={setFilter} />
+        </View>
 
         {visible.length === 0 ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingTop: theme.space[4] }}>
@@ -234,8 +209,8 @@ export default function MessagesScreen() {
             <Body>¿Falta alguien con quien te gustaría hablar?</Body>
             <Caption>
               Las conversaciones nacen de coincidir: mismo horario, misma quedada, misma alerta. Si
-              alguien te interesa y todavía no hay hilo, la vía es apuntarse a lo mismo, no un
-              botón de mensaje sobre su perfil.
+              alguien te interesa y todavía no hay hilo, la vía es apuntarse a lo mismo, no un botón
+              de mensaje sobre su perfil.
             </Caption>
             {/* Sin `Link asChild`: en web el envoltorio se queda con el estilo
                 del `Pressable` que envuelve y el `<a>` sale en columna. */}

@@ -104,13 +104,24 @@ function RootStack() {
   return (
     <>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
         <Stack.Screen name="(tabs)" />
         {/* A pantalla completa y por encima de todo. `fullScreenModal` en iOS
             quita el gesto de arrastrar hacia abajo, que en un visor de estados
             choca con el de mantener pulsado para pausar. */}
-        <Stack.Screen name="estados" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-        <Stack.Screen name="reels" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen
+          name="estados"
+          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="reels"
+          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+        />
         {/* La conversación empuja desde la derecha, como una pantalla de detalle
             cualquiera: el gesto de volver hacia atrás tiene que seguir ahí. */}
         <Stack.Screen name="chat" options={{ animation: 'slide_from_right' }} />
@@ -120,6 +131,9 @@ function RootStack() {
             cuatro salidas donde solo hace falta una. */}
         <Stack.Screen name="paseo" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="historial" options={{ animation: 'slide_from_right' }} />
+        {/* El panel del refugio, por lo mismo: es la lista de trabajo de una
+            protectora, se entra desde su tablero y se sale por donde se vino. */}
+        <Stack.Screen name="refugio" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </>
   );
@@ -200,7 +214,5 @@ function ZonaSeguraSimulada({ children }: { children: ReactNode }) {
   }, []);
 
   if (!forced) return <>{children}</>;
-  return (
-    <SafeAreaInsetsContext.Provider value={forced}>{children}</SafeAreaInsetsContext.Provider>
-  );
+  return <SafeAreaInsetsContext.Provider value={forced}>{children}</SafeAreaInsetsContext.Provider>;
 }

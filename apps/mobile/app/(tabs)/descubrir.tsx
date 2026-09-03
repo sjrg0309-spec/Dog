@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { ConditionsControl } from '@/components/conditions-control';
 import { Icon } from '@/components/icon';
 import { FeedCard } from '@/components/feed-card';
-import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
-import { PetSwitcher } from '@/components/pet-switcher';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
+import { PetSwitcherCompact } from '@/components/pet-switcher';
 import { WelfareNotice } from '@/components/welfare-notice';
 import { Body, Caption, Notice, Screen } from '@/components/ui';
 import { useVisibleBy } from '@/lib/moderation';
@@ -15,6 +16,7 @@ import { communitiesFor, discover, petHasMeetups, servicesFor, speciesOf } from 
 import { Sparkles } from '@/lib/icons';
 import { SERVICE_KIND_LABEL, speciesName } from '@/lib/labels';
 import { fonts } from '@/lib/fonts';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -38,12 +40,20 @@ export default function DiscoverScreen() {
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
   const conditions = useConditions(45);
-  const { entries: found, emptyReason, safetyVetoed, otherSpeciesNearby, welfare, restingNearby } =
-    discover(pet, conditions);
+  const {
+    entries: found,
+    emptyReason,
+    safetyVetoed,
+    otherSpeciesNearby,
+    welfare,
+    restingNearby,
+  } = discover(pet, conditions);
   /* Bloquear tiene que sacar a alguien también de aquí: si no, la aplicación
      te propone quedar el martes con quien bloqueaste el lunes. */
   const entries = useVisibleBy(found, (entry) => entry.pet.id);
-  const { scrolled, onScroll } = useScrolled();
+  /* El mismo desplazamiento que conduce el feed: la línea de la barra, el
+     título que se encoge y la barra de pestañas al condensarse. */
+  const { scrollY, onScroll } = useScrollDriver();
   const stopped = social && welfare?.level === 'stop';
 
   const title = !social
@@ -62,45 +72,54 @@ export default function DiscoverScreen() {
     <Screen>
       <NavBar
         title="Con quién salir"
-        scrolled={scrolled}
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={52}
+        floating
         trailing={
           // Sin `Link asChild`: en web el `<a>` que genera se queda con el
           // estilo del `Pressable` y lo saca de su fila.
           social ? (
-            <Pressable
-              onPress={() => router.push('/citas')}
-              accessibilityRole="link"
-              accessibilityLabel="Modo cita de juego"
-              accessibilityHint="Ver los perfiles compatibles de uno en uno"
-              style={({ pressed }) => ({
-                width: theme.touchTarget.min,
-                height: theme.touchTarget.min,
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <Icon icon={Sparkles} size="lg" decorative />
-            </Pressable>
-          ) : undefined
+            <>
+              {/* El animal activo va en la cabecera, como en el feed: es el
+                  contexto de toda la lista, y su versión grande empujaba la
+                  primera ficha compatible fuera de la pantalla. */}
+              <PetSwitcherCompact />
+              <Pressable
+                onPress={() => router.push('/citas')}
+                accessibilityRole="link"
+                accessibilityLabel="Modo cita de juego"
+                accessibilityHint="Ver los perfiles compatibles de uno en uno"
+                style={({ pressed }) => ({
+                  width: theme.touchTarget.min,
+                  height: theme.touchTarget.min,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.5 : 1,
+                })}
+              >
+                <Icon icon={Sparkles} size="lg" decorative />
+              </Pressable>
+            </>
+          ) : (
+            <PetSwitcherCompact />
+          )
         }
       />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
         contentInsetAdjustmentBehavior="automatic"
       >
-        <View style={{ paddingTop: theme.space[3], paddingBottom: theme.space[4] }}>
-          <View style={{ paddingHorizontal: theme.space[4] }}>
-            <PetSwitcher />
-          </View>
-        </View>
-
         {/* Con el bienestar en «hoy no», el titular sigue mandando; con la lista
             llena, el feed no necesita un título encima de cada cosa. */}
-        {stopped || !social ? <LargeTitle subtitle={subtitle}>{title}</LargeTitle> : null}
+        {stopped || !social ? (
+          <LargeTitle scrollY={scrollY} subtitle={subtitle}>
+            {title}
+          </LargeTitle>
+        ) : null}
 
         {social ? (
           <View style={{ paddingHorizontal: theme.space[4], paddingBottom: theme.space[4] }}>
@@ -134,18 +153,13 @@ export default function DiscoverScreen() {
               }}
             >
               {safetyVetoed > 0 ? (
-                <Notice>
-                  <Body>
-                    {safetyVetoed === 1
-                      ? `Hay 1 ${speciesName(pet.speciesId).toLowerCase()} cerca que no aparece aquí.`
-                      : `Hay ${safetyVetoed} cerca que no aparecen aquí.`}
-                  </Body>
-                  <Caption>
-                    Quedan fuera por seguridad: diferencia de tamaño con riesgo de lesión, o un
-                    límite que su tutor ha declarado. No es una puntuación baja que se pueda
-                    compensar.
-                  </Caption>
-                </Notice>
+                <Caption>
+                  {safetyVetoed === 1
+                    ? `Hay 1 ${speciesName(pet.speciesId).toLowerCase()} cerca que no aparece aquí.`
+                    : `Hay ${safetyVetoed} cerca que no aparecen aquí.`}{' '}
+                  Quedan fuera por seguridad: diferencia de tamaño con riesgo de lesión, o un límite
+                  que su tutor ha declarado. No es una puntuación baja que se pueda compensar.
+                </Caption>
               ) : null}
 
               {restingNearby > 0 ? (
@@ -172,7 +186,7 @@ export default function DiscoverScreen() {
             <SolitaryPlan speciesId={pet.speciesId} name={pet.name} />
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }
@@ -254,9 +268,9 @@ function EmptyState({
       <Notice>
         <Body>No sabemos qué tiempo hace donde estás.</Body>
         <Caption>
-          Y sin eso no proponemos nada: la mitad de esta pantalla depende de si a {name} le
-          conviene salir hoy, y eso no se puede suponer. Pon la temperatura ahí arriba y la lista
-          vuelve, o toca actualizar para reintentar la consulta.
+          Y sin eso no proponemos nada: la mitad de esta pantalla depende de si a {name} le conviene
+          salir hoy, y eso no se puede suponer. Pon la temperatura ahí arriba y la lista vuelve, o
+          toca actualizar para reintentar la consulta.
         </Caption>
       </Notice>
     );

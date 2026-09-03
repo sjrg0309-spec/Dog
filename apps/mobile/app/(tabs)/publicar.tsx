@@ -1,9 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { LargeTitle, NavBar, useScrolled } from '@/components/chrome';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
 import { Icon } from '@/components/icon';
 import { WelfareNotice } from '@/components/welfare-notice';
@@ -18,6 +19,8 @@ import { ImagePlus, MapPin, Video } from '@/lib/icons';
 import { UPLOAD_NOTE, publish } from '@/lib/posts';
 import { publishReel } from '@/lib/reels';
 import { publishStory } from '@/lib/stories';
+import { useScrollDriver } from '@/lib/scroll';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /**
@@ -61,7 +64,9 @@ export default function ComposeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const pet = useActivePet();
-  const { scrolled, onScroll } = useScrolled();
+  /* El mismo desplazamiento que conduce el resto: la línea de la barra, el
+     título grande al encogerse y la barra de pestañas al condensarse. */
+  const { scrollY, onScroll } = useScrollDriver();
   const params = useLocalSearchParams<{ modo?: string }>();
 
   const [mode, setMode] = useState<Mode>(
@@ -199,15 +204,16 @@ export default function ComposeScreen() {
   }
 
   return (
-    <Screen>
-      <NavBar title="Publicar" scrolled={scrolled} showTitle={scrolled} />
+    <Screen grouped>
+      <NavBar title="Publicar" scrolled={false} scrollY={scrollY} revealAt={52} floating />
 
-      <ScrollView
+      <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: theme.space[16] }}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
       >
         <LargeTitle
+          scrollY={scrollY}
           subtitle={
             mode === 'story'
               ? 'Caduca a las 24 horas y no se guarda. Es lo que hace que sirva para avisar de algo que pasa hoy.'
@@ -315,7 +321,11 @@ export default function ComposeScreen() {
 
           <Button
             label={
-              mode === 'story' ? 'Publicar el estado' : mode === 'reel' ? 'Publicar el reel' : 'Publicar'
+              mode === 'story'
+                ? 'Publicar el estado'
+                : mode === 'reel'
+                  ? 'Publicar el reel'
+                  : 'Publicar'
             }
             disabled={!ready}
             accessibilityHint={
@@ -333,12 +343,12 @@ export default function ComposeScreen() {
               {needsWeather
                 ? 'Un reel se publica con la temperatura y la superficie en las que se grabó, y ahora mismo no sabemos qué tiempo hace. Ponla arriba y sigue.'
                 : mode === 'story' && !mediaUri
-                ? 'Escribe algo, o elige una foto o un vídeo.'
-                : shots.length === 0
-                  ? wantsVideo
-                    ? 'Elige un vídeo del carrete.'
-                    : 'Elige una foto del carrete. Puedes elegir hasta cinco.'
-                  : 'Falta describir lo que se ve. Son dos líneas y es lo que hace que la vea todo el mundo.'}
+                  ? 'Escribe algo, o elige una foto o un vídeo.'
+                  : shots.length === 0
+                    ? wantsVideo
+                      ? 'Elige un vídeo del carrete.'
+                      : 'Elige una foto del carrete. Puedes elegir hasta cinco.'
+                    : 'Falta describir lo que se ve. Son dos líneas y es lo que hace que la vea todo el mundo.'}
             </Caption>
           ) : null}
 
@@ -346,7 +356,7 @@ export default function ComposeScreen() {
             <Caption>{UPLOAD_NOTE}</Caption>
           </Notice>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* El selector de modo, abajo y junto al pulgar. Es donde lo pone la
           cámara de Instagram, y por el mismo motivo: arriba quedaría al otro
@@ -511,6 +521,7 @@ function Field({
   multiline?: boolean;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
 
   return (
     <View style={{ gap: theme.space[2] }}>
@@ -531,18 +542,22 @@ function Field({
         placeholder={placeholder}
         placeholderTextColor={theme.colors.inputPlaceholder}
         accessibilityLabel={label}
-        style={{
-          minHeight: multiline ? 88 : theme.touchTarget.min,
-          paddingHorizontal: theme.space[3],
-          paddingVertical: theme.space[2],
-          borderRadius: theme.radius.md,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          backgroundColor: theme.colors.input,
-          color: theme.colors.inputForeground,
-          fontFamily: fonts.body,
-          fontSize: theme.fontSize.base,
-        }}
+        style={[
+          {
+            minHeight: multiline ? 88 : theme.touchTarget.min,
+            paddingHorizontal: theme.space[3],
+            paddingVertical: theme.space[2],
+            borderRadius: theme.radius.md,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.input,
+            color: theme.colors.inputForeground,
+            fontFamily: fonts.body,
+            fontSize: theme.fontSize.base,
+          },
+          /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+          relief.pressed('sm'),
+        ]}
       />
       {help ? <Caption>{help}</Caption> : null}
     </View>

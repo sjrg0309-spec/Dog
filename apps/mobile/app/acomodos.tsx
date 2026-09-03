@@ -32,12 +32,13 @@ import { ScrollView, Text, View } from 'react-native';
 import { AUTISTIC_DEFAULT_NEEDS, HANDLER_NEEDS, type HandlerNeed } from '@petnav/core';
 
 import { BackBar } from '@/components/chrome';
+import { FootNote, LIST_GUTTER, ListGroup } from '@/components/list';
 import { Icon } from '@/components/icon';
-import { Caption, Notice, Screen } from '@/components/ui';
+import { Caption, Screen } from '@/components/ui';
 import { setHandler, useAccount } from '@/lib/account';
 import { fonts } from '@/lib/fonts';
 import { haptics } from '@/lib/haptics';
-import { Check, Lock, X } from '@/lib/icons';
+import { Check, X } from '@/lib/icons';
 import { useTheme } from '@/lib/theme';
 import { Pressable } from 'react-native';
 
@@ -63,42 +64,46 @@ export default function AcomodosScreen() {
          por hecho lo contrario es la mitad del problema. Al apagarlo no se
          quitan los acomodos, porque a lo mejor los quiere igual. */
       needs: next
-        ? [...handler.needs, ...AUTISTIC_DEFAULT_NEEDS.filter((need) => !handler.needs.includes(need))]
+        ? [
+            ...handler.needs,
+            ...AUTISTIC_DEFAULT_NEEDS.filter((need) => !handler.needs.includes(need)),
+          ]
         : handler.needs,
     });
   };
 
   return (
-    <Screen>
+    <Screen grouped>
       <BackBar title="Sobre ti" subtitle="Privado" />
 
-      <ScrollView contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
-        <Notice>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
-            <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontFamily: fonts.displayBold,
-                fontSize: theme.fontSize.base,
-              }}
-            >
-Solo lo ves tú
-            </Text>
-          </View>
-          <Caption>
-            No aparece en tu perfil ni lo ve nadie. Solo cambia cómo funciona la app para ti.
-          </Caption>
-        </Notice>
+      {/* Los interruptores, como los de los ajustes de cualquier red social:
+          filas del ancho de la pantalla, separadas por un pelo, y la letra
+          pequeña debajo del grupo en vez de un recuadro de aviso encima. El
+          recuadro de «solo lo ves tú» decía lo mismo que ahora dice el rótulo
+          «Privado» de la barra y la nota del final, y ocupaba el sitio del
+          primer interruptor. */}
+      <ScrollView contentContainerStyle={{ paddingBottom: theme.space[16] }}>
+        <FootNote>
+          Nada de esto aparece en tu perfil ni lo ve nadie. Solo cambia cómo funciona la aplicación
+          para ti.
+        </FootNote>
 
-        <Row
-          label="Soy autista"
-          hint="Marca las opciones de abajo. Puedes cambiarlas una a una."
-          on={handler.autistic === true}
-          onToggle={toggleAutistic}
-        />
+        {/* Dos grupos y no uno: «soy autista» preselecciona los de abajo, así
+            que decirlo con la forma —una tarjeta aparte— es más claro que
+            decirlo con una frase debajo de una lista de cuatro interruptores
+            iguales. */}
+        <ListGroup leading="none">
+          <Row
+            label="Soy autista"
+            hint="Marca las opciones de abajo. Puedes cambiarlas una a una."
+            on={handler.autistic === true}
+            onToggle={toggleAutistic}
+          />
+        </ListGroup>
 
-        <View style={{ gap: theme.space[3] }}>
+        <View style={{ height: theme.space[5] }} />
+
+        <ListGroup leading="none">
           {HANDLER_NEEDS.map((need) => (
             <Row
               key={need.id}
@@ -108,12 +113,12 @@ Solo lo ves tú
               onToggle={() => toggleNeed(need.id)}
             />
           ))}
-        </View>
+        </ListGroup>
 
-        <Caption>
+        <FootNote>
           Contamos cuánta gente hay en cada sitio, no quién. Por eso «sitios tranquilos» funciona
           aunque todavía no hayas verificado el chip.
-        </Caption>
+        </FootNote>
       </ScrollView>
     </Screen>
   );
@@ -149,10 +154,12 @@ function Row({
 
       style={({ pressed }) => ({
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         gap: theme.space[3],
-        minHeight: theme.touchTarget.comfortable,
-        opacity: pressed ? 0.7 : 1,
+        minHeight: theme.touchTarget.comfortable + 8,
+        paddingHorizontal: LIST_GUTTER - 2,
+        paddingVertical: theme.space[2],
+        backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
       })}
     >
       <View style={{ flex: 1, gap: 2 }}>

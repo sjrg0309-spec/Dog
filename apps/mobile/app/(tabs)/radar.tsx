@@ -1,24 +1,25 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { NavBar, Separator, useScrolled } from '@/components/chrome';
+import { Avatar } from '@/components/avatar';
+import { LargeTitle, NAV_BAR_HEIGHT, NavBar, Separator } from '@/components/chrome';
 import { ConditionsControl } from '@/components/conditions-control';
-import { PetSwitcher } from '@/components/pet-switcher';
-import { WelfareNotice } from '@/components/welfare-notice';
 import {
-  Badge,
-  Body,
-  Button,
-  Caption,
-  Card,
-  Eyebrow,
-  Heading,
-  Notice,
-  Row,
-  Screen,
-  Title,
-} from '@/components/ui';
+  CardRail,
+  EmptyState,
+  FootNote,
+  IconTile,
+  LIST_GUTTER,
+  ListGroup,
+  ListRow,
+  RailCard,
+  SectionHeader,
+} from '@/components/list';
+import { PetSwitcherCompact } from '@/components/pet-switcher';
+import { WelfareNotice } from '@/components/welfare-notice';
+import { Badge, Body, Button, Caption, Heading, Row, Screen } from '@/components/ui';
 import {
   ESCORT_LATE_NOTE,
   ESCORT_NOTE,
@@ -32,7 +33,7 @@ import { haptics } from '@/lib/haptics';
 import { setLocation, useConditionsBuilder, useWeatherState } from '@/lib/conditions';
 import { RADAR_AREA_NOTE, petFriendlyPlaces, placeAt } from '@/lib/geofence';
 import { Icon } from '@/components/icon';
-import { ChevronRight, Footprints, Lock, MapPin, ShieldAlert } from '@/lib/icons';
+import { Footprints, Lock, MapPin, PawPrint, Radar as RadarIcon, ShieldAlert } from '@/lib/icons';
 import { fonts } from '@/lib/fonts';
 import { useCan, useWhyNot } from '@/lib/account';
 import { useVisiblePets } from '@/lib/moderation';
@@ -48,6 +49,7 @@ import {
   useEscort,
 } from '@/lib/escort';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
+import { useScrollDriver } from '@/lib/scroll';
 import { useTheme } from '@/lib/theme';
 import { recordWalk, useWalks } from '@/lib/walks';
 
@@ -74,7 +76,12 @@ const DURATIONS = [
  */
 export default function RadarScreen() {
   const theme = useTheme();
-  const { scrolled, onScroll } = useScrolled();
+  /* El desplazamiento en crudo, en el hilo de la interfaz: con él el rótulo
+   pequeño de la barra **se cruza** con el título grande —uno se va mientras el
+   otro llega— en vez de encenderse de golpe, y de paso la barra de pestañas se
+   condensa al bajar. Es el gesto de iOS, y lo que lo hace legible es justo que
+   en ningún momento hay dos títulos a plena tinta ni ninguno. */
+  const { scrollY, onScroll } = useScrollDriver();
   const pet = useActivePet();
   const species = speciesOf(pet);
   const social = petHasMeetups(pet);
@@ -201,44 +208,64 @@ export default function RadarScreen() {
 
   if (!social) {
     return (
-      <Screen>
-        <NavBar title="Radar" scrolled={scrolled} />
-        <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
-          <PetSwitcher />
-          <View style={{ gap: theme.space[2] }}>
-            <Eyebrow>Ahora mismo</Eyebrow>
-            <Title>El radar no aplica a {pet.name}</Title>
-          </View>
-          <Notice>
-            <Body>{species?.socialNote}</Body>
-            <Caption>
-              Anunciar que hay otro {speciesName(pet.speciesId).toLowerCase()} a doscientos metros
-              no le sirve de nada a nadie, y para el animal sería un encuentro que no debería
-              ocurrir. En la pestaña de comunidad sí hay algo que sí le sirve a su tutor.
-            </Caption>
-          </Notice>
-        </ScrollView>
+      <Screen grouped>
+        <NavBar
+          title="Radar"
+          scrolled={false}
+          scrollY={scrollY}
+          revealAt={52}
+          floating
+          trailing={<PetSwitcherCompact />}
+        />
+        <Animated.ScrollView
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
+        >
+          <EmptyState
+            icon={PawPrint}
+            title={`El radar no aplica a ${pet.name}`}
+            body={species?.socialNote}
+          />
+          <FootNote>
+            Anunciar que hay otro {speciesName(pet.speciesId).toLowerCase()} a doscientos metros no
+            le sirve de nada a nadie, y para el animal sería un encuentro que no debería ocurrir. En
+            la pestaña de comunidad sí hay algo que sí le sirve a su tutor.
+          </FootNote>
+        </Animated.ScrollView>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <NavBar title="Radar" scrolled={scrolled} />
-      <ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: theme.space[5], gap: theme.space[5] }}>
-        <PetSwitcher />
+    <Screen grouped>
+      <NavBar
+        title="Radar"
+        scrolled={false}
+        scrollY={scrollY}
+        revealAt={52}
+        floating
+        trailing={<PetSwitcherCompact />}
+      />
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: NAV_BAR_HEIGHT, paddingBottom: theme.space[16] }}
+      >
+        <LargeTitle
+          scrollY={scrollY}
+          subtitle="Quién está fuera ahora, y hasta cuándo estáis vosotros."
+        >
+          Fuera ahora
+        </LargeTitle>
 
-        <View style={{ gap: theme.space[2] }}>
-          <Eyebrow>Ahora mismo</Eyebrow>
-          <Title>Fuera ahora</Title>
+        <View style={{ paddingHorizontal: LIST_GUTTER, gap: theme.space[5] }}>
+          <WhereAmI />
+          <ConditionsControl />
         </View>
 
-        <WhereAmI />
-
-        <ConditionsControl />
-
         {activeUntil ? (
-          <Card>
+          <Panel>
             <Row>
               <Heading>Estáis visibles</Heading>
               <Badge tone="live">En vivo</Badge>
@@ -295,7 +322,7 @@ export default function RadarScreen() {
             ) : null}
 
             <Button label="Hemos terminado" variant="outline" onPress={checkOut} />
-          </Card>
+          </Panel>
         ) : ghost ? (
           /* Con el modo fantasma puesto no se ofrece salir, y no es una
              pantalla de error: el tutor lo ha pedido. Se dice qué está apagado
@@ -304,7 +331,7 @@ export default function RadarScreen() {
              El botón de check-in **no está**, no está en gris: es la misma
              regla que con un veto de bienestar, y por el mismo motivo —un
              control desactivado invita a buscar cómo activarlo—. */
-          <Card>
+          <Panel>
             <Row>
               <Heading>Estáis invisibles</Heading>
               <Badge tone="warning">Modo fantasma</Badge>
@@ -318,15 +345,17 @@ export default function RadarScreen() {
               variant="outline"
               onPress={() => setGhostMode(false)}
             />
-          </Card>
+          </Panel>
         ) : here === null ? (
           <OutsideArea />
         ) : welfare?.level === 'stop' ? (
           // No se enseña el botón en gris ni con un aviso al lado: no está.
           // Un control desactivado invita a buscar cómo activarlo.
-          <WelfareNotice verdict={welfare} petName={pet.name} />
+          <View style={{ paddingHorizontal: LIST_GUTTER, paddingTop: theme.space[5] }}>
+            <WelfareNotice verdict={welfare} petName={pet.name} />
+          </View>
         ) : (
-          <Card>
+          <Panel>
             <Heading>¿Salís ahora?</Heading>
             <Body muted>
               {allowed.length === 0
@@ -422,87 +451,79 @@ export default function RadarScreen() {
                 {allowed[allowed.length - 1]?.label} y a partir de ahí empieza a costarle.
               </Caption>
             ) : null}
-          </Card>
+          </Panel>
         )}
 
-        <View style={{ gap: theme.space[3] }}>
-          <Heading>Quién está fuera</Heading>
+        <SectionHeader title="Quién está fuera" />
 
-          {!canSeePeople ? (
-            <Notice>
-              <Row gap={2}>
-                <Icon icon={Lock} size="base" color={theme.colors.mutedForeground} decorative />
-                <Body>Esto se abre con el chip verificado</Body>
-              </Row>
-              <Caption>{whyNotPeople}</Caption>
-            </Notice>
-          ) : others.length === 0 ? (
-            <Notice>
-              <Body>
-                Ahora mismo no hay ningún {speciesName(pet.speciesId).toLowerCase()} fuera cerca.
-              </Body>
-              <Caption>
-                Es lo normal fuera de las horas punta. En la pestaña de descubrir sí puedes ver con
-                quién coincides de horario, aunque no esté conectado.
-              </Caption>
-            </Notice>
-          ) : (
-            others.map((other) => (
-              <Card key={other.id}>
-                <Row>
-                  <Heading>{other.name}</Heading>
-                  <Badge tone="live">Le quedan {other.walkingUntilMinutes} min</Badge>
-                </Row>
-                <Caption>
-                  {other.placeName} · con {other.ownerName}
-                </Caption>
-                <Button label="Vamos" accessibilityHint={`Avisar a ${other.ownerName} de que vais`} />
-              </Card>
-            ))
-          )}
-        </View>
+        {!canSeePeople ? (
+          /* La puerta del chip verificado. Es una fila como las demás y no un
+             recuadro de aviso: lo que hay detrás son personas, así que se dice
+             en el sitio donde estarían. */
+          <ListGroup>
+            <ListRow
+              leading={<IconTile icon={Lock} tone="muted" />}
+              title="Esto se abre con el chip verificado"
+              subtitle={whyNotPeople ?? undefined}
+            />
+          </ListGroup>
+        ) : others.length === 0 ? (
+          <EmptyState
+            icon={RadarIcon}
+            title={`Ningún ${speciesName(pet.speciesId).toLowerCase()} fuera ahora mismo`}
+            body="Es lo normal fuera de las horas punta. En descubrir sí puedes ver con quién coincides de horario, aunque no esté conectado."
+          />
+        ) : (
+          /* Quien está fuera **ahora** se hojea, no se recorre: es una decisión
+             de un vistazo —con quién voy— y caduca en minutos. En horizontal
+             caben las caras grandes con su anillo de en vivo, que es lo que se
+             reconoce antes que el nombre. */
+          <CardRail>
+            {others.map((other) => (
+              <RailCard
+                key={other.id}
+                leading={
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+                    <Avatar id={other.id} name={other.name} size={44} live />
+                    <Badge tone="live">{other.walkingUntilMinutes} min</Badge>
+                  </View>
+                }
+                title={other.name}
+                subtitle={`${other.placeName} · con ${other.ownerName}`}
+                action={{ label: 'Vamos' }}
+              />
+            ))}
+          </CardRail>
+        )}
 
         {/* La puerta al historial va aquí y no en el perfil: es la pantalla
             desde la que se sale, así que es donde se piensa en los paseos. Y
             el perfil es lo que más se enseña a otros, que es exactamente donde
             no debe estar la rutina de nadie. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Ver vuestros paseos, ${walks.length} guardados`}
-          onPress={() => router.push('/historial')}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.space[3],
-            minHeight: theme.touchTarget.comfortable,
-            paddingHorizontal: theme.space[4],
-            borderRadius: theme.radius.md,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-            backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
-          })}
-        >
-          <Icon icon={Footprints} size="base" color={theme.colors.mutedForeground} decorative />
-          <View style={{ flex: 1 }}>
-            <Body>Vuestros paseos</Body>
-            <Caption>
-              {walks.length === 0
-                ? 'Se llena solo al cerrar cada check-in'
-                : `${walks.length} guardados · solo los ves tú`}
-            </Caption>
-          </View>
-          <Icon icon={ChevronRight} size="base" color={theme.colors.mutedForeground} decorative />
-        </Pressable>
+        <View style={{ paddingTop: theme.space[5] }}>
+          <ListGroup>
+            <ListRow
+              leading={<IconTile icon={Footprints} tone="primary" />}
+              title="Vuestros paseos"
+              subtitle={
+                walks.length === 0
+                  ? 'Se llena solo al cerrar cada check-in'
+                  : `${walks.length} guardados · solo los ves tú`
+              }
+              accessibilityLabel={`Ver vuestros paseos, ${walks.length} guardados`}
+              onPress={() => router.push('/historial')}
+              chevron
+            />
+          </ListGroup>
+        </View>
 
-        <Notice>
-          <Body>Lo que se comparte es el lugar, no tú.</Body>
-          <Caption>
-            El radar solo se enciende dentro de una zona pet-friendly y te sitúa en ella, nunca en
-            tus coordenadas. Eso ya no es una promesa de esta pantalla: la base de datos rechaza un
-            check-in fuera de zona, así que no depende de que el cliente se porte bien.
-          </Caption>
-        </Notice>
-      </ScrollView>
+        <FootNote>
+          Lo que se comparte es el lugar, no tú. El radar solo se enciende dentro de una zona
+          pet-friendly y te sitúa en ella, nunca en tus coordenadas. Eso ya no es una promesa de
+          esta pantalla: la base de datos rechaza un check-in fuera de zona, así que no depende de
+          que el cliente se porte bien.
+        </FootNote>
+      </Animated.ScrollView>
     </Screen>
   );
 }
@@ -595,7 +616,7 @@ function OutsideArea() {
   const theme = useTheme();
 
   return (
-    <Card>
+    <Panel>
       <Row>
         <Heading>El radar no funciona aquí</Heading>
         <Badge tone="warning">Fuera de zona</Badge>
@@ -611,6 +632,30 @@ function OutsideArea() {
           </Row>
         ))}
       </View>
-    </Card>
+    </Panel>
+  );
+}
+
+/**
+ * Un bloque de control del radar.
+ *
+ * Es el mismo `ListGroup` que usan las listas de esta pantalla, con un solo
+ * hijo: la tarjeta agrupada de iOS. Así el estado de la salida y la lista de
+ * quién está fuera se ven como dos piezas del mismo material en vez de como una
+ * tarjeta con borde propio al lado de unas filas sueltas, que es lo que pasaba
+ * cuando esto era una `Card`.
+ *
+ * Sigue siendo un bloque y no una fila porque lo que hay dentro no es un
+ * elemento de una lista: es el estado de la salida y sus botones.
+ */
+function Panel({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+
+  return (
+    <View style={{ paddingTop: theme.space[5] }}>
+      <ListGroup>
+        <View style={{ gap: theme.space[3], padding: theme.space[4] }}>{children}</View>
+      </ListGroup>
+    </View>
   );
 }

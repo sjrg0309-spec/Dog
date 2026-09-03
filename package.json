@@ -1,7 +1,7 @@
 {
   "name": "petnav",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22"
@@ -9,6 +9,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "mobile": "turbo run web --filter=@petnav/mobile",
+    "web": "turbo run dev --filter=@petnav/web",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

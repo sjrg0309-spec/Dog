@@ -16,12 +16,12 @@ vacía y el botón de check-in no está. Un control desactivado invita a buscar 
 aviso debajo de doce tarjetas de animales compatibles ya ha dicho lo contrario de lo que dice su
 texto.
 
-| Qué mira | Qué hace |
-|---|---|
-| **Calor** | Cada especie tiene su franja, y de ahí se descuenta lo que se sepa del animal: hocico chato, sénior, sensible al calor. Los descuentos se acumulan. Sobre asfalto el límite baja otra vez |
-| **Duración** | Una quedada declara los minutos de **contacto seguidos**, que no son los del evento. Ninguna puede pasarse del máximo de su especie, y lo impide un disparador en Postgres |
-| **Estado** | En recuperación, con la pauta sin terminar o con un encuentro hace un rato: motivos para no aparecer hoy en la lista de nadie |
-| **El grupo** | El veredicto es el del perro que peor lo lleve, igual que la afinidad es la del peor par |
+| Qué mira     | Qué hace                                                                                                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Calor**    | Cada especie tiene su franja, y de ahí se descuenta lo que se sepa del animal: hocico chato, sénior, sensible al calor. Los descuentos se acumulan. Sobre asfalto el límite baja otra vez |
+| **Duración** | Una quedada declara los minutos de **contacto seguidos**, que no son los del evento. Ninguna puede pasarse del máximo de su especie, y lo impide un disparador en Postgres                |
+| **Estado**   | En recuperación, con la pauta sin terminar o con un encuentro hace un rato: motivos para no aparecer hoy en la lista de nadie                                                             |
+| **El grupo** | El veredicto es el del perro que peor lo lleve, igual que la afinidad es la del peor par                                                                                                  |
 
 Dos consecuencias que conviene leer juntas:
 
@@ -65,12 +65,12 @@ tutor que tiene un animal prohibido.
 
 Para las especies que sí quedan, y el segundo es el que sostiene a los otros dos:
 
-| Motor | Responde a | Cuándo sirve |
-|---|---|---|
-| **El feed** | ¿Qué han hecho hoy los perros del barrio? | Siempre, también los días que no se sale |
-| Radar en vivo | ¿Quién está fuera **en una zona pet-friendly**? | Hora punta, cuando ya hay densidad |
-| **Coincidencia de horarios** | ¿Con quién coincido siempre? | **A cualquier hora**, incluso con la app vacía |
-| Quedadas y espacios | Organicemos algo | Fin de semana, cumpleaños, ocasiones |
+| Motor                        | Responde a                                      | Cuándo sirve                                   |
+| ---------------------------- | ----------------------------------------------- | ---------------------------------------------- |
+| **El feed**                  | ¿Qué han hecho hoy los perros del barrio?       | Siempre, también los días que no se sale       |
+| Radar en vivo                | ¿Quién está fuera **en una zona pet-friendly**? | Hora punta, cuando ya hay densidad             |
+| **Coincidencia de horarios** | ¿Con quién coincido siempre?                    | **A cualquier hora**, incluso con la app vacía |
+| Quedadas y espacios          | Organicemos algo                                | Fin de semana, cumpleaños, ocasiones           |
 
 Los tres responden a la pregunta del tutor. La capa de bienestar responde a la del animal, y va por
 encima de los tres.
@@ -125,17 +125,46 @@ Requiere Node 22, pnpm y un PostgreSQL 16 con PostGIS.
 ```bash
 pnpm install
 
-# Base de datos local: crea el esquema y aplica todas las migraciones
+# Compila los paquetes del workspace. No es opcional y va antes que todo lo
+# demás: `@petnav/core`, `@petnav/tokens` y compañía se resuelven por su
+# `dist/`, así que sin este paso Metro corta con «Unable to resolve
+# "@petnav/core"» y Next con lo mismo. Las órdenes de abajo lo hacen solas.
+pnpm build
+
+# Aplicación móvil en http://localhost:8081
+pnpm mobile
+
+# Web en http://localhost:3000 — esta sí necesita la base de datos
 ./scripts/db-reset.sh
 node packages/db/dist/seed-cli.js
+pnpm web
 
-# Web en http://localhost:3000
-pnpm --filter @petnav/web build
-pnpm --filter @petnav/web start
-
-# Aplicación móvil
-pnpm --filter @petnav/mobile start
+# Todo a la vez, base de datos incluida
+pnpm test
 ```
+
+**`pnpm mobile` y `pnpm web` pasan por turbo a propósito.** Llamar al script del
+paquete directamente —`pnpm --filter @petnav/mobile run web`— salta el grafo de
+dependencias y arranca antes de que los paquetes del workspace estén
+compilados; con turbo, `^build` va primero y no hay forma de olvidarlo.
+
+**La aplicación móvil no necesita base de datos**: funciona con datos en
+memoria. La necesitan la web y las 85 pruebas de `@petnav/db`.
+
+**`pnpm test` incluye pruebas de integración de verdad.** Las 85 de `@petnav/db` hablan con un
+Postgres real, y es a propósito: lo que comprueban —las políticas RLS, el disparador que impide una
+quedada de dos horas para un hurón, la paridad entre el techo que calcula la base y el que calcula
+`packages/core`— vive en el esquema, no en TypeScript. Un simulacro de Postgres probaría el
+simulacro. Sin base de datos delante, esas pruebas fallan diciendo qué falta y cómo montarlo, en vez
+de repetir `ECONNREFUSED` cinco veces.
+
+Los valores por defecto de conexión son los que crea `./scripts/db-reset.sh` —rol y base `coincide`
+en `127.0.0.1:5432`—, así que las dos órdenes de arriba bastan sin exportar nada. Que sigan
+coincidiendo lo comprueba `packages/db/src/connection.test.ts`, que lee el script en vez de repetir
+el nombre.
+
+En Claude Code para la web no hace falta nada de esto: `.claude/hooks/session-start.sh` instala
+PostGIS, arranca el servidor y aplica las migraciones al empezar la sesión.
 
 ---
 
@@ -278,7 +307,7 @@ En el móvil, `<Icon>` obliga a decidir si un icono aporta significado —y llev
 decorativo porque su palabra está al lado. El tipo no deja una tercera opción.
 
 **Componentes: Radix UI en la web.** Este proyecto no usa Tailwind, así que shadcn/ui no es
-instalable tal cual: shadcn *es* Radix más Tailwind. Se toma la mitad que hace el trabajo. En React
+instalable tal cual: shadcn _es_ Radix más Tailwind. Se toma la mitad que hace el trabajo. En React
 Native no corre ninguna de las librerías habituales —todas son DOM—, así que allí hay una capa de
 primitivas propia sobre los mismos tokens, en lugar de meter NativeWind solo para poder citar una
 librería.
@@ -287,6 +316,39 @@ La estructura del móvil es de feed: fila de presencia en vivo arriba, entradas 
 barra de cinco pestañas. No por parecerse a nada, sino porque el radar ya era un círculo que indica
 presencia y caduca solo, y la gente sabe leer ese patrón sin que nadie se lo explique.
 
+**Y la otra mitad de la aplicación, la que no es una foto, se lee en filas.** Comunidad, quedadas,
+espacios, puntos de encuentro y el radar estaban escritos como un folleto —antetítulo en versalitas,
+titular, párrafo de presentación y debajo una pila de tarjetas con borde, cada una con su botón a lo
+ancho—, así que en una pantalla cabía elemento y medio y el conjunto no se parecía al feed por mucho
+que el color y la letra salieran del mismo sitio. `apps/mobile/components/list.tsx` es el
+vocabulario que las unifica: fila del ancho de la pantalla con el retrato a la izquierda, dos líneas
+de texto y la acción en una pastilla a la derecha; línea de un pelo entre una y la siguiente;
+cabecera de sección en negrita; estado vacío centrado; y `FootNote` para lo que antes eran párrafos
+a cuerpo de texto entre elemento y elemento. **Las explicaciones no se han tirado** —esta aplicación
+dice por qué hace lo que hace—, lo que ha cambiado es su peso: van en gris y pequeñas debajo de la
+lista, no interrumpiéndola.
+
+**Cuatro direcciones visuales, y la cuarta se dibuja con luz.** Una dirección no es una paleta: es
+paleta, tipografía y forma, y se cambia de una pieza desde Configuración (`apps/mobile/lib/direcciones.ts`).
+A «Nocturno», «Papel» y «Señal» se les ha unido **«Relieve»**, que es neumorfismo —Soft UI— hecho
+con una condición que no se negocia: _el relieve separa superficies, el color separa texto_. En ella
+la tarjeta es exactamente del color del fondo y lo que la levanta son dos luces —un brillo arriba a
+la izquierda, una sombra abajo a la derecha— que viven en un solo sitio, `lib/relieve.ts`. Las
+pantallas no preguntan qué dirección hay puesta: piden `useRelief()` y extienden lo que reciben, que
+en las otras tres es un objeto vacío. Por eso la dirección se aplica a la aplicación entera sin
+tocar las pantallas una por una.
+
+El fallo conocido del estilo —que acaba hundiendo también el texto en el fondo— está atado por el
+test: las mismas veinte medidas de contraste que aprueban a las otras tres direcciones aprueban a
+esta, en claro y en oscuro, y una regla más en `lib/interface-rules.test.ts` impide que una pantalla
+escriba su propia sombra, porque bastaría una para que la aplicación tuviera dos soles. En oscuro el
+fondo es carbón mate y no negro puro por un motivo físico: sobre negro no existe la sombra clara.
+
+Dos sitios se quedan fuera a propósito. El **SOS** conserva sus tarjetas con borde rojo: es la
+pantalla en la que una alerta abierta tiene que gritar, y aplanarla al mismo gris que un directorio
+de veterinarios sería quitarle lo único que hace. Y el aviso de bienestar (`WelfareNotice`) sigue
+siendo un recuadro, porque es el que manda sobre el botón que tiene debajo.
+
 Sobre la guía de interfaz de la plataforma: el cuerpo está a 17 pt, las áreas táctiles no bajan de
 44, la barra de navegación solo enseña su separación cuando hay contenido debajo, y ningún estado se
 comunica solo con color. Una revisión con esa guía encontró tres cosas que no se ven leyendo el
@@ -294,7 +356,6 @@ código: el cuerpo estaba a 16, los chips de condiciones tenían 34 de alto, y `
 vez lo interactivo y la banda «Buen match» —que en tema oscuro era además idéntica a `success`, así
 que dos bandas distintas se pintaban iguales. Hay dos aserciones en los tokens para que ninguna de
 las dos vuelva sin que falle el build.
-
 
 ---
 

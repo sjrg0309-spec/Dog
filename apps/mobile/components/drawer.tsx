@@ -38,6 +38,7 @@ import { Glass } from './glass';
 import { springs } from './motion';
 import { haptics } from '@/lib/haptics';
 import { useReducedMotion } from '@/lib/motion';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /** A partir de aquí se cierra por distancia recorrida. */
@@ -58,6 +59,7 @@ export function Drawer({
   height?: number;
 }) {
   const theme = useTheme();
+  const relief = useRelief();
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const { height: screen } = useWindowDimensions();
@@ -141,6 +143,10 @@ export function Drawer({
               paddingBottom: insets.bottom,
               overflow: 'hidden',
             },
+            /* La hoja es lo que más sobresale de la pantalla, así que se lleva
+               el paso largo del relieve. En las otras direcciones lo que la
+               despega es el velo oscuro de detrás, que sigue estando. */
+            relief.raised('lg'),
             sheetStyle,
           ]}
         >

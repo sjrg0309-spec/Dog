@@ -34,6 +34,8 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { alertReachM, RESCUE_SCENARIOS } from '@petnav/core';
 
 import { BackBar } from '@/components/chrome';
+import { IconTile, LIST_GUTTER, ListGroup } from '@/components/list';
+import { Appear } from '@/components/motion';
 import { Icon } from '@/components/icon';
 import { Caption, Screen, Segmented } from '@/components/ui';
 import {
@@ -76,15 +78,40 @@ import {
 } from '@/lib/account';
 import { setGhostMode, useGhostMode } from '@/lib/presence';
 import { NEARBY_RADII_M, type NearbyRadius } from '@/lib/posts';
-import {
-  searchSettings,
-  setSetting,
-  useSettings,
-  type SettingRow,
-} from '@/lib/settings';
+import { searchSettings, setSetting, useSettings, type SettingRow } from '@/lib/settings';
+import { useRelief } from '@/lib/relieve';
 import { useTheme } from '@/lib/theme';
 
 /** El icono de cada fila. Vive aquí porque el índice es dato y no interfaz. */
+/**
+ * El tinte de cada ficha.
+ *
+ * No es decoración repartida al azar: el color dice de qué familia es el
+ * ajuste antes de leerlo, que es lo que hace que un panel de treinta filas se
+ * pueda recorrer con la vista. El rojo se reserva a lo que cierra o alarma
+ * —bloqueados, rescate— y el naranja de «en vivo» a lo que te hace visible o
+ * invisible, que es el mismo color que usa el radar.
+ */
+const TILE_TONES: Record<string, 'primary' | 'live' | 'alert' | 'ok' | 'info' | 'muted'> = {
+  ghost: 'live',
+  rescuer: 'alert',
+  blocked: 'alert',
+  chip: 'ok',
+  shelter: 'alert',
+  direccion: 'info',
+  theme: 'info',
+  motion: 'info',
+  feedRadius: 'info',
+  walks: 'primary',
+  record: 'alert',
+  saved: 'primary',
+  walkmode: 'primary',
+  activity: 'live',
+  account: 'muted',
+  push: 'muted',
+  export: 'muted',
+};
+
 const ICONS: Record<string, LucideIcon> = {
   ghost: EyeOff,
   rescuer: Siren,
@@ -101,18 +128,19 @@ const ICONS: Record<string, LucideIcon> = {
   shelter: Siren,
   account: Lock,
   push: Bell,
-  blocks: Ban,
+  blocked: Ban,
   export: FileText,
 };
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const relief = useRelief();
   const [query, setQuery] = useState('');
   const { kind } = useAccount();
   const groups = searchSettings(query, kind);
 
   return (
-    <Screen>
+    <Screen grouped>
       <BackBar title="Configuración" />
 
       <ScrollView
@@ -131,16 +159,20 @@ export default function SettingsScreen() {
               placeholderTextColor={theme.colors.inputPlaceholder}
               accessibilityLabel="Buscar un ajuste"
               returnKeyType="search"
-              style={{
-                minHeight: theme.touchTarget.min,
-                paddingLeft: theme.space[12],
-                paddingRight: theme.space[12],
-                borderRadius: theme.radius.full,
-                backgroundColor: theme.colors.input,
-                color: theme.colors.inputForeground,
-                fontFamily: fonts.body,
-                fontSize: theme.fontSize.base,
-              }}
+              style={[
+                {
+                  minHeight: theme.touchTarget.min,
+                  paddingLeft: theme.space[12],
+                  paddingRight: theme.space[12],
+                  borderRadius: theme.radius.full,
+                  backgroundColor: theme.colors.input,
+                  color: theme.colors.inputForeground,
+                  fontFamily: fonts.body,
+                  fontSize: theme.fontSize.base,
+                },
+                /* La ranura: con relieve un campo es un hueco, no una caja encima. */
+                relief.pressed('sm'),
+              ]}
             />
             <View
               pointerEvents="none"
@@ -186,11 +218,14 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
-        {groups.map((group) => (
-          <View key={group.id} style={{ paddingTop: theme.space[2] }}>
+        {groups.map((group, position) => (
+          /* Cada grupo entra un poco después que el anterior. En una pantalla
+             que son ocho tarjetas apiladas, el escalonado es lo que la hace
+             parecer que se despliega en vez de aparecer de golpe. */
+          <Appear key={group.id} index={position} style={{ paddingTop: theme.space[2] }}>
             <View
               style={{
-                paddingHorizontal: theme.space[4],
+                paddingHorizontal: LIST_GUTTER + 4,
                 paddingBottom: theme.space[2],
                 gap: theme.space[1],
               }}
@@ -208,10 +243,12 @@ export default function SettingsScreen() {
               {group.note ? <Caption>{group.note}</Caption> : null}
             </View>
 
-            {group.rows.map((row) => (
-              <SettingItem key={row.id} row={row} />
-            ))}
-          </View>
+            <ListGroup>
+              {group.rows.map((row) => (
+                <SettingItem key={row.id} row={row} />
+              ))}
+            </ListGroup>
+          </Appear>
         ))}
       </ScrollView>
     </Screen>
@@ -249,18 +286,18 @@ function Shell({
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: theme.space[3],
-        paddingHorizontal: theme.space[4],
+        paddingHorizontal: theme.space[3] + 2,
         paddingVertical: theme.space[3],
       }}
     >
       {icon ? (
+        /* La ficha teñida, que es de donde sale el color de un panel de
+           ajustes: una columna de gris con una mancha de color por fila. El
+           icono suelto de antes decía lo mismo y no se veía, porque un trazo
+           gris de veinticuatro puntos entre dos líneas de texto gris no
+           destaca de nada. */
         <View style={{ paddingTop: 2 }}>
-          <Icon
-            icon={icon}
-            size="lg"
-            color={muted ? theme.colors.mutedForeground : theme.colors.foreground}
-            decorative
-          />
+          <IconTile icon={icon} tone={muted ? 'muted' : (TILE_TONES[row.id] ?? 'primary')} />
         </View>
       ) : null}
       <View style={{ flex: 1, gap: theme.space[1] }}>
@@ -495,9 +532,7 @@ function ChoiceRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
                 value={settings.motion}
                 onChange={(id) => setSetting('motion', id)}
               />
-              <Caption>
-                Si ya lo tienes activado en el teléfono, esto no lo desactiva.
-              </Caption>
+              <Caption>Si ya lo tienes activado en el teléfono, esto no lo desactiva.</Caption>
             </View>
           ) : null}
         </View>
@@ -507,22 +542,24 @@ function ChoiceRow({ row, icon }: { row: SettingRow; icon: LucideIcon | undefine
 }
 
 /**
- * Las tres direcciones, para elegirlas mirándolas.
+ * Las direcciones, para elegirlas mirándolas.
  *
- * Un `Segmented` con tres palabras habría sido la mitad de código y no habría
- * servido: «Nocturno», «Papel» y «Señal» no significan nada hasta que se ven.
- * Cada miniatura está pintada **con los colores, la forma y la letra de su
- * dirección**, no con los del tema activo —por eso los tres nombres salen cada
- * uno en su tipografía—, así que la elección se hace comparando en vez de
- * leyendo.
+ * Un `Segmented` con cuatro palabras habría sido la mitad de código y no habría
+ * servido: «Nocturno», «Papel», «Señal» y «Relieve» no significan nada hasta que
+ * se ven. Cada miniatura está pintada **con los colores, la forma, la letra y la
+ * luz de su dirección**, no con los del tema activo —por eso cada nombre sale en
+ * su tipografía—, así que la elección se hace comparando en vez de leyendo.
  *
- * La miniatura enseña las tres cosas que cambian de una dirección a otra:
+ * La miniatura enseña las cuatro cosas que cambian de una dirección a otra:
  *
  *  1. **El color:** el fondo, el texto y la marca, tal cual quedarán.
  *  2. **La forma:** el radio sale de la propia dirección, así que «Papel» se ve
  *     de esquina recta y «Señal» blanda sin que nadie lo explique.
- *  3. **La foto:** a sangre en Nocturno y Papel, con marco en Señal. Es la
- *     diferencia más visible de las tres y no se deduce de un radio.
+ *  3. **La foto:** a sangre en Nocturno y Papel, con marco en Señal y Relieve.
+ *     Es la diferencia más visible y no se deduce de un radio.
+ *  4. **La luz:** en «Relieve» la pastilla de acción sobresale del fondo y la
+ *     franja de la foto se hunde en él. Sin enseñarlo, la única dirección que se
+ *     dibuja con sombras se vería aquí como un gris plano.
  */
 function DirectionPicker() {
   const theme = useTheme();
@@ -533,13 +570,18 @@ function DirectionPicker() {
       <View
         accessibilityRole="radiogroup"
         accessibilityLabel="Dirección visual"
-        style={{ flexDirection: 'row', gap: theme.space[2] }}
+        /* Dos por fila desde que son cuatro: repartidas en una sola, cada
+           miniatura se queda en noventa puntos y la foto de dentro deja de
+           leerse como una foto. */
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space[2] }}
       >
         {DIRECTION_IDS.map((id) => (
           <DirectionCard key={id} id={id} selected={id === active} />
         ))}
       </View>
-      <Caption>{DIRECTIONS[active].tagline}. Cambia el color, la letra y la forma a la vez.</Caption>
+      <Caption>
+        {DIRECTIONS[active].tagline}. Cambia el color, la letra y la forma a la vez.
+      </Caption>
     </View>
   );
 }
@@ -548,10 +590,23 @@ function DirectionCard({ id, selected }: { id: DirectionId; selected: boolean })
   const theme = useTheme();
   const direction = DIRECTIONS[id];
   /* La miniatura se pinta con el fondo que el usuario tiene puesto, no siempre
-     con el oscuro: si alguien va en claro, enseñarle las tres en negro le hace
+     con el oscuro: si alguien va en claro, enseñárselas todas en negro le hace
      elegir una pantalla que no va a ver. */
   const preview = direction[theme.isDark ? 'dark' : 'light'];
   const inset = direction.media === 'inset' ? 5 : 0;
+
+  /* La luz de **esta** dirección, no la de la que esté puesta: la miniatura es
+     un retrato de la opción, igual que ya lo era con su color y su letra. Por
+     eso se arma a mano aquí en vez de con `useRelief`, que devuelve siempre la
+     de la dirección activa. Es la excepción que la regla de sombras de
+     `lib/interface-rules.test.ts` tiene anotada por su nombre. */
+  const lights = direction.relief?.[theme.isDark ? 'dark' : 'light'] ?? null;
+  const raised = lights
+    ? { boxShadow: `-2px -2px 4px ${lights.light}, 2px 2px 4px ${lights.dark}` }
+    : null;
+  const carved = lights
+    ? { boxShadow: `inset 1px 1px 2px ${lights.dark}, inset -1px -1px 2px ${lights.light}` }
+    : null;
 
   return (
     <Pressable
@@ -566,7 +621,12 @@ function DirectionCard({ id, selected }: { id: DirectionId; selected: boolean })
         haptics.commit();
         setDirection(id);
       }}
-      style={({ pressed }) => ({ flex: 1, gap: theme.space[1], opacity: pressed ? 0.75 : 1 })}
+      style={({ pressed }) => ({
+        flexBasis: '47%',
+        flexGrow: 1,
+        gap: theme.space[1],
+        opacity: pressed ? 0.75 : 1,
+      })}
     >
       <View
         style={{
@@ -591,20 +651,30 @@ function DirectionCard({ id, selected }: { id: DirectionId; selected: boolean })
             }}
           />
           <View style={{ flex: 1 }} />
-          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: preview.mutedForeground }} />
+          <View
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: preview.mutedForeground,
+            }}
+          />
         </View>
 
         {/* La foto: a sangre o con marco. Es lo que más se nota. */}
         <View
-          style={{
-            height: 34,
-            marginHorizontal: inset,
-            borderRadius: inset > 0 ? direction.radius.sm : 0,
-            backgroundColor: preview.surfaceElevated,
-            borderTopWidth: inset > 0 ? 0 : 1,
-            borderBottomWidth: inset > 0 ? 0 : 1,
-            borderColor: preview.border,
-          }}
+          style={[
+            {
+              height: 34,
+              marginHorizontal: inset,
+              borderRadius: inset > 0 ? direction.radius.sm : 0,
+              backgroundColor: preview.surfaceElevated,
+              borderTopWidth: inset > 0 || lights ? 0 : 1,
+              borderBottomWidth: inset > 0 || lights ? 0 : 1,
+              borderColor: preview.border,
+            },
+            carved,
+          ]}
         />
 
         {/* Y la acción, del color de la marca. */}
@@ -618,12 +688,15 @@ function DirectionCard({ id, selected }: { id: DirectionId; selected: boolean })
             }}
           />
           <View
-            style={{
-              height: 16,
-              width: '78%',
-              borderRadius: direction.radius.full,
-              backgroundColor: preview.primary,
-            }}
+            style={[
+              {
+                height: 16,
+                width: '78%',
+                borderRadius: direction.radius.full,
+                backgroundColor: preview.primary,
+              },
+              raised,
+            ]}
           />
         </View>
       </View>

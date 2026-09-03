@@ -117,8 +117,9 @@ export type Theme = {
  *
  * Aquí se cruzan dos decisiones que antes eran una sola:
  *
- *  1. **Qué dirección** —Nocturno, Papel o Señal—. Es la identidad: color,
- *     tipografía y forma, de una pieza. Vive en `lib/direcciones`.
+ *  1. **Qué dirección** —Nocturno, Papel, Señal o Relieve—. Es la identidad:
+ *     color, tipografía, forma y, en «Relieve», también la luz con la que se
+ *     dibujan las superficies. Vive en `lib/direcciones`.
  *  2. **Qué fondo** —claro, oscuro o el del teléfono—. Sigue siendo un ajuste
  *     porque una aplicación que se usa a las siete de la mañana y a las once de
  *     la noche no puede tener un solo fondo.
@@ -153,5 +154,37 @@ export function useTheme(): Theme {
       comfortable: touchTarget.comfortable + direction.touchBoost,
       floating: touchTarget.floating + direction.touchBoost,
     },
+  };
+}
+
+/**
+ * Las dos superficies de una pantalla agrupada.
+ *
+ * En claro el fondo se hunde y la tarjeta es blanca; en oscuro el fondo es el
+ * negro de la pantalla y la tarjeta se levanta. Es el par
+ * `systemGroupedBackground` / `secondarySystemGroupedBackground` de iOS, y vive
+ * aquí —y no en el componente de lista— porque lo necesitan los dos extremos: el
+ * `ListGroup` para pintar la tarjeta y el `Screen` para pintar el fondo sobre el
+ * que esa tarjeta se ve. Escrito dos veces, el día que cambie uno se queda una
+ * tarjeta blanca sobre un fondo blanco.
+ *
+ * Hace falta por un motivo muy concreto: en la dirección «Nocturno» `surface`
+ * **es** `background` —los dos son negro puro—, así que la regla ingenua
+ * «tarjeta de superficie sobre el fondo» dibuja una tarjeta invisible.
+ */
+export function useGroupedSurfaces(): { ground: string; card: string } {
+  const theme = useTheme();
+
+  /* Con relieve, las dos superficies son la misma y eso **es** el estilo: una
+     tarjeta no es un papel más claro puesto encima del fondo, es el mismo
+     material abombado. Quien separa las dos es la luz, no el color, y darle
+     aquí un gris distinto a la tarjeta rompería el efecto entero: se vería el
+     recorte del papel por debajo del relieve. */
+  if (theme.direction.relief) {
+    return { ground: theme.colors.background, card: theme.colors.surface };
+  }
+  return {
+    ground: theme.isDark ? theme.colors.background : theme.colors.surfaceSunken,
+    card: theme.isDark ? theme.colors.surfaceElevated : theme.colors.surface,
   };
 }
